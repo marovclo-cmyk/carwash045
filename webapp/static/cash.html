@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CarWash Cloud — Касса за смену</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="css/theme.css">
+</head>
+<body>
+
+<div class="shell">
+  <div class="sidebar" id="sidebarRoot"></div>
+
+  <div class="main">
+    <div class="err-banner" id="errBanner"><i class="fa-solid fa-triangle-exclamation"></i><span id="errText"></span></div>
+
+    <div class="page-head">
+      <div>
+        <div class="page-title">Касса за смену</div>
+        <div class="page-sub" id="pageSub">—</div>
+      </div>
+      <div class="head-actions">
+        <button class="btn btn-ghost" id="exportBtn"><i class="fa-solid fa-file-arrow-down"></i>PDF</button>
+      </div>
+    </div>
+
+    <div class="metrics-grid" style="grid-template-columns:1.4fr 1fr 1fr 1fr;">
+      <div class="metric-card featured">
+        <div class="metric-top"><span class="metric-label">Итого (с учётом расходов)</span></div>
+        <div class="metric-value" id="heroValue">—</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-top"><span class="metric-label">Наличные</span><span class="metric-icon" style="color:var(--color-mint);background:var(--color-mint-wash)"><i class="fa-solid fa-money-bill-wave"></i></span></div>
+        <div class="metric-value" id="cashValue">—</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-top"><span class="metric-label">Visa / MIR</span><span class="metric-icon" style="color:var(--color-sky);background:var(--color-sky-wash)"><i class="fa-solid fa-credit-card"></i></span></div>
+        <div class="metric-value" id="visaValue">—</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-top"><span class="metric-label">Безнал</span><span class="metric-icon" style="color:#a66c00;background:var(--color-amber-wash)"><i class="fa-solid fa-building-columns"></i></span></div>
+        <div class="metric-value" id="beznalValue">—</div>
+      </div>
+    </div>
+
+    <div class="panels-grid" style="grid-template-columns:1fr 1fr;">
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">Расходы</div>
+          <div class="list-amount neg" id="expTotal">0 ₽</div>
+        </div>
+        <div id="expList"></div>
+        <div id="expEmpty" class="empty-note" style="display:none">Расходов пока нет</div>
+        <div class="add-row">
+          <input class="f-name" id="expName" type="text" placeholder="Название (например, вода)">
+          <input class="f-amount" id="expAmount" type="number" placeholder="₽">
+          <button class="btn btn-primary btn-icon" id="expAddBtn"><i class="fa-solid fa-plus"></i></button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">Товары</div>
+          <div class="list-amount pos" id="prodTotal">0 ₽</div>
+        </div>
+        <div id="prodList"></div>
+        <div id="prodEmpty" class="empty-note" style="display:none">Товаров пока нет</div>
+        <div class="add-row">
+          <select class="f-name" id="prodSelect"></select>
+          <select class="f-pay" id="prodPay"><option value="нал">Наличные</option><option value="visa">Visa/MIR</option><option value="безнал">Безнал</option></select>
+          <button class="btn btn-primary btn-icon" id="prodAddBtn"><i class="fa-solid fa-plus"></i></button>
+        </div>
+      </div>
+
+      <div class="panel" style="grid-column:span 2;">
+        <div class="panel-head">
+          <div class="panel-title">Доходы (доп.)</div>
+          <div class="list-amount pos" id="incTotal">0 ₽</div>
+        </div>
+        <div id="incList"></div>
+        <div id="incEmpty" class="empty-note" style="display:none">Доп. доходов пока нет</div>
+        <div class="add-row">
+          <input class="f-name" id="incName" type="text" placeholder="Название (например, продажа духов)">
+          <input class="f-amount" id="incAmount" type="number" placeholder="₽">
+          <select class="f-pay" id="incPay">
+            <option value="нал">Наличные</option><option value="visa">Visa/MIR</option><option value="безнал">Безнал</option>
+            <option value="раздельная">Раздельная</option>
+          </select>
+          <button class="btn btn-primary btn-icon" id="incAddBtn"><i class="fa-solid fa-plus"></i></button>
+        </div>
+        <div class="split-row" id="incSplitRow">
+          <div class="sr-field"><div class="sr-label">Нал</div><input type="number" id="incSplitCash" placeholder="0"></div>
+          <div class="sr-field"><div class="sr-label">Visa</div><input type="number" id="incSplitVisa" placeholder="0"></div>
+          <div class="sr-field"><div class="sr-label">Безнал</div><input type="number" id="incSplitBeznal" placeholder="0"></div>
+        </div>
+        <div class="split-hint" id="incSplitHint"></div>
+      </div>
+    </div>
+
+    <div class="close-panel" id="openPanel" style="display:none">
+      <div>
+        <div class="cp-title">Открыть смену</div>
+        <div class="cp-sub">Начнёт новый день по филиалу «<span id="openBranchName"></span>». Пока не нажмёшь — добавлять машины нельзя.</div>
+      </div>
+      <button class="btn btn-primary" id="openBtn"><i class="fa-solid fa-lock-open"></i>Открыть смену</button>
+    </div>
+
+    <div class="close-panel" id="closePanel" style="display:none">
+      <div>
+        <div class="cp-title">Закрыть смену</div>
+        <div class="cp-sub">Сохранит день в архив филиала «<span id="closeBranchName"></span>». Утром нужно будет нажать «Открыть смену».</div>
+      </div>
+      <button class="btn btn-danger" id="closeBtn"><i class="fa-solid fa-lock"></i>Закрыть смену</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><i class="fa-solid fa-circle-check"></i><span id="toastText"></span></div>
+
+<script src="site-common.js"></script>
+<script>
+/* Демо-данные: каталог товаров + базовая выручка по способам оплаты (из машин за смену).
+   В реальном проекте всё это приходит из /api/session и /api/config. */
+const PRODUCTS_CATALOG = [
+  { key:"aroma",  name:"Ароматизатор",     price:200 },
+  { key:"wipes",  name:"Салфетки",         price:100 },
+  { key:"shampoo",name:"Шампунь-спрей",    price:350 },
+];
+
+const BRANCHES = {
+  "Северный": { open:true, base:{cash:4300, visa:4200, beznal:4200}, expenses:[{name:"Вода", amount:400}], products:[{name:"Ароматизатор", payment:"нал", price:200}], incomes:[] },
+  "Южный":    { open:false, base:{cash:650, visa:1700, beznal:1700}, expenses:[], products:[], incomes:[] },
+};
+
+let state = { branch:"Северный" };
+
+function showErr(msg){
+  const el = document.getElementById("errBanner");
+  if(!msg){ el.style.display="none"; return; }
+  document.getElementById("errText").textContent = msg;
+  el.style.display = "flex";
+}
+
+function payTagFor(payment, splitObj){
+  if(splitObj){
+    const parts = Object.entries(splitObj).filter(([,v])=>v).map(([k,v])=>`${k[0].toUpperCase()+k.slice(1)} ${CW.money(v)}`).join(" + ");
+    return `<span class="pay-tag transfer" title="${parts}">Раздельная</span>`;
+  }
+  const p = (payment||"нал").toLowerCase();
+  const cls = p==="нал" ? "cash" : (p==="visa" ? "card" : "transfer");
+  const label = p[0].toUpperCase()+p.slice(1);
+  return `<span class="pay-tag ${cls}">${label}</span>`;
+}
+
+function computeSummary(b){
+  let cash=b.base.cash, visa=b.base.visa, beznal=b.base.beznal;
+  b.products.forEach(p=>{
+    if(p.payment==="нал") cash+=p.price; else if(p.payment==="visa") visa+=p.price; else beznal+=p.price;
+  });
+  b.incomes.forEach(inc=>{
+    if(inc.payment_split){
+      cash += inc.payment_split["нал"]||0; visa += inc.payment_split["visa"]||0; beznal += inc.payment_split["безнал"]||0;
+    } else if(inc.payment==="нал"){ cash+=inc.amount; } else if(inc.payment==="visa"){ visa+=inc.amount; } else { beznal+=inc.amount; }
+  });
+  const total_expenses = b.expenses.reduce((a,e)=>a+e.amount,0);
+  const total_products = b.products.reduce((a,p)=>a+p.price,0);
+  const total_incomes = b.incomes.reduce((a,i)=>a+i.amount,0);
+  const grand_total = cash+visa+beznal-total_expenses;
+  return { cash, visa, beznal, total_expenses, total_products, total_incomes, grand_total };
+}
+
+function render(){
+  const b = BRANCHES[state.branch];
+  showErr(null);
+  document.getElementById("pageSub").textContent = `${state.branch} · ${CW.todayLabel()}`;
+  document.getElementById("openBranchName").textContent = state.branch;
+  document.getElementById("closeBranchName").textContent = state.branch;
+  document.getElementById("openPanel").style.display = b.open ? "none" : "flex";
+  document.getElementById("closePanel").style.display = b.open ? "flex" : "none";
+
+  const s = computeSummary(b);
+  CW.countUp(document.getElementById("heroValue"), s.grand_total, true);
+  CW.countUp(document.getElementById("cashValue"), s.cash, true);
+  CW.countUp(document.getElementById("visaValue"), s.visa, true);
+  CW.countUp(document.getElementById("beznalValue"), s.beznal, true);
+  document.getElementById("expTotal").textContent = "−"+CW.money(s.total_expenses);
+  document.getElementById("prodTotal").textContent = "+"+CW.money(s.total_products);
+  document.getElementById("incTotal").textContent = "+"+CW.money(s.total_incomes);
+
+  const expList = document.getElementById("expList"), expEmpty = document.getElementById("expEmpty");
+  if(!b.expenses.length){ expList.innerHTML=""; expEmpty.style.display="block"; }
+  else{ expEmpty.style.display="none";
+    expList.innerHTML = b.expenses.map((e,i)=>`
+      <div class="list-row"><div class="list-name">${e.name}</div><div class="list-amount neg">−${CW.money(e.amount)}</div>
+      <div class="icon-btn" onclick="delExpense(${i})"><i class="fa-solid fa-trash"></i></div></div>`).join("");
+  }
+
+  const prodList = document.getElementById("prodList"), prodEmpty = document.getElementById("prodEmpty");
+  if(!b.products.length){ prodList.innerHTML=""; prodEmpty.style.display="block"; }
+  else{ prodEmpty.style.display="none";
+    prodList.innerHTML = b.products.map((p,i)=>`
+      <div class="list-row"><div class="list-name">${p.name}</div>${payTagFor(p.payment)}
+      <div class="list-amount pos">+${CW.money(p.price)}</div>
+      <div class="icon-btn" onclick="delProduct(${i})"><i class="fa-solid fa-trash"></i></div></div>`).join("");
+  }
+
+  const incList = document.getElementById("incList"), incEmpty = document.getElementById("incEmpty");
+  if(!b.incomes.length){ incList.innerHTML=""; incEmpty.style.display="block"; }
+  else{ incEmpty.style.display="none";
+    incList.innerHTML = b.incomes.map((inc,i)=>`
+      <div class="list-row"><div class="list-name">${inc.name}</div>${payTagFor(inc.payment, inc.payment_split)}
+      <div class="list-amount pos">+${CW.money(inc.amount)}</div>
+      <div class="icon-btn" onclick="delIncome(${i})"><i class="fa-solid fa-trash"></i></div></div>`).join("");
+  }
+}
+
+function renderCatalog(){
+  document.getElementById("prodSelect").innerHTML = PRODUCTS_CATALOG.map(p=>`<option value="${p.key}">${p.name} — ${p.price}₽</option>`).join("");
+}
+
+window.delExpense = (i)=>{ BRANCHES[state.branch].expenses.splice(i,1); render(); };
+window.delProduct = (i)=>{ BRANCHES[state.branch].products.splice(i,1); render(); };
+window.delIncome  = (i)=>{ BRANCHES[state.branch].incomes.splice(i,1); render(); };
+
+document.getElementById("expAddBtn").addEventListener("click", ()=>{
+  const name = document.getElementById("expName").value.trim();
+  const amount = parseInt(document.getElementById("expAmount").value, 10);
+  if(!name || !amount){ showErr("Укажите название и сумму расхода"); return; }
+  BRANCHES[state.branch].expenses.push({name, amount});
+  document.getElementById("expName").value=""; document.getElementById("expAmount").value="";
+  render();
+});
+
+document.getElementById("prodAddBtn").addEventListener("click", ()=>{
+  const key = document.getElementById("prodSelect").value;
+  const payment = document.getElementById("prodPay").value;
+  const item = PRODUCTS_CATALOG.find(p=>p.key===key);
+  if(!item){ showErr("Выберите товар из каталога"); return; }
+  BRANCHES[state.branch].products.push({name:item.name, price:item.price, payment});
+  render();
+});
+
+const incSplitRow = document.getElementById("incSplitRow"), incSplitHint = document.getElementById("incSplitHint");
+document.getElementById("incPay").addEventListener("change",(e)=>{
+  const isSplit = e.target.value==="раздельная";
+  incSplitRow.classList.toggle("show", isSplit);
+  incSplitHint.classList.toggle("show", isSplit);
+  updateSplitHint();
+});
+function updateSplitHint(){
+  const amount = parseInt(document.getElementById("incAmount").value,10)||0;
+  const cash = parseInt(document.getElementById("incSplitCash").value,10)||0;
+  const visa = parseInt(document.getElementById("incSplitVisa").value,10)||0;
+  const beznal = parseInt(document.getElementById("incSplitBeznal").value,10)||0;
+  const sum = cash+visa+beznal;
+  incSplitHint.classList.toggle("err", sum!==amount);
+  incSplitHint.textContent = `Сумма частей: ${sum} ₽ из ${amount} ₽` + (sum!==amount ? " — не совпадает с суммой дохода" : " ✓");
+}
+["incAmount","incSplitCash","incSplitVisa","incSplitBeznal"].forEach(id=>{
+  document.getElementById(id).addEventListener("input", updateSplitHint);
+});
+
+document.getElementById("incAddBtn").addEventListener("click", ()=>{
+  const name = document.getElementById("incName").value.trim();
+  const amount = parseInt(document.getElementById("incAmount").value,10);
+  const payment = document.getElementById("incPay").value;
+  if(!name || !amount){ showErr("Укажите название и сумму дохода"); return; }
+
+  const entry = { name, amount };
+  if(payment==="раздельная"){
+    const cash = parseInt(document.getElementById("incSplitCash").value,10)||0;
+    const visa = parseInt(document.getElementById("incSplitVisa").value,10)||0;
+    const beznal = parseInt(document.getElementById("incSplitBeznal").value,10)||0;
+    const sum = cash+visa+beznal;
+    if(sum!==amount){ showErr(`Сумма раздельной оплаты (${sum} ₽) не совпадает с суммой дохода (${amount} ₽)`); return; }
+    const split = {}; if(cash) split["нал"]=cash; if(visa) split["visa"]=visa; if(beznal) split["безнал"]=beznal;
+    if(Object.keys(split).length<2){ showErr("Для раздельной оплаты укажите минимум два способа"); return; }
+    entry.payment_split = split;
+  } else {
+    entry.payment = payment;
+  }
+  BRANCHES[state.branch].incomes.push(entry);
+  document.getElementById("incName").value=""; document.getElementById("incAmount").value="";
+  document.getElementById("incSplitCash").value=""; document.getElementById("incSplitVisa").value=""; document.getElementById("incSplitBeznal").value="";
+  incSplitRow.classList.remove("show"); incSplitHint.classList.remove("show");
+  render();
+});
+
+document.getElementById("openBtn").addEventListener("click", ()=>{
+  if(!confirm(`Открыть смену филиала «${state.branch}» на сегодня?`)) return;
+  BRANCHES[state.branch].open = true;
+  render();
+  CW.showToast("Смена открыта ✅");
+});
+
+document.getElementById("closeBtn").addEventListener("click", ()=>{
+  const b = BRANCHES[state.branch];
+  const s = computeSummary(b);
+  const input = prompt(`Сверка кассы\n\nПо системе наличных должно быть: ${CW.money(s.cash)}\n\nВведите, сколько реально насчитали в кассе (₽).\nОставьте пустым, если сверку делать не нужно.`, String(s.cash));
+  if(input===null) return;
+  if(!confirm(`Закрыть смену филиала «${state.branch}»?\n\nДень будет сохранён в архив. Отменить это действие нельзя.`)) return;
+  if(input.trim()!==""){
+    const actual = parseInt(input.replace(/[^\d-]/g,""),10);
+    if(!isNaN(actual) && actual!==s.cash){
+      const diff = actual - s.cash;
+      const sign = diff<0 ? "Недостача" : "Излишек";
+      b.open = false; render();
+      alert(`Смена закрыта.\n\n⚠️ Касса не сошлась!\n${sign}: ${CW.money(Math.abs(diff))}\n(записано в историю изменений)`);
+      return;
+    }
+  }
+  b.open = false; render();
+  alert("Смена закрыта и сохранена в архив. Утром — «Открыть смену».");
+});
+
+document.getElementById("exportBtn").addEventListener("click", ()=> CW.showToast("PDF-отчёт сформирован (демо)"));
+
+CW.renderSidebar("cash", {
+  branches: { "Северный":"СВ", "Южный":"ЮЖ" },
+  activeBranch: state.branch,
+  userName: "Ирина А.", userRole: "Владелец",
+  onBranchChange: (name)=>{ state.branch = name; render(); },
+  onLogout: ()=> CW.showToast("Демо-режим: выход не выполняется"),
+});
+renderCatalog();
+render();
+</script>
+</body>
+</html>

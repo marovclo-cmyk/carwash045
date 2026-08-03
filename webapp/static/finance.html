@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CarWash Cloud — Расходы и доходы</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="css/theme.css">
+</head>
+<body>
+
+<div class="shell">
+  <div class="sidebar" id="sidebarRoot"></div>
+
+  <div class="main">
+    <div class="err-banner" id="errBanner"><i class="fa-solid fa-triangle-exclamation"></i><span id="errText"></span></div>
+
+    <div class="page-head">
+      <div>
+        <div class="page-title">Расходы и доходы</div>
+        <div class="page-sub" id="pageSub">—</div>
+      </div>
+      <div class="head-actions">
+        <button class="btn btn-ghost" id="exportBtn"><i class="fa-solid fa-file-arrow-down"></i>PDF</button>
+      </div>
+    </div>
+
+    <div class="metrics-grid" style="grid-template-columns:1fr 1fr 1fr;">
+      <div class="metric-card">
+        <div class="metric-top"><span class="metric-label">Расходы за смену</span><span class="metric-icon" style="color:var(--color-ember);background:rgba(255,62,0,0.08)"><i class="fa-solid fa-arrow-trend-down"></i></span></div>
+        <div class="metric-value" id="expStat">—</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-top"><span class="metric-label">Доп. доходы за смену</span><span class="metric-icon" style="color:var(--color-mint);background:var(--color-mint-wash)"><i class="fa-solid fa-arrow-trend-up"></i></span></div>
+        <div class="metric-value" id="incStat">—</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-top"><span class="metric-label">Итого по кассе</span><span class="metric-icon"><i class="fa-solid fa-sack-dollar"></i></span></div>
+        <div class="metric-value" id="grandStat">—</div>
+      </div>
+    </div>
+
+    <div class="panels-grid" style="grid-template-columns:1fr 1fr;">
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">Расходы</div>
+          <div class="list-amount neg" id="expTotal">0 ₽</div>
+        </div>
+        <div id="expList"></div>
+        <div id="expEmpty" class="empty-note" style="display:none">Расходов пока нет</div>
+        <div class="add-row">
+          <input class="f-name" id="expName" type="text" placeholder="Название (например, вода)">
+          <input class="f-amount" id="expAmount" type="number" placeholder="₽">
+          <button class="btn btn-primary btn-icon" id="expAddBtn"><i class="fa-solid fa-plus"></i></button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">Доходы (доп.)</div>
+          <div class="list-amount pos" id="incTotal">0 ₽</div>
+        </div>
+        <div id="incList"></div>
+        <div id="incEmpty" class="empty-note" style="display:none">Доп. доходов пока нет</div>
+        <div class="add-row">
+          <input class="f-name" id="incName" type="text" placeholder="Название (например, продажа духов)">
+          <input class="f-amount" id="incAmount" type="number" placeholder="₽">
+          <select class="f-pay" id="incPay">
+            <option value="нал">Наличные</option><option value="visa">Visa/MIR</option><option value="безнал">Безнал</option>
+            <option value="раздельная">Раздельная</option>
+          </select>
+          <button class="btn btn-primary btn-icon" id="incAddBtn"><i class="fa-solid fa-plus"></i></button>
+        </div>
+        <div class="split-row" id="incSplitRow">
+          <div class="sr-field"><div class="sr-label">Нал</div><input type="number" id="incSplitCash" placeholder="0"></div>
+          <div class="sr-field"><div class="sr-label">Visa</div><input type="number" id="incSplitVisa" placeholder="0"></div>
+          <div class="sr-field"><div class="sr-label">Безнал</div><input type="number" id="incSplitBeznal" placeholder="0"></div>
+        </div>
+        <div class="split-hint" id="incSplitHint"></div>
+        <div style="padding:12px 20px; font-size:12px; color:var(--color-ash); border-top:1px solid var(--color-fog)">
+          Полная разбивка по способам оплаты (нал/Visa/безнал) и закрытие смены — на странице «Касса за смену».
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><i class="fa-solid fa-circle-check"></i><span id="toastText"></span></div>
+
+<script src="site-common.js"></script>
+<script>
+/* Тот же учёт, что и на cash.html — только без панели товаров и открытия/закрытия смены. */
+const BRANCHES = {
+  "Северный": { base:{cash:4300, visa:4200, beznal:4200}, expenses:[{name:"Вода", amount:400}], incomes:[] },
+  "Южный":    { base:{cash:650, visa:1700, beznal:1700}, expenses:[], incomes:[] },
+};
+let state = { branch:"Северный" };
+
+function showErr(msg){
+  const el = document.getElementById("errBanner");
+  if(!msg){ el.style.display="none"; return; }
+  document.getElementById("errText").textContent = msg; el.style.display="flex";
+}
+function payTagFor(payment, splitObj){
+  if(splitObj){
+    const parts = Object.entries(splitObj).filter(([,v])=>v).map(([k,v])=>`${k[0].toUpperCase()+k.slice(1)} ${CW.money(v)}`).join(" + ");
+    return `<span class="pay-tag transfer" title="${parts}">Раздельная</span>`;
+  }
+  const p = (payment||"нал").toLowerCase();
+  const cls = p==="нал" ? "cash" : (p==="visa" ? "card" : "transfer");
+  return `<span class="pay-tag ${cls}">${p[0].toUpperCase()+p.slice(1)}</span>`;
+}
+function computeSummary(b){
+  let cash=b.base.cash, visa=b.base.visa, beznal=b.base.beznal;
+  b.incomes.forEach(inc=>{
+    if(inc.payment_split){ cash+=inc.payment_split["нал"]||0; visa+=inc.payment_split["visa"]||0; beznal+=inc.payment_split["безнал"]||0; }
+    else if(inc.payment==="нал") cash+=inc.amount; else if(inc.payment==="visa") visa+=inc.amount; else beznal+=inc.amount;
+  });
+  const total_expenses = b.expenses.reduce((a,e)=>a+e.amount,0);
+  const total_incomes = b.incomes.reduce((a,i)=>a+i.amount,0);
+  const grand_total = cash+visa+beznal-total_expenses;
+  return { total_expenses, total_incomes, grand_total };
+}
+
+function render(){
+  const b = BRANCHES[state.branch];
+  showErr(null);
+  document.getElementById("pageSub").textContent = `${state.branch} · ${CW.todayLabel()}`;
+  const s = computeSummary(b);
+  document.getElementById("expStat").textContent = "−"+CW.money(s.total_expenses);
+  document.getElementById("incStat").textContent = "+"+CW.money(s.total_incomes);
+  document.getElementById("grandStat").textContent = CW.money(s.grand_total);
+  document.getElementById("expTotal").textContent = "−"+CW.money(s.total_expenses);
+  document.getElementById("incTotal").textContent = "+"+CW.money(s.total_incomes);
+
+  const expList = document.getElementById("expList"), expEmpty = document.getElementById("expEmpty");
+  if(!b.expenses.length){ expList.innerHTML=""; expEmpty.style.display="block"; }
+  else{ expEmpty.style.display="none";
+    expList.innerHTML = b.expenses.map((e,i)=>`
+      <div class="list-row"><div class="list-name">${e.name}</div><div class="list-amount neg">−${CW.money(e.amount)}</div>
+      <div class="icon-btn" onclick="delExpense(${i})"><i class="fa-solid fa-trash"></i></div></div>`).join("");
+  }
+  const incList = document.getElementById("incList"), incEmpty = document.getElementById("incEmpty");
+  if(!b.incomes.length){ incList.innerHTML=""; incEmpty.style.display="block"; }
+  else{ incEmpty.style.display="none";
+    incList.innerHTML = b.incomes.map((inc,i)=>`
+      <div class="list-row"><div class="list-name">${inc.name}</div>${payTagFor(inc.payment, inc.payment_split)}
+      <div class="list-amount pos">+${CW.money(inc.amount)}</div>
+      <div class="icon-btn" onclick="delIncome(${i})"><i class="fa-solid fa-trash"></i></div></div>`).join("");
+  }
+}
+
+window.delExpense = (i)=>{ BRANCHES[state.branch].expenses.splice(i,1); render(); };
+window.delIncome  = (i)=>{ BRANCHES[state.branch].incomes.splice(i,1); render(); };
+
+document.getElementById("expAddBtn").addEventListener("click", ()=>{
+  const name = document.getElementById("expName").value.trim();
+  const amount = parseInt(document.getElementById("expAmount").value,10);
+  if(!name||!amount){ showErr("Укажите название и сумму расхода"); return; }
+  BRANCHES[state.branch].expenses.push({name, amount});
+  document.getElementById("expName").value=""; document.getElementById("expAmount").value="";
+  render();
+});
+
+const incSplitRow = document.getElementById("incSplitRow"), incSplitHint = document.getElementById("incSplitHint");
+document.getElementById("incPay").addEventListener("change",(e)=>{
+  const isSplit = e.target.value==="раздельная";
+  incSplitRow.classList.toggle("show", isSplit); incSplitHint.classList.toggle("show", isSplit); updateSplitHint();
+});
+function updateSplitHint(){
+  const amount = parseInt(document.getElementById("incAmount").value,10)||0;
+  const cash = parseInt(document.getElementById("incSplitCash").value,10)||0;
+  const visa = parseInt(document.getElementById("incSplitVisa").value,10)||0;
+  const beznal = parseInt(document.getElementById("incSplitBeznal").value,10)||0;
+  const sum = cash+visa+beznal;
+  incSplitHint.classList.toggle("err", sum!==amount);
+  incSplitHint.textContent = `Сумма частей: ${sum} ₽ из ${amount} ₽` + (sum!==amount ? " — не совпадает с суммой дохода" : " ✓");
+}
+["incAmount","incSplitCash","incSplitVisa","incSplitBeznal"].forEach(id=>{
+  document.getElementById(id).addEventListener("input", updateSplitHint);
+});
+
+document.getElementById("incAddBtn").addEventListener("click", ()=>{
+  const name = document.getElementById("incName").value.trim();
+  const amount = parseInt(document.getElementById("incAmount").value,10);
+  const payment = document.getElementById("incPay").value;
+  if(!name||!amount){ showErr("Укажите название и сумму дохода"); return; }
+  const entry = { name, amount };
+  if(payment==="раздельная"){
+    const cash = parseInt(document.getElementById("incSplitCash").value,10)||0;
+    const visa = parseInt(document.getElementById("incSplitVisa").value,10)||0;
+    const beznal = parseInt(document.getElementById("incSplitBeznal").value,10)||0;
+    const sum = cash+visa+beznal;
+    if(sum!==amount){ showErr(`Сумма раздельной оплаты (${sum} ₽) не совпадает с суммой дохода (${amount} ₽)`); return; }
+    const split = {}; if(cash) split["нал"]=cash; if(visa) split["visa"]=visa; if(beznal) split["безнал"]=beznal;
+    if(Object.keys(split).length<2){ showErr("Для раздельной оплаты укажите минимум два способа"); return; }
+    entry.payment_split = split;
+  } else { entry.payment = payment; }
+  BRANCHES[state.branch].incomes.push(entry);
+  document.getElementById("incName").value=""; document.getElementById("incAmount").value="";
+  document.getElementById("incSplitCash").value=""; document.getElementById("incSplitVisa").value=""; document.getElementById("incSplitBeznal").value="";
+  incSplitRow.classList.remove("show"); incSplitHint.classList.remove("show");
+  render();
+});
+
+document.getElementById("exportBtn").addEventListener("click", ()=> CW.showToast("PDF-отчёт сформирован (демо)"));
+
+CW.renderSidebar("finance", {
+  branches: { "Северный":"СВ", "Южный":"ЮЖ" },
+  activeBranch: state.branch,
+  userName: "Ирина А.", userRole: "Владелец",
+  onBranchChange: (name)=>{ state.branch = name; render(); },
+  onLogout: ()=> CW.showToast("Демо-режим: выход не выполняется"),
+});
+render();
+</script>
+</body>
+</html>

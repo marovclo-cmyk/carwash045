@@ -1,0 +1,2738 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>ClaudeFormula 2.0</title>
+<script>
+  (function(){
+    try{
+      var t = localStorage.getItem("cf_theme");
+      if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+    }catch(e){}
+  })();
+</script>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<style>
+/* ── ПЕРЕМЕННЫЕ ─────────────────────────────────────────────────────────── */
+:root{
+  /* Единая палитра с сайтом (site-theme.css) — тема «Glass / Orb»
+     (см. DESIGN_SYSTEM.md, Этап 1 миграции на main-page-concept.html) */
+  --bg:#08080B;
+  --surface-0:#0F1116;
+  --surface-1:#15171D;
+  --surface-2:#1D1F27;
+  --surface-3:#262832;
+  --text:#F5F6FA;
+  --text-secondary:#9096A3;
+  --text-muted:#5E6270;
+  --border:rgba(255,255,255,0.07);
+  --border-strong:rgba(255,255,255,0.14);
+  --accent:#4F7CFF;
+  --accent-b:#2F5CFF;
+  --accent-tint:rgba(79,124,255,0.16);
+  --accent-gradient:linear-gradient(135deg,var(--accent) 0%,var(--accent-b) 100%);
+  --green:#34D399;
+  --green-tint:rgba(52,211,153,0.14);
+  --red:#FF6B8B;
+  --red-tint:rgba(255,107,139,0.13);
+  --orange:#FFB648;
+  --orange-tint:rgba(255,182,72,0.14);
+  --purple:#A47CF3;
+  --purple-tint:rgba(164,124,243,0.14);
+
+  /* ── Новые токены дизайн-концепта ──
+     Раньше это были синий/фиолетовый/розовый (radужный) — перекрашено
+     в один фирменный синий (тот же, что и на сайте) для единого
+     бренда между мини-аппом и сайтом. */
+  --glow-a:#4F7CFF;
+  --glow-b:#2F5CFF;
+  --glow-c:#1638B8;
+  --glass:rgba(255,255,255,0.055);
+  --glass-hover:rgba(255,255,255,0.09);
+  --glass-border:rgba(255,255,255,0.09);
+  --text-dim:rgba(245,246,250,0.56);
+  --text-faint:rgba(245,246,250,0.34);
+  --good:#34D399;
+  --radius-xl:30px;
+  --radius-lg:22px;
+  --radius-md:16px;
+  --radius-sm:12px;
+  --blur-glass:20px;
+  --blur-nav:28px;
+
+  /* ── v2 «Midnight Indigo» — фоновая тема мини-аппа (правка палитры,
+     июль 2026: было — сплошная насыщенная синяя заливка фона + тёмная
+     ink-карточка почти того же синего + оставшийся от старой бирюзовой
+     темы teal-оттенок в тексте карточек (--v2-card-ink:#122428) — из-за
+     этого всё "плыло" в один и тот же синий без иерархии, а текст на
+     белых карточках был чуть зеленоватым. Стало: тёмно-графитовая
+     индиго-база + один яркий акцент (электрик-индиго) + второй, более
+     сдержанный акцент (циан) только в подсветке/градиентах — не в
+     сплошной заливке — плюс нейтральный (не бирюзовый) графитовый цвет
+     текста на карточках. ── */
+  --v2-outer:#0D1220;
+  --v2-outer-2:#060811;
+  --v2-ink:#161C30;
+  --v2-white:#FFFFFF;
+  --v2-glass:rgba(255,255,255,.15);
+  --v2-glass-strong:rgba(255,255,255,.95);
+  --v2-glass-border:rgba(255,255,255,.32);
+  --v2-accent:#3552E8;
+  --v2-accent-2:#22D3EE;
+  --v2-econ:#189165;
+  --v2-prem:#7C5CE0;
+  --v2-badge:#3552E8;
+  --v2-gold:#FFC24B;
+  --v2-card-ink:#1B2559;
+  --v2-card-soft:#6B7280;
+  --v2-radius-xl:40px;
+  --v2-radius-lg:26px;
+  --v2-radius-md:20px;
+  --v2-radius-sm:12px;
+  --font-display:'Gosha Sans', sans-serif;
+  --font-body:'Inter', sans-serif;
+  --font-mono:'IBM Plex Mono', monospace;
+}
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap');
+/* Gosha Sans — тот же self-hosted шрифт, что и на сайте (site-theme.css)
+   и в PDF-отчётах (assets/fonts) — единый фирменный голос везде. */
+@font-face{
+  font-family:'Gosha Sans';
+  src:url('/static/fonts/GoshaSans-Regular.ttf') format('truetype');
+  font-weight:400; font-style:normal; font-display:swap;
+}
+@font-face{
+  font-family:'Gosha Sans';
+  src:url('/static/fonts/GoshaSans-Bold.ttf') format('truetype');
+  font-weight:700; font-style:normal; font-display:swap;
+}
+.v2-display{ font-family:var(--font-display); font-weight:700; letter-spacing:-.01em; }
+.v2-mono{ font-family:var(--font-mono); }
+.v2-pill{
+  background:var(--v2-glass); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+  border:1px solid var(--v2-glass-border); border-radius:30px; color:#fff;
+  font-family:var(--font-body); font-weight:600; font-size:11.5px;
+  display:inline-flex; align-items:center; gap:5px; padding:8px 13px; white-space:nowrap;
+}
+.v2-pill.strong{ background:var(--v2-glass-strong); color:var(--v2-ink); }
+.v2-card-solid{
+  background:var(--v2-ink); color:#fff; border-radius:var(--v2-radius-md);
+  padding:14px 16px; box-shadow:0 14px 30px -14px rgba(0,0,0,.6);
+}
+.v2-card-glass{
+  background:var(--v2-glass-strong); color:var(--v2-card-ink); border-radius:var(--v2-radius-md);
+  padding:14px 16px; box-shadow:0 14px 30px -14px rgba(0,0,0,.5);
+}
+.v2-card-glass .v2-soft{ color:var(--v2-card-soft); }
+.v2-badge-circle{
+  width:46px; height:46px; border-radius:50%; background:var(--v2-badge);
+  display:flex; align-items:center; justify-content:center; color:#fff;
+  box-shadow:0 10px 20px -8px rgba(91,110,255,.6); flex-shrink:0;
+}
+.v2-swatch{ width:18px; height:18px; border-radius:50%; border:2px solid transparent; display:inline-block; }
+.v2-swatch.on{ border-color:#fff; }
+html[data-theme="light"]{
+  --bg:#F4F5F8;
+  --surface-0:#FFFFFF;
+  --surface-1:#FFFFFF;
+  --surface-2:#EEEFF3;
+  --surface-3:#DFE1E8;
+  --text:#12131A;
+  --text-secondary:#5E6270;
+  --text-muted:#9096A3;
+  --border:rgba(15,17,22,0.08);
+  --border-strong:rgba(15,17,22,0.14);
+  --accent:#2F5CFF;
+  --accent-b:#1C3FE0;
+  --accent-tint:rgba(47,92,255,0.12);
+  --accent-gradient:linear-gradient(135deg,var(--accent) 0%,var(--accent-b) 100%);
+  --green:#1FAE73;
+  --green-tint:rgba(31,174,115,0.12);
+  --red:#E23F63;
+  --red-tint:rgba(226,63,99,0.1);
+  --orange:#E08A1E;
+  --orange-tint:rgba(224,138,30,0.12);
+  --purple:#8654E0;
+  --purple-tint:rgba(134,84,224,0.12);
+
+  /* ── Glass-токены для светлой темы (мягче, без орбов на весь экран) ── */
+  --glow-a:#4F7CFF;
+  --glow-b:#2F5CFF;
+  --glow-c:#1638B8;
+  --glass:rgba(18,19,26,0.035);
+  --glass-hover:rgba(18,19,26,0.06);
+  --glass-border:rgba(18,19,26,0.08);
+  --text-dim:rgba(18,19,26,0.56);
+  --text-faint:rgba(18,19,26,0.34);
+  --good:#1FAE73;
+  --radius-xl:30px;
+  --radius-lg:22px;
+  --radius-md:16px;
+  --radius-sm:12px;
+  --blur-glass:20px;
+  --blur-nav:28px;
+}
+
+/* ── КОМПОНЕНТЫ ДИЗАЙН-КОНЦЕПТА (Этап 1) ──────────────────────────────────
+   Зеркалит .orb-bg/.glass-card/.hero-glass/.pill/.action-tile/.glass-navbar
+   из site-theme.css — mini-app не подключает site-theme.css отдельным
+   файлом, поэтому та же разметка компонентов продублирована здесь, чтобы
+   экраны (Этап 2+) могли использовать одинаковые классы на сайте и в
+   приложении. Источник правды по значениям — DESIGN_SYSTEM.md. */
+.orb-bg{ position:fixed; inset:0; overflow:hidden; z-index:0; pointer-events:none; }
+.orb{ position:fixed; border-radius:50%; filter:blur(90px); opacity:.35; }
+.orb-a{ width:280px; height:280px; top:-120px; left:-100px; background:var(--glow-a); animation:orb-float-1 22s ease-in-out infinite; }
+.orb-b{ width:260px; height:260px; top:80px; right:-120px; background:var(--glow-c); opacity:.22; animation:orb-float-2 26s ease-in-out infinite; }
+.orb-c{ width:220px; height:220px; bottom:-100px; left:15%; background:var(--glow-b); opacity:.2; animation:orb-float-1 30s ease-in-out infinite reverse; }
+@keyframes orb-float-1{ 0%,100%{ transform:translate(0,0); } 50%{ transform:translate(20px,26px); } }
+@keyframes orb-float-2{ 0%,100%{ transform:translate(0,0); } 50%{ transform:translate(-26px,14px); } }
+
+.glass-card{
+  background:var(--glass);
+  border:1px solid var(--glass-border);
+  border-radius:var(--radius-lg);
+  backdrop-filter:blur(var(--blur-glass));
+  -webkit-backdrop-filter:blur(var(--blur-glass));
+}
+
+.hero-glass{
+  position:relative; isolation:isolate; overflow:hidden;
+  border-radius:var(--radius-xl);
+  padding:26px 24px 22px;
+  background:
+    radial-gradient(120% 140% at 100% 0%, rgba(34,211,238,.35), transparent 55%),
+    linear-gradient(135deg, #4F7CFF 0%, #2F5CFF 55%, #16226E 100%);
+  box-shadow:0 24px 48px -18px rgba(47,92,255,.45);
+  color:#fff;
+}
+.hero-glass::after{
+  content:""; position:absolute; right:-70px; bottom:-100px; width:280px; height:200px; border-radius:50%;
+  background:rgba(255,255,255,.08); transform:rotate(-18deg);
+}
+
+.pill{ display:inline-block; font-size:10.5px; font-weight:700; padding:2.5px 8px; border-radius:100px; }
+.pill.ok{ background:rgba(52,211,153,.15); color:var(--good); }
+.pill.wip{ background:rgba(255,182,72,.16); color:var(--orange); }
+
+.action-tile{
+  display:flex; flex-direction:column; align-items:center; gap:10px;
+  padding:14px 6px;
+  background:var(--glass); border:1px solid var(--glass-border);
+  border-radius:var(--radius-lg);
+  backdrop-filter:blur(var(--blur-glass)); -webkit-backdrop-filter:blur(var(--blur-glass));
+  cursor:pointer;
+  transition:transform .15s cubic-bezier(.3,.7,.4,1), background .15s ease;
+}
+.action-tile:active{ transform:scale(.94); background:var(--glass-hover); }
+.action-tile .sq{ width:40px; height:40px; border-radius:13px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:18px; }
+.action-tile .sq.b1{ background:#3552E8; }
+.action-tile .sq.b2{ background:#E0603F; }
+.action-tile .sq.b3{ background:#189165; }
+.action-tile .sq.b4{ background:#7C5CE0; }
+
+.glass-navbar{
+  position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
+  width:calc(100% - 32px); max-width:396px;
+  background:rgba(20,20,26,0.72);
+  border:1px solid rgba(255,255,255,0.09);
+  backdrop-filter:blur(var(--blur-nav)) saturate(160%);
+  -webkit-backdrop-filter:blur(var(--blur-nav)) saturate(160%);
+  border-radius:100px;
+  display:flex; align-items:center; justify-content:space-around;
+  padding:10px 6px; z-index:5;
+  box-shadow:0 16px 40px -14px rgba(0,0,0,.6);
+}
+html[data-theme="light"] .glass-navbar{ background:rgba(255,255,255,0.72); box-shadow:0 16px 40px -14px rgba(0,0,0,.18); }
+
+/* ── RESET ──────────────────────────────────────────────────────────────── */
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
+html{height:100%;-webkit-text-size-adjust:none}
+body{
+  min-height:100%;
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display",Segoe UI,Roboto,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  padding-bottom:calc(80px + env(safe-area-inset-bottom));
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+
+/* ── LAYOUT ─────────────────────────────────────────────────────────────── */
+.container{max-width:460px;margin:0 auto;position:relative;z-index:1}
+.page{padding:0 0 8px}
+.px{padding-left:16px;padding-right:16px}
+
+/* ── TAB BAR ────────────────────────────────────────────────────────────── */
+.tabbar{
+  position:fixed;bottom:0;left:0;right:0;
+  display:flex;
+  background:rgba(8,8,11,0.88);
+  backdrop-filter:blur(32px);-webkit-backdrop-filter:blur(32px);
+  border-top:0.5px solid var(--border);
+  padding-bottom:env(safe-area-inset-bottom);
+  max-width:460px;margin:0 auto;
+  z-index:50;
+}
+html[data-theme="light"] .tabbar{background:rgba(244,245,248,0.9)}
+.tab{
+  flex:1;text-align:center;
+  padding:10px 0 8px;
+  font-size:10px;font-weight:500;
+  color:var(--text-muted);
+  cursor:pointer;
+  transition:color .15s ease;
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+}
+.tab.active{color:var(--accent)}
+.tab i{font-size:22px;display:block}
+.hidden{display:none!important}
+
+/* ── TOPBAR ─────────────────────────────────────────────────────────────── */
+.topbar{
+  display:flex;justify-content:space-between;align-items:flex-start;
+  padding:16px 16px 10px;
+}
+.topbar-title{font-size:22px;font-weight:700;letter-spacing:-0.02em}
+.topbar-sub{
+  font-size:13px;color:var(--text-secondary);
+  margin-top:1px;
+  display:flex;align-items:center;gap:3px;cursor:pointer;
+}
+.topbar-sub i{font-size:11px;color:var(--text-muted)}
+.bell-btn{
+  width:34px;height:34px;border-radius:50%;
+  background:var(--surface-1);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;flex-shrink:0;
+  border:0.5px solid var(--border);
+}
+.bell-btn i{font-size:17px;color:var(--text-secondary)}
+
+/* ── BACK HEADER ─────────────────────────────────────────────────────────  */
+.back-header{
+  display:flex;align-items:center;gap:10px;
+  padding:14px 16px 10px;
+}
+.back-btn{
+  width:30px;height:30px;border-radius:50%;
+  background:var(--surface-1);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;border:0.5px solid var(--border);flex-shrink:0;
+}
+.back-btn i{font-size:15px;color:var(--text-secondary)}
+.back-header-title{font-size:17px;font-weight:700}
+
+/* ── SHIFT BAR (используется тж. в Кассе) ── */
+.shift-bar{
+  margin:10px 16px 0;
+  background:var(--surface-1);border-radius:16px;
+  padding:12px 16px;
+  display:flex;align-items:center;gap:12px;
+  border:0.5px solid var(--border);
+}
+.shift-bar i{font-size:17px;color:var(--text-muted)}
+.shift-bar .sb-body{flex:1}
+.shift-bar .sb-text{font-size:13px;font-weight:500;margin-bottom:6px}
+.shift-bar .sb-sub{font-size:11px;color:var(--text-muted);margin-bottom:6px}
+.sb-track{height:4px;background:var(--surface-2);border-radius:2px}
+.sb-fill{height:100%;background:var(--accent);border-radius:2px;transition:width .4s ease}
+
+/* ── WAVE CHART (используется тж. в Отчётах) ── */
+.wave-chart{margin-top:14px}
+.wave-chart svg{display:block;width:100%;height:44px}
+
+/* ── SECTION LABEL (используется на многих экранах, не только «Главная») ── */
+.section-label{
+  font-size:13px;font-weight:600;color:var(--text-secondary);
+  padding:14px 16px 6px;
+  display:flex;justify-content:space-between;align-items:center;
+}
+.section-label .see-all{
+  font-size:12px;font-weight:500;color:var(--text-muted);cursor:pointer;
+}
+
+/* ── HOME SCREEN v2 (Glass/Orb, Этап 2) ────────────────────────────────
+   Новый макет «Главной» по main-page-concept.html. Использует токены и
+   базовые компоненты из блока «КОМПОНЕНТЫ ДИЗАЙН-КОНЦЕПТА» выше
+   (.orb-bg, .glass-card, .hero-glass, .pill, .action-tile). Классы ниже —
+   специфичные для расположения элементов именно на «Главной». */
+.home-wrap{ position:relative; padding:14px 16px calc(96px + env(safe-area-inset-bottom,0px)); }
+
+.home-topbar{ display:flex; align-items:center; justify-content:space-between; padding:2px 2px 16px; }
+.home-who{ display:flex; align-items:center; gap:11px; }
+.home-avatar{
+  width:46px; height:46px; border-radius:15px;
+  background:linear-gradient(140deg,var(--glow-a),var(--glow-b));
+  display:flex; align-items:center; justify-content:center;
+  font-weight:700; font-size:16px; color:#fff; flex-shrink:0;
+}
+.home-who-text .hi{ font-size:12px; color:var(--text-faint); font-weight:500; }
+.home-who-text .name{ font-size:15px; font-weight:700; margin-top:1px; }
+.home-branch-chip{
+  display:flex; align-items:center; gap:6px;
+  background:var(--glass); border:1px solid var(--glass-border);
+  padding:9px 13px 9px 12px; border-radius:100px;
+  font-size:13px; font-weight:600; color:var(--text);
+  backdrop-filter:blur(var(--blur-glass)); -webkit-backdrop-filter:blur(var(--blur-glass));
+  cursor:pointer; max-width:52%;
+}
+.home-branch-chip span{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.home-branch-chip i{ opacity:.55; font-size:12px; flex-shrink:0; }
+
+.home-hero{ padding:26px 22px 20px; }
+.home-hero-top{ display:flex; justify-content:space-between; align-items:flex-start; position:relative; z-index:1; }
+.home-hero-label{ font-size:13px; font-weight:600; color:rgba(255,255,255,.72); }
+.home-hero-badge{
+  font-size:12px; font-weight:700; color:#0A0A0C;
+  background:rgba(255,255,255,.92);
+  padding:5px 10px; border-radius:100px;
+  display:flex; align-items:center; gap:4px;
+}
+.home-hero-badge.negative{ background:rgba(20,20,26,.55); color:#fff; }
+.home-hero-chart-btn{
+  width:44px; height:44px; border-radius:14px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.22);
+  backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+  color:#fff; font-size:18px; cursor:pointer;
+}
+.home-hero-right{ display:flex; align-items:center; gap:8px; }
+.home-hero-sum{
+  position:relative; z-index:1; font-family:var(--font-mono);
+  font-size:40px; font-weight:700; letter-spacing:-1.5px;
+  margin:18px 0 2px; font-variant-numeric:tabular-nums; color:#fff;
+}
+.home-hero-sum span{ font-size:17px; font-weight:600; opacity:.6; margin-left:4px; }
+.home-hero-sub{ position:relative; z-index:1; font-size:13px; color:rgba(255,255,255,.68); font-weight:500; margin-top:6px; }
+.home-hero-wave{ position:relative; z-index:1; margin-top:16px; height:36px; }
+.home-hero-wave svg{ width:100%; height:100%; display:block; }
+
+.home-segmented{
+  display:flex; gap:2px; margin-top:14px;
+  background:var(--glass); border:1px solid var(--glass-border);
+  padding:3px; border-radius:100px;
+  backdrop-filter:blur(var(--blur-glass)); -webkit-backdrop-filter:blur(var(--blur-glass));
+}
+.home-seg{ flex:1; text-align:center; padding:9px 0; font-size:13px; font-weight:600; color:var(--text-dim); border-radius:100px; cursor:pointer; transition:color .2s; }
+.home-seg.active{ background:var(--glass-hover); color:var(--text); }
+
+.home-stats{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:14px; }
+.home-stat .ic{
+  width:36px; height:36px; border-radius:12px;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--accent-tint); color:var(--accent); margin-bottom:14px; font-size:16px;
+}
+.home-stats .home-stat:nth-child(1) .ic{ background:rgba(79,124,255,.16); color:#7C9BFF; }
+.home-stats .home-stat:nth-child(2) .ic{ background:rgba(255,182,72,.16); color:#FFC066; }
+.home-stats .home-stat:nth-child(3) .ic{ background:rgba(52,211,153,.16); color:#4FE0B0; }
+.home-stat{ padding:16px 12px; }
+.home-stat .val{ font-size:19px; font-weight:700; letter-spacing:-.3px; font-variant-numeric:tabular-nums; }
+.home-stat .lab{ font-size:11px; color:var(--text-faint); margin-top:3px; font-weight:500; }
+
+.home-section{ margin-top:24px; }
+.home-section-head{ display:flex; align-items:baseline; justify-content:space-between; padding:0 2px 12px; }
+.home-section-head h2{ font-size:16px; font-weight:700; margin:0; letter-spacing:-.2px; }
+.home-section-head a{ font-size:12.5px; color:var(--text-dim); font-weight:600; cursor:pointer; }
+
+.home-actions{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+.home-actions .lab{ font-size:10.5px; font-weight:600; color:var(--text-dim); text-align:center; line-height:1.25; }
+
+.home-list .row{
+  display:flex; align-items:center; gap:12px;
+  padding:13px 16px; border-bottom:1px solid rgba(255,255,255,.055);
+  cursor:pointer;
+}
+html[data-theme="light"] .home-list .row{ border-bottom-color:rgba(15,17,22,.06); }
+.home-list .row:last-child{ border-bottom:none; }
+.home-row-ic{
+  width:38px; height:38px; border-radius:12px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--glass-hover); color:var(--text-dim); font-size:16px;
+}
+.home-row-mid{ flex:1; min-width:0; }
+.home-row-title{ font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.home-row-sub{ font-size:12px; color:var(--text-faint); margin-top:2px; }
+.home-row-right{ text-align:right; flex-shrink:0; }
+.home-row-price{ font-size:14.5px; font-weight:700; font-variant-numeric:tabular-nums; }
+
+.home-team{ display:flex; gap:14px; overflow-x:auto; padding:2px 2px 4px; scrollbar-width:none; }
+.home-team::-webkit-scrollbar{ display:none; }
+.home-member{ flex-shrink:0; width:64px; text-align:center; cursor:pointer; }
+.home-member .av{
+  width:52px; height:52px; border-radius:50%; margin:0 auto 8px;
+  display:flex; align-items:center; justify-content:center;
+  font-weight:700; font-size:15px; position:relative;
+  background:linear-gradient(140deg, rgba(255,255,255,.14), rgba(255,255,255,.03));
+  border:1px solid var(--glass-border);
+}
+html[data-theme="light"] .home-member .av{ background:linear-gradient(140deg, rgba(15,17,22,.08), rgba(15,17,22,.02)); }
+.home-member .dot{
+  position:absolute; bottom:1px; right:1px; width:12px; height:12px; border-radius:50%;
+  background:var(--good); border:2.5px solid var(--bg);
+}
+.home-member .dot.off{ background:var(--text-muted); }
+.home-member .nm{ font-size:11.5px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.home-member .amt{ font-size:10.5px; color:var(--text-faint); margin-top:1px; font-variant-numeric:tabular-nums; }
+.home-member.more .av{ border:1.5px dashed var(--glass-border); background:transparent; color:var(--text-faint); }
+
+@media (max-width:380px){
+  .home-hero-sum{ font-size:34px; }
+  .home-actions .lab{ font-size:10px; }
+}
+
+/* ── OPERATIONS LIST ─────────────────────────────────────────────────────── */
+.op-list{margin:0 16px;background:var(--glass);border-radius:var(--radius-lg);overflow:hidden;border:1px solid var(--glass-border);backdrop-filter:blur(var(--blur-glass));-webkit-backdrop-filter:blur(var(--blur-glass))}
+.op-row{
+  display:flex;align-items:center;gap:12px;
+  padding:11px 14px;cursor:pointer;
+  transition:background .1s;
+}
+.op-row+.op-row{border-top:1px solid var(--glass-border)}
+.op-row:active{background:var(--glass-hover)}
+.op-dot{width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0}
+.op-dot.orange{background:var(--orange)}
+.op-info{flex:1;min-width:0}
+.op-name{font-size:13px;font-weight:600;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.op-meta{font-size:11px;color:var(--text-muted);margin:1px 0 0}
+.op-price{font-size:14px;font-weight:700;color:var(--text);white-space:nowrap}
+
+/* ── EXPENSE ROW ─────────────────────────────────────────────────────────── */
+.expense-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:11px 14px;
+}
+.expense-row+.expense-row{border-top:0.5px solid var(--border)}
+.expense-name{font-size:14px;font-weight:500}
+.expense-right{display:flex;align-items:center;gap:10px}
+.expense-amount{font-size:14px;font-weight:600;color:var(--red)}
+.expense-del{font-size:12px;color:var(--red);cursor:pointer;font-weight:500;padding:2px 6px}
+
+/* ── КНОПКИ ──────────────────────────────────────────────────────────────── */
+button{font-family:inherit;cursor:pointer;border:none;outline:none}
+.btn{
+  width:100%;height:52px;border-radius:14px;
+  background:var(--accent-gradient);color:#fff;
+  box-shadow:0 4px 14px rgba(106,139,255,0.28);
+  font-size:16px;font-weight:600;
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  transition:transform .12s cubic-bezier(0,0,.2,1),opacity .12s;
+}
+.btn:active{transform:scale(0.97);opacity:.9}
+.btn.secondary{background:var(--surface-1);color:var(--text);border:0.5px solid var(--border)}
+.btn.danger-outline{background:var(--red-tint);color:var(--red)}
+.btn.ghost{background:transparent;color:var(--text-secondary);border:0.5px solid var(--border)}
+.btn-sm{height:44px;font-size:14px;border-radius:12px}
+.btn-wrap{padding:12px 16px}
+.btn-logout{
+  width:100%;height:50px;border-radius:14px;
+  background:var(--red-tint);color:var(--red);
+  font-size:16px;font-weight:600;margin-top:10px;
+}
+
+/* ── LOADING STATE ───────────────────────────────────────────────────────── */
+.btn.loading{color:transparent;pointer-events:none;position:relative}
+.btn.loading::after{
+  content:"";position:absolute;left:50%;top:50%;
+  width:18px;height:18px;margin:-9px 0 0 -9px;
+  border-radius:50%;border:2px solid rgba(255,255,255,0.3);
+  border-top-color:#fff;animation:spin .7s linear infinite;
+}
+.btn.secondary.loading::after,.btn.ghost.loading::after{border:2px solid rgba(255,255,255,0.2);border-top-color:rgba(255,255,255,.6)}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── FORM ELEMENTS ───────────────────────────────────────────────────────── */
+.field-label{font-size:12px;color:var(--text-muted);font-weight:600;padding:0 2px 6px;text-transform:uppercase;letter-spacing:0.04em}
+.field-wrap{padding:0 16px 12px}
+input,select,textarea{
+  width:100%;padding:14px 16px;
+  border-radius:14px;border:none;
+  background:var(--surface-1);color:var(--text);
+  font-size:15px;font-family:inherit;
+  -webkit-appearance:none;appearance:none;
+  border:0.5px solid var(--border);
+}
+input:focus,select:focus,textarea:focus{outline:1px solid var(--accent)}
+textarea{resize:none;min-height:72px}
+::placeholder{color:var(--text-muted)}
+.field-select{position:relative}
+.field-select select{padding-right:36px}
+.field-select::after{
+  content:"";position:absolute;right:14px;top:50%;
+  transform:translateY(-60%) rotate(45deg);
+  width:7px;height:7px;
+  border-right:1.5px solid var(--text-muted);
+  border-bottom:1.5px solid var(--text-muted);
+  pointer-events:none;
+}
+
+/* ── CARD ────────────────────────────────────────────────────────────────── */
+.card{
+  background:var(--glass);border-radius:var(--radius-lg);
+  border:1px solid var(--glass-border);overflow:hidden;
+  margin:0 16px;
+  backdrop-filter:blur(var(--blur-glass));-webkit-backdrop-filter:blur(var(--blur-glass));
+}
+.card+.card{margin-top:10px}
+.card-pad{padding:16px}
+
+/* ── ROW ─────────────────────────────────────────────────────────────────── */
+.row{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:14px 16px;cursor:pointer;
+  transition:background .1s;
+}
+.row+.row{border-top:1px solid var(--glass-border)}
+.row:active{background:var(--glass-hover)}
+.row-name{font-size:15px;font-weight:500;display:flex;align-items:center;gap:10px}
+.row-sub{font-size:12px;color:var(--text-muted);margin-top:2px}
+.row-right{text-align:right;display:flex;flex-direction:column;align-items:flex-end}
+.row-price{font-size:15px;font-weight:700}
+.chevron{color:var(--text-muted);font-size:15px}
+
+/* ── ICON BADGE ──────────────────────────────────────────────────────────── */
+.ib{
+  width:30px;height:30px;border-radius:9px;
+  display:inline-flex;align-items:center;justify-content:center;
+  font-size:15px;flex-shrink:0;
+}
+.ib.blue{background:rgba(0,122,255,0.15);color:var(--accent)}
+.ib.green{background:var(--green-tint);color:var(--green)}
+.ib.orange{background:var(--orange-tint);color:var(--orange)}
+.ib.red{background:var(--red-tint);color:var(--red)}
+.ib.purple{background:var(--purple-tint);color:var(--purple)}
+.ib.gray{background:var(--surface-2);color:var(--text-muted)}
+
+/* ── SEGMENTED CONTROL ───────────────────────────────────────────────────── */
+.segmented{
+  display:flex;background:var(--glass);border-radius:100px;padding:3px;
+  margin:0 16px 14px;border:1px solid var(--glass-border);
+  backdrop-filter:blur(var(--blur-glass));-webkit-backdrop-filter:blur(var(--blur-glass));
+}
+.seg{
+  flex:1;text-align:center;padding:8px 0;
+  font-size:13px;font-weight:600;color:var(--text-secondary);
+  border-radius:100px;cursor:pointer;transition:all .15s;
+}
+.seg.active{background:var(--accent-gradient);color:#fff}
+html[data-theme="light"] .seg.active{background:var(--accent-gradient);color:#fff}
+
+/* ── МОЯ СМЕНА: раскрывающийся список машин по дням ──────────────────────── */
+.my-stats-day-cars{margin-top:10px;padding-top:10px;border-top:0.5px solid var(--border)}
+.my-stats-car-row{display:flex;justify-content:space-between;padding:6px 0;font-size:13px;color:var(--text-secondary)}
+.my-stats-car-row span:last-child{font-weight:600;color:var(--text-primary)}
+
+/* ── ДОNUT ───────────────────────────────────────────────────────────────── */
+.donut-wrap{display:flex;align-items:center;gap:22px;padding:18px 16px}
+.donut{width:110px;height:110px;border-radius:50%;flex-shrink:0;position:relative;display:flex;align-items:center;justify-content:center}
+.donut::after{content:"";position:absolute;inset:14px;background:var(--surface-1);border-radius:50%}
+.donut .center{position:relative;z-index:1;text-align:center}
+.donut .center b{font-size:13px;display:block;font-weight:700}
+.donut .center span{font-size:10px;color:var(--text-muted)}
+.legend{flex:1}
+.legend .item{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:12px}
+.legend .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.legend .item b{margin-left:auto;font-weight:700}
+
+/* ── WORKER CARD ─────────────────────────────────────────────────────────── */
+.worker-card{padding:14px 16px;cursor:pointer;transition:background .1s}
+.worker-card+.worker-card{border-top:0.5px solid var(--border)}
+.worker-card:active{background:var(--surface-2)}
+.wc-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.wc-info{display:flex;align-items:center;gap:10px}
+.wc-av{
+  width:36px;height:36px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:700;flex-shrink:0;
+}
+.wc-name{font-size:14px;font-weight:600}
+.wc-sub{font-size:11px;color:var(--text-muted);margin-top:1px}
+.wc-sal{font-size:16px;font-weight:700}
+.wc-bar{height:4px;background:var(--surface-2);border-radius:2px;margin-top:2px}
+.wc-bar-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--green),#2fb34a);transition:width .4s}
+.wc-pct{font-size:11px;color:var(--text-muted);text-align:right;margin-top:4px}
+
+/* ── ADD WORKER BTN ──────────────────────────────────────────────────────── */
+.add-worker-btn{
+  display:flex;align-items:center;justify-content:center;gap:7px;
+  color:var(--accent);font-size:15px;font-weight:600;
+  padding:14px 16px;cursor:pointer;
+}
+.add-worker-btn:active{opacity:.7}
+
+/* ── SETTINGS ────────────────────────────────────────────────────────────── */
+.settings-avatar{
+  width:72px;height:72px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:26px;font-weight:700;margin:0 auto 6px;
+}
+.settings-name{font-size:17px;font-weight:700;text-align:center;margin:0 0 2px}
+.settings-role{font-size:13px;color:var(--text-muted);text-align:center;margin:0 0 20px}
+.settings-section{margin:16px 0 0}
+.settings-section-label{
+  font-size:11px;color:var(--text-muted);
+  text-transform:uppercase;letter-spacing:0.05em;font-weight:600;
+  padding:0 20px 8px;
+}
+.settings-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 16px;cursor:pointer;transition:background .1s;
+}
+.settings-row+.settings-row{border-top:0.5px solid var(--border)}
+.settings-row:active{background:var(--surface-2)}
+.sr-left{display:flex;align-items:center;gap:12px}
+.sr-label{font-size:15px;font-weight:500}
+.sr-right{display:flex;align-items:center;gap:6px;color:var(--text-muted)}
+.sr-right i{font-size:14px}
+.sr-badge{font-size:12px;color:var(--text-muted)}
+
+/* ── BRANCH PICKER ───────────────────────────────────────────────────────── */
+.branch-card{
+  background:var(--surface-1);border-radius:18px;
+  padding:16px;margin:0 16px 10px;
+  cursor:pointer;border:0.5px solid var(--border);
+  transition:transform .15s,border-color .15s;
+  display:flex;justify-content:space-between;align-items:flex-start;
+}
+.branch-card:active{transform:scale(0.98)}
+.branch-card.selected{border-color:var(--accent)}
+.bc-pin{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--accent);margin-bottom:4px;font-weight:600}
+.bc-amount{font-size:20px;font-weight:700;margin:2px 0}
+.bc-sub{font-size:12px;color:var(--text-muted)}
+.bc-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.bc-trend{color:var(--green);font-size:13px}
+.bc-mini-chart{width:80px;height:30px}
+
+/* ── СВАЙП КАРТОЧКА ──────────────────────────────────────────────────────── */
+.swipe-card{
+  background:var(--surface-1);border-radius:16px;padding:16px;
+  position:relative;touch-action:pan-y;border:0.5px solid var(--border);
+  margin:0 16px;
+}
+.swipe-card .sc-counter{position:absolute;top:12px;right:14px;font-size:11px;color:var(--text-muted)}
+.swipe-card .sc-car{font-size:17px;font-weight:700;margin:0 0 3px}
+.swipe-card .sc-sub{font-size:12px;color:var(--text-secondary);margin:0 0 10px}
+.swipe-card .sc-price{font-size:24px;font-weight:700}
+.swipe-card .sc-status{
+  display:inline-flex;align-items:center;margin-top:10px;
+  font-size:11px;font-weight:700;padding:3px 10px;border-radius:8px;cursor:pointer;
+}
+.swipe-nav{display:flex;align-items:center;justify-content:center;gap:14px;margin:10px 16px 0}
+.swipe-nav button{
+  width:30px;height:30px;border-radius:50%;
+  background:var(--surface-1);border:0.5px solid var(--border);
+  color:var(--text);display:flex;align-items:center;justify-content:center;
+}
+.swipe-dots{display:flex;gap:5px}
+.swipe-dots span{width:5px;height:5px;border-radius:50%;background:var(--surface-3)}
+.swipe-dots span.on{background:var(--text)}
+
+/* ── SWIPE TO DELETE ─────────────────────────────────────────────────────── */
+.swipe-item{position:relative;overflow:hidden;border-radius:14px;margin-bottom:8px}
+.swipe-bg{position:absolute;inset:0;background:var(--red);display:flex;align-items:center;justify-content:flex-end;padding-right:20px;border-radius:14px}
+.swipe-bg i{color:#fff;font-size:20px}
+.swipe-fg{position:relative;background:var(--surface-1);border-radius:14px;transition:transform .18s ease;touch-action:pan-y}
+.swipe-fg.dragging{transition:none}
+
+/* ── STATUS BADGE ────────────────────────────────────────────────────────── */
+.status-badge{
+  font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px;
+  display:inline-block;margin-top:3px;
+}
+.status-done{background:rgba(34,197,94,0.15);color:#22C55E}
+.status-progress{background:rgba(249,115,22,0.15);color:#F97316}
+
+/* ── REPORT TILES ────────────────────────────────────────────────────────── */
+.tile-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 16px}
+.tile{
+  background:var(--glass);border-radius:var(--radius-md);padding:16px 10px;
+  text-align:center;cursor:pointer;border:1px solid var(--glass-border);
+  transition:transform .12s;backdrop-filter:blur(var(--blur-glass));-webkit-backdrop-filter:blur(var(--blur-glass));
+}
+.tile:active{transform:scale(0.96)}
+.tile.primary{background:var(--accent-gradient);border-color:transparent}
+.tile.primary i,.tile.primary p{color:#fff!important}
+.tile i{font-size:22px;color:var(--text-secondary)}
+.tile p{font-size:12px;font-weight:500;color:var(--text-secondary);margin-top:6px}
+
+/* ── CHIP SERVICES ───────────────────────────────────────────────────────── */
+.chip-label{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:13px 16px;cursor:pointer;transition:background .1s;
+}
+.chip-label+.chip-label{border-top:0.5px solid var(--border)}
+.chip-label.active{background:var(--surface-2)}
+.chip-l{font-size:14px;font-weight:500}
+.chip-r{display:flex;align-items:center;gap:10px}
+.chip-p{font-size:13px;color:var(--text-secondary)}
+.tick{
+  width:22px;height:22px;border-radius:50%;
+  border:1.5px solid var(--border-strong);
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;color:transparent;flex-shrink:0;
+  transition:all .15s;
+}
+.tick.on{background:var(--accent);border-color:var(--accent);color:#fff;transform:scale(1.06)}
+
+/* ── PRESET CHIPS ────────────────────────────────────────────────────────── */
+.preset-row{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;margin-bottom:14px}
+.preset-row::-webkit-scrollbar{display:none}
+.preset-chip{
+  flex-shrink:0;background:var(--surface-1);border:0.5px solid var(--border);
+  border-radius:12px;padding:9px 14px;cursor:pointer;transition:transform .12s;
+}
+.preset-chip:active{transform:scale(0.96)}
+.preset-chip .pc-name{font-size:12px;font-weight:600;display:block}
+.preset-chip .pc-count{font-size:10px;color:var(--text-muted)}
+
+/* ── SEARCH ──────────────────────────────────────────────────────────────── */
+.search-wrap{position:relative;margin:0 16px 10px}
+.search-wrap i.ti-search{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:16px;pointer-events:none}
+.search-wrap input{padding-left:40px;margin-bottom:0}
+.search-wrap .clear-btn{position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:16px;padding:4px;cursor:pointer;display:none}
+.search-wrap.has-value .clear-btn{display:block}
+
+/* ── FILTER CHIPS ────────────────────────────────────────────────────────── */
+.filter-chips{display:flex;gap:8px;overflow-x:auto;padding:4px 16px 4px;margin-bottom:10px}
+.filter-chips::-webkit-scrollbar{display:none}
+.filter-chip{
+  flex-shrink:0;background:var(--surface-1);border-radius:20px;
+  padding:7px 14px;font-size:12px;font-weight:500;color:var(--text-secondary);
+  white-space:nowrap;cursor:pointer;border:0.5px solid var(--border);transition:all .1s;
+}
+.filter-chip.active{background:var(--text);color:var(--bg);border-color:transparent;font-weight:700}
+
+/* ── HISTORY ─────────────────────────────────────────────────────────────── */
+.hist-row{padding:11px 16px}
+.hist-row+.hist-row{border-top:0.5px solid var(--border)}
+.hist-top{display:flex;justify-content:space-between;align-items:center;font-size:13px;margin-bottom:3px}
+.hist-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:8px;text-transform:uppercase}
+.hist-badge.add{background:var(--green-tint);color:var(--green)}
+.hist-badge.edit{background:rgba(10,132,255,0.15);color:#0A84FF}
+.hist-badge.delete{background:var(--red-tint);color:var(--red)}
+.hist-meta{font-size:11px;color:var(--text-muted);margin:1px 0 0}
+
+/* ── SKELETON ────────────────────────────────────────────────────────────── */
+.skeleton{background:var(--surface-1);border-radius:16px;height:56px;margin:0 16px 10px;animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.empty{color:var(--text-muted);font-size:14px;text-align:center;padding:32px 16px}
+
+/* ── EMPTY STATE (единый компонент) ─────────────────────────────────────── */
+.empty-state{text-align:center;padding:40px 24px}
+.empty-state-icon{
+  width:56px;height:56px;border-radius:16px;margin:0 auto 14px;
+  background:var(--accent-tint);color:var(--accent);
+  display:flex;align-items:center;justify-content:center;font-size:26px;
+}
+.empty-state-text{color:var(--text-secondary);font-size:14px;line-height:1.4}
+.empty-state .btn{margin-top:16px;width:auto;padding:0 20px;height:44px}
+
+/* ── TOAST (единое уведомление об успехе действия) ────────────────────────── */
+.toast-wrap{
+  position:fixed;left:0;right:0;bottom:calc(76px + env(safe-area-inset-bottom));
+  display:flex;justify-content:center;z-index:200;pointer-events:none;
+  max-width:460px;margin:0 auto;
+}
+.toast{
+  display:flex;align-items:center;gap:8px;
+  background:var(--surface-2);color:var(--text);
+  border:0.5px solid var(--border-strong);
+  border-radius:14px;padding:10px 16px;
+  font-size:14px;font-weight:600;
+  box-shadow:0 8px 24px rgba(0,0,0,0.28);
+  opacity:0;transform:translateY(8px);
+  transition:opacity .18s ease,transform .18s ease;
+}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast i{font-size:16px}
+.toast.success i{color:var(--green)}
+.toast.error i{color:var(--red)}
+
+/* ── BOTTOM SHEET ────────────────────────────────────────────────────────── */
+.sheet-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:90;opacity:0;pointer-events:none;transition:opacity .18s}
+.sheet-backdrop.show{opacity:1;pointer-events:auto}
+.sheet{
+  position:fixed;left:0;right:0;bottom:0;max-width:460px;margin:0 auto;
+  background:rgba(20,20,26,0.86);border-radius:var(--radius-xl) var(--radius-xl) 0 0;
+  padding:8px 8px calc(12px + env(safe-area-inset-bottom));
+  z-index:91;transform:translateY(100%);
+  transition:transform .22s cubic-bezier(.32,.72,0,1);
+  border-top:1px solid var(--glass-border);
+  backdrop-filter:blur(var(--blur-nav)) saturate(160%);-webkit-backdrop-filter:blur(var(--blur-nav)) saturate(160%);
+}
+html[data-theme="light"] .sheet{background:rgba(255,255,255,0.88)}
+.sheet.show{transform:translateY(0)}
+.sheet .handle{width:36px;height:4px;background:var(--border-strong);border-radius:2px;margin:6px auto 10px}
+.sheet-title{font-size:13px;color:var(--text-muted);text-align:center;padding:0 16px 10px}
+.sheet-action{display:flex;align-items:center;gap:12px;padding:14px 16px;font-size:15px;border-radius:12px;cursor:pointer;font-weight:500}
+.sheet-action:active{background:var(--glass-hover)}
+.sheet-action.destructive{color:var(--red)}
+.sheet-action i{font-size:19px;width:22px;text-align:center}
+
+/* ── PULL TO REFRESH ─────────────────────────────────────────────────────── */
+.ptr-indicator{display:flex;align-items:center;justify-content:center;height:0;overflow:hidden;color:var(--text-muted);transition:height .15s}
+.ptr-indicator i{font-size:18px;animation:spin .7s linear infinite}
+
+/* ── SCHEDULE GRID ───────────────────────────────────────────────────────── */
+.sched-grid{display:grid;grid-template-columns:70px repeat(7,1fr);gap:4px;align-items:center}
+
+/* ── WEEK TABLE ──────────────────────────────────────────────────────────── */
+.wtable-head{display:grid;grid-template-columns:1.6fr .7fr 1fr;font-size:10px;color:var(--text-muted);padding:10px 16px 6px}
+.wtable-row{display:grid;grid-template-columns:1.6fr .7fr 1fr;padding:12px 16px;align-items:center;font-size:13px}
+.wtable-row+.wtable-row{border-top:0.5px solid var(--border)}
+.wname{display:flex;align-items:center;gap:8px;font-weight:500}
+.wdot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.wcount{text-align:center;color:var(--text-secondary)}
+.wsal{text-align:right;font-weight:700}
+
+/* ── TAG ROW (сотрудники в настройках) ──────────────────────────────────── */
+.tag-row{display:flex;flex-wrap:wrap;gap:8px;padding:0 16px}
+.tag{background:var(--surface-1);border-radius:12px;padding:7px 12px;display:flex;align-items:center;gap:7px;cursor:pointer;border:0.5px solid var(--border)}
+.tag:active{background:var(--surface-2)}
+.tag .tav{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0}
+.tag span{font-size:12px;font-weight:500}
+.tag-add{border:1px dashed var(--border-strong);border-radius:12px;padding:7px 14px;color:var(--text-muted);font-size:12px;display:flex;align-items:center;gap:5px;cursor:pointer}
+
+/* ── GROUP LABEL ─────────────────────────────────────────────────────────── */
+.group-label{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;padding:14px 16px 8px;font-weight:600}
+
+/* ── THEME SWITCH ────────────────────────────────────────────────────────── */
+.theme-switch{display:flex;background:var(--surface-2);border-radius:11px;padding:3px;gap:2px;margin:0 16px}
+.theme-switch .topt{
+  flex:1;text-align:center;padding:9px;font-size:13px;font-weight:600;
+  color:var(--text-secondary);border-radius:9px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  transition:all .15s;
+}
+.theme-switch .topt.active{background:var(--surface-0);color:var(--text)}
+html[data-theme="light"] .theme-switch .topt.active{box-shadow:0 1px 4px rgba(0,0,0,.12)}
+
+/* ── SPLIT PAY ───────────────────────────────────────────────────────────── */
+.split-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0}
+.split-row+.split-row{border-top:0.5px solid var(--border)}
+
+/* ── STAT LABEL ──────────────────────────────────────────────────────────── */
+.stat-label{font-size:12px;color:var(--text-muted);padding:6px 16px}
+
+/* ── TIMELINE ────────────────────────────────────────────────────────────── */
+.timeline{position:relative;padding-left:16px}
+.timeline::before{content:"";position:absolute;left:5px;top:4px;bottom:4px;width:1px;background:var(--border-strong)}
+.tl-item{position:relative;margin-bottom:12px;cursor:pointer}
+.tl-item:last-child{margin-bottom:0}
+.tl-dot{position:absolute;left:-16px;top:4px;width:7px;height:7px;border-radius:50%;background:var(--text-muted)}
+.tl-item:first-child .tl-dot{background:var(--green)}
+.tl-time{font-size:11px;color:var(--text-muted)}
+.tl-name{font-size:13px;font-weight:500;margin:1px 0 0}
+
+/* ── FADE IN ─────────────────────────────────────────────────────────────── */
+[id^="view-"]{animation:fadein .18s ease}
+@keyframes fadein{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── HOME STAT (для страницы мойщиков) ──────────────────────────────────── */
+.home-stat-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 16px 0}
+.home-stat-box{background:var(--glass);border-radius:var(--radius-md);padding:14px 16px;border:1px solid var(--glass-border);backdrop-filter:blur(var(--blur-glass));-webkit-backdrop-filter:blur(var(--blur-glass))}
+.home-stat-box span{font-size:11px;color:var(--text-muted);display:flex;align-items:center;gap:4px;margin-bottom:4px;font-weight:500}
+.home-stat-box b{font-size:20px;font-weight:700}
+
+/* ── TOOLTIP / BADGE ─────────────────────────────────────────────────────── */
+.trend-pill{
+  display:inline-flex;align-items:center;
+  font-size:11px;font-weight:700;
+  padding:3px 8px;border-radius:10px;
+  background:rgba(52,199,89,.18);color:var(--green);
+}
+.trend-pill.negative{background:rgba(255,59,48,.15);color:var(--red)}
+
+/* ── REPORTS STAT GRID ───────────────────────────────────────────────────── */
+.rstat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 16px 0}
+.rstat-box{background:var(--glass);border-radius:var(--radius-md);padding:14px 16px;border:1px solid var(--glass-border);backdrop-filter:blur(var(--blur-glass));-webkit-backdrop-filter:blur(var(--blur-glass))}
+.rstat-box p:first-child{font-size:12px;color:var(--text-secondary);margin-bottom:6px;display:flex;align-items:center;gap:5px}
+.rstat-box p:last-child{font-size:19px;font-weight:700}
+
+/* ── EXPENSE SUM ROW ─────────────────────────────────────────────────────── */
+.expenses-header{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:0 4px;
+}
+.expenses-header .sum{font-size:13px;font-weight:700;color:var(--red)}
+
+/* ── РАСХОД TOTAL CARD ───────────────────────────────────────────────────── */
+.total-card{
+  margin:0 16px;background:var(--surface-1);border-radius:16px;
+  padding:14px 16px;border:0.5px solid var(--border);
+  display:flex;justify-content:space-between;align-items:center;
+}
+.total-card .tl{font-size:14px;color:var(--text-secondary)}
+.total-card .tr{font-size:24px;font-weight:700}
+
+/* ── REDUCE MOTION ───────────────────────────────────────────────────────── */
+@media(prefers-reduced-motion:reduce){
+  .btn,.quick-btn,.preset-chip,.tick,.chip-label,.row,.tile,[id^="view-"]{
+    animation:none!important;transition:opacity .15s linear!important;
+  }
+  .btn:active,.quick-btn:active,.preset-chip:active,.tile:active{transform:none!important}
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   v2 «Cloud Showcase» — Mini App (Этап 5). Скоуплено классом .v2-page
+   на <body>, чтобы можно было включать/выключать одним классом. Как и
+   на сайте (Стадии 2-4), это переопределение общих переиспользуемых
+   классов экранов — работает сразу на всех вью (Главная/Касса/Машины/
+   Финансы/Отчёты/Сотрудники/Настройки/История), без правки каждой
+   render-функции. См. DESIGN_SYSTEM.md → "v2 Cloud Showcase", Стадия 5.
+   ═══════════════════════════════════════════════════════════════════ */
+.v2-page{
+  /* v2-тема существует только в тёмном варианте — если у пользователя
+     в Telegram/настройках приложения включена светлая тема, базовые
+     токены (--text и т.п.) переключаются на тёмные (для белого фона),
+     а фон v2-страницы всё равно остаётся тёмным (см. background ниже)
+     → текст становится почти нечитаемым (тёмный на тёмном). Фикс:
+     принудительно фиксируем тёмный вариант токенов прямо на .v2-page,
+     это перекрывает унаследованные от html[data-theme=light] значения
+     для всех потомков, независимо от переключателя темы. */
+  --text:#1B2559;
+  --text-secondary:#5E6270;
+  --text-muted:#9096A3;
+  --text-dim:rgba(27,37,89,.6);
+  --text-faint:rgba(27,37,89,.38);
+  --border:rgba(15,17,22,0.08);
+  --accent:var(--v2-accent);
+  background:
+    radial-gradient(90% 55% at 10% -8%, rgba(53,82,232,.05), transparent 55%),
+    radial-gradient(75% 50% at 100% 10%, rgba(34,211,238,.04), transparent 55%),
+    #F5F6FA;
+  font-family:var(--font-body);
+}
+.v2-page .orb-bg{ display:none; }
+
+.v2-page .topbar-title{ font-family:var(--font-display); font-weight:700; color:var(--text); }
+.v2-page .topbar-sub{ color:var(--text-secondary); }
+.v2-page .home-branch-chip, .v2-page .bell-btn{
+  background:#fff; border:1px solid var(--border); color:var(--text); border-radius:100px;
+  box-shadow:0 1px 2px rgba(23,43,89,.06);
+}
+
+/* Hero-карточка выручки → тёмная ink-карточка, число моно-шрифтом */
+.v2-page .home-hero{
+  background:
+    radial-gradient(120% 140% at 8% 0%, rgba(255,255,255,.18) 0%, transparent 55%),
+    radial-gradient(120% 140% at 95% 15%, rgba(34,211,238,.35) 0%, transparent 50%),
+    linear-gradient(160deg, #3552E8 0%, #1B2FA8 60%, #151F82 100%)!important;
+  border-radius:var(--v2-radius-lg);
+  box-shadow:0 22px 48px -20px rgba(53,82,232,.45);
+}
+.v2-page .home-hero-label{ color:rgba(255,255,255,.65); }
+.v2-page .home-hero-sum{ font-family:var(--font-mono); color:#fff; }
+.v2-page .home-hero-sub{ color:rgba(255,255,255,.65); }
+.v2-page .home-hero-badge{ background:rgba(255,255,255,.16); border-radius:100px; }
+.v2-page .home-segmented, .v2-page .segmented{ background:rgba(15,17,22,.05); border-radius:100px; padding:3px; }
+.v2-page .home-seg.active, .v2-page .seg.active{ background:var(--v2-glass-strong)!important; color:var(--v2-ink)!important; }
+.v2-page .home-seg{ color:var(--text-secondary); }
+
+/* Карточки/панели → белые стеклянные */
+.v2-page .card, .v2-page .glass-card, .v2-page .op-list,
+.v2-page .home-stat-box, .v2-page .rstat-box, .v2-page .worker-card,
+.v2-page .branch-card, .v2-page .total-card, .v2-page .swipe-fg{
+  background:var(--v2-glass-strong); border:none; border-radius:var(--v2-radius-md);
+  box-shadow:0 1px 2px rgba(23,43,89,.04), 0 10px 24px -14px rgba(23,43,89,.16); color:var(--v2-card-ink);
+}
+.v2-page .card *, .v2-page .op-row, .v2-page .row-name, .v2-page .op-name,
+.v2-page .wname, .v2-page .tl-name{ color:var(--v2-card-ink); }
+.v2-page .row-sub, .v2-page .op-meta, .v2-page .settings-role, .v2-page .stat-label,
+.v2-page .home-stat-box span, .v2-page .rstat-box p:first-child, .v2-page .wsub,
+.v2-page .tl-time, .v2-page .expense-name{ color:var(--v2-card-soft); }
+.v2-page .home-stat-box b, .v2-page .rstat-box p:last-child, .v2-page .row-price,
+.v2-page .op-price, .v2-page .total-card .tr, .v2-page .wsal{ font-family:var(--font-mono); color:var(--v2-card-ink); }
+.v2-page .op-row+.op-row, .v2-page .settings-row+.settings-row{ border-top-color:rgba(11,31,36,.08); }
+
+/* Плитки быстрых действий и статусные пилюли */
+.v2-page .action-tile, .v2-page .tile{
+  background:var(--v2-glass-strong); border:none; color:var(--v2-card-ink);
+  border-radius:var(--v2-radius-md); box-shadow:0 1px 2px rgba(23,43,89,.04), 0 10px 24px -14px rgba(23,43,89,.16);
+}
+.v2-page .tile p{ color:var(--v2-card-soft); }
+.v2-page .pill.ok{ background:rgba(31,174,115,.14); color:#189165; }
+.v2-page .pill.wip{ background:rgba(255,194,75,.2); color:#a9720a; }
+.v2-page .tag{ background:#F0F2F8; border:1px solid var(--border); border-radius:100px; color:var(--text); }
+
+/* Нижняя навигация — стеклянная пилюля-бар. !important нужен, т.к.
+   правило html[data-theme="light"] .tabbar{...} формально «весомее»
+   (селектор атрибута) и иначе перекрашивает бар в светлый даже здесь. */
+.v2-page .glass-navbar, .v2-page .tabbar{
+  background:rgba(27,37,89,.95)!important;
+  border:1px solid var(--v2-glass-border); border-top-color:var(--v2-glass-border)!important;
+  backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px);
+}
+.v2-page .tab{ color:rgba(255,255,255,.5); }
+.v2-page .tab.active{ color:var(--v2-accent-2); }
+
+/* Кнопки */
+.v2-page .btn:not(.secondary):not(.ghost):not(.danger-outline){ background:var(--v2-accent); border-radius:100px; }
+.v2-page .btn.secondary{ background:var(--v2-glass); border-color:var(--v2-glass-border); color:#fff; border-radius:100px; }
+.v2-page .btn.ghost{ border-color:var(--v2-glass-border); color:rgba(255,255,255,.7); border-radius:100px; }
+
+/* Нижний лист (sheet) */
+.v2-page .sheet{ background:var(--v2-card-ink)!important; }
+.v2-page .sheet-title{ color:rgba(255,255,255,.55); }
+</style>
+</head>
+<body class="v2-page">
+<div class="orb-bg"><div class="orb orb-a"></div><div class="orb orb-b"></div><div class="orb orb-c"></div></div>
+<div class="container">
+  <div id="view-home"></div>
+  <div id="view-add" class="hidden"></div>
+  <div id="view-reports" class="hidden"></div>
+  <div id="view-workers" class="hidden"></div>
+  <div id="view-settings" class="hidden"></div>
+</div>
+
+<div class="tabbar">
+  <div class="tab active" id="tab-home" data-tab="home"><i class="ti ti-home"></i>Главная</div>
+  <div class="tab" id="tab-cash" data-tab="cash"><i class="ti ti-cash"></i>Касса</div>
+  <div class="tab" id="tab-cars" data-tab="all-cars"><i class="ti ti-car"></i>Машины</div>
+  <div class="tab" id="tab-finance" data-tab="finance"><i class="ti ti-receipt"></i>Финансы</div>
+  <div class="tab" id="tab-my-stats" data-tab="my-stats"><i class="ti ti-wallet"></i>Моя смена</div>
+  <div class="tab" id="tab-more" data-tab="more"><i class="ti ti-dots"></i>Ещё</div>
+</div>
+
+<script>
+/* ─── INIT ──────────────────────────────────────────────────────────────── */
+const tg = window.Telegram.WebApp;
+tg.ready(); tg.expand();
+try{ tg.setHeaderColor("#08080B"); tg.setBackgroundColor("#08080B"); }catch(e){}
+
+window.addEventListener("error", (e) => {
+  const el = document.getElementById("view-home");
+  if(el && !el.innerHTML.trim()){
+    el.innerHTML = `<div class="px" style="padding-top:20px"><p class="empty">Ошибка: ${e.message||"неизвестная"}<br><button class="btn secondary btn-sm" style="margin-top:12px" onclick="location.reload()">Обновить</button></p></div>`;
+  }
+});
+
+const API = "";
+const initData = tg.initData || "";
+const headers = {"Content-Type":"application/json","X-Init-Data":initData};
+
+let CFG = null, ME = null;
+let BRANCH = (tg.initDataUnsafe?.start_param) || null;
+let selectedServices = [], customServices = [];
+
+async function api(path, opts={}) {
+  const res = await fetch(API+path, {...opts, headers:{...headers,...(opts.headers||{})}});
+  if(!res.ok){ tg.showAlert("Ошибка: "+(await res.text())); throw new Error("api"); }
+  const ct = res.headers.get("content-type")||"";
+  return ct.includes("application/json") ? res.json() : res;
+}
+function fmt(n){ return (n||0).toLocaleString("ru-RU")+" ₽"; }
+function haptic(type="light"){ try{ tg.HapticFeedback.impactOccurred(type); }catch(e){} }
+let _toastTimer=null;
+function toast(text,type="success"){
+  let wrap=document.querySelector(".toast-wrap");
+  if(!wrap){
+    wrap=document.createElement("div");
+    wrap.className="toast-wrap";
+    document.body.appendChild(wrap);
+  }
+  const icon=type==="success"?"ti-circle-check":"ti-alert-circle";
+  wrap.innerHTML=`<div class="toast ${type}"><i class="ti ${icon}"></i>${text}</div>`;
+  const el=wrap.querySelector(".toast");
+  requestAnimationFrame(()=>el.classList.add("show"));
+  clearTimeout(_toastTimer);
+  _toastTimer=setTimeout(()=>{ el.classList.remove("show"); },1800);
+}
+function initials(name){ return (name||"?").trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase(); }
+const AVATAR_COLORS = ["#FF9F0A","#FF453A","#33D17A","#0A84FF","#BF5AF2","#64D2FF","#FFD60A"];
+function avatarColor(name){ let h=0; for(const c of (name||"")) h=(h*31+c.charCodeAt(0))>>>0; return AVATAR_COLORS[h%AVATAR_COLORS.length]; }
+function paymentLabel(c){
+  if(c.payment_split) return Object.entries(c.payment_split).map(([k,v])=>`${k} ${v}₽`).join(" + ");
+  return c.payment;
+}
+function skeleton(n=3){ return Array(n).fill('<div class="skeleton"></div>').join(""); }
+function emptyState(icon,text,cta){
+  return `<div class="empty-state">
+    <div class="empty-state-icon"><i class="ti ${icon}"></i></div>
+    <div class="empty-state-text">${text}</div>
+    ${cta?`<button class="btn btn-sm" onclick="${cta.onclick}"><i class="ti ${cta.icon||"ti-plus"}"></i>${cta.label}</button>`:""}
+  </div>`;
+}
+
+/* ─── WAVE CHART ─────────────────────────────────────────────────────────── */
+function buildWaveSvg(values, activeIdx, maxVal, lineColor){
+  const w=300,h=44,n=values.length,pad=4;
+  const stepX=(w-pad*2)/(Math.max(n-1,1));
+  const pts=values.map((v,i)=>{
+    const x=pad+i*stepX;
+    const y=h-pad-((v||0)/maxVal)*(h-pad*2);
+    return [x,y];
+  });
+  let d=`M ${pts[0][0]} ${pts[0][1]}`;
+  for(let i=0;i<pts.length-1;i++){
+    const [x0,y0]=pts[i],[x1,y1]=pts[i+1];
+    const mx=(x0+x1)/2;
+    d+=` C ${mx} ${y0}, ${mx} ${y1}, ${x1} ${y1}`;
+  }
+  const areaD = d + ` L ${pts[pts.length-1][0]} ${h} L ${pad} ${h} Z`;
+  const dots=pts.map(([x,y],i)=>i<=activeIdx
+    ?`<circle cx="${x}" cy="${y}" r="${i===activeIdx?4.5:2}" fill="${lineColor}" ${i===activeIdx?`stroke="rgba(255,255,255,0.3)" stroke-width="3"`:""}/>`
+    :"").join("");
+  const gradId=`g${Math.random().toString(36).slice(2,6)}`;
+  return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+    <defs><linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${lineColor}" stop-opacity="0.2"/><stop offset="100%" stop-color="${lineColor}" stop-opacity="0"/></linearGradient></defs>
+    <path d="${areaD}" fill="url(#${gradId})"/>
+    <path d="${d}" fill="none" stroke="${lineColor}" stroke-width="2" stroke-linecap="round" opacity="0.9"/>
+    ${dots}
+  </svg>`;
+}
+
+/* ─── ТЕМА ───────────────────────────────────────────────────────────────── */
+function applyTheme(t){
+  document.documentElement.setAttribute("data-theme",t);
+  try{ localStorage.setItem("cf_theme",t); }catch(e){}
+  try{
+    if(t==="light"){ tg.setHeaderColor("#F4F5F8"); tg.setBackgroundColor("#F4F5F8"); }
+    else{ tg.setHeaderColor("#08080B"); tg.setBackgroundColor("#08080B"); }
+  }catch(e){}
+}
+function currentTheme(){ return document.documentElement.getAttribute("data-theme")||(tg.colorScheme==="light"?"light":"dark"); }
+window.setTheme=(t)=>{ haptic(); applyTheme(t); const el=document.getElementById("theme-switch"); if(el) el.outerHTML=renderThemeSwitch(); };
+function renderThemeSwitch(){
+  const t=currentTheme();
+  return `<div class="theme-switch" id="theme-switch" style="margin:14px 16px 0">
+    <div class="topt ${t==="dark"?"active":""}" onclick="setTheme('dark')"><i class="ti ti-moon"></i>Тёмная</div>
+    <div class="topt ${t==="light"?"active":""}" onclick="setTheme('light')"><i class="ti ti-sun"></i>Светлая</div>
+  </div>`;
+}
+
+/* ─── LOADING BTN ────────────────────────────────────────────────────────── */
+async function withLoading(btn, fn){
+  if(!btn||btn.classList.contains("loading")) return;
+  btn.classList.add("loading");
+  try{ await fn(); }finally{ btn.classList.remove("loading"); }
+}
+
+/* ─── BOTTOM SHEET ───────────────────────────────────────────────────────── */
+function ensureSheetHost(){
+  if(document.getElementById("sheet-backdrop")) return;
+  document.body.insertAdjacentHTML("beforeend",`<div class="sheet-backdrop" id="sheet-backdrop" onclick="closeSheet()"></div><div class="sheet" id="sheet"></div>`);
+}
+function openSheet(title, actions){
+  ensureSheetHost();
+  const sheet=document.getElementById("sheet");
+  sheet.innerHTML=`<div class="handle"></div><div class="sheet-title">${title}</div>`+
+    actions.map(a=>`<div class="sheet-action ${a.destructive?"destructive":""}" onclick="closeSheet();(${a.fn})()"><i class="ti ${a.icon}"></i>${a.label}</div>`).join("");
+  document.getElementById("sheet-backdrop").classList.add("show");
+  sheet.classList.add("show");
+}
+window.closeSheet=()=>{
+  const s=document.getElementById("sheet"),b=document.getElementById("sheet-backdrop");
+  if(s) s.classList.remove("show");
+  if(b) b.classList.remove("show");
+};
+window.openSheet=openSheet;
+
+/* ─── PULL TO REFRESH ────────────────────────────────────────────────────── */
+function attachPullToRefresh(viewId, onRefresh){
+  const el=document.getElementById(viewId);
+  if(!el||el.dataset.ptrBound) return;
+  el.dataset.ptrBound="1";
+  let startY=null,pulling=false;
+  const ind=document.createElement("div");
+  ind.className="ptr-indicator";
+  ind.innerHTML=`<i class="ti ti-loader-2"></i>`;
+  el.prepend(ind);
+  el.addEventListener("touchstart",e=>{ if(el.scrollTop<=0){startY=e.touches[0].clientY;pulling=true;} },{passive:true});
+  el.addEventListener("touchmove",e=>{
+    if(!pulling||startY===null) return;
+    const dy=e.touches[0].clientY-startY;
+    if(dy>0&&el.scrollTop<=0) ind.style.height=Math.min(50,dy*.5)+"px";
+  },{passive:true});
+  el.addEventListener("touchend",async()=>{
+    if(!pulling) return;
+    const h=parseInt(ind.style.height||"0",10);
+    pulling=false;startY=null;
+    if(h>30){haptic("medium");await onRefresh();}
+    ind.style.height="0px";
+  });
+}
+
+/* ─── TABS ───────────────────────────────────────────────────────────────── */
+document.querySelectorAll(".tab").forEach(t=>t.addEventListener("click",()=>{ haptic(); switchTab(t.dataset.tab); }));
+function switchTab(name, editNum){
+  document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t.dataset.tab===name));
+  document.querySelectorAll("[id^=view-]").forEach(v=>v.classList.add("hidden"));
+  const viewEl=document.getElementById("view-"+name);
+  if(viewEl) viewEl.classList.remove("hidden");
+  if(name==="home") renderHome();
+  if(name==="add") renderAdd(editNum);
+  if(name==="reports") renderReports();
+  if(name==="workers") renderWorkers();
+  if(name==="my-stats") renderMyStats();
+  if(name==="settings") renderSettings();
+  if(name==="schedule") renderScheduleWeek();
+  if(name==="employees") renderEmployees();
+}
+
+async function ensureMe(){
+  // ВАЖНО: ME кэшируется по BRANCH — если запросили ME для одного филиала,
+  // а BRANCH сменился, нельзя переиспользовать старый ответ (иначе роль
+  // "протекает" с одного филиала на другой, например мойщик выглядит
+  // админом там, где он не назначен админом).
+  if(!ME || ME.__branch !== BRANCH){
+    ME = await api(`/api/me?branch=${encodeURIComponent(BRANCH||"")}`);
+    ME.__branch = BRANCH;
+  }
+  // Права считаем СТРОГО по текущему филиалу: владелец или назначенный
+  // админ именно этого филиала. Всё остальное — ограниченный доступ
+  // "мойщика", независимо от того, числится ли человек сотрудником
+  // именно этого филиала (по умолчанию — минимум прав, а не максимум).
+  const isPrivileged = !!ME.is_owner || !!ME.is_branch_admin;
+  document.getElementById("tab-my-stats")?.classList.toggle("hidden", !ME.is_employee);
+  ["tab-home","tab-cash","tab-cars","tab-finance","tab-more"].forEach(id=>{
+    document.getElementById(id)?.classList.toggle("hidden", !isPrivileged);
+  });
+  if(!isPrivileged && document.querySelector(".tab.active")?.dataset.tab!=="my-stats"){
+    switchTab("my-stats");
+  }
+  return ME;
+}
+
+/* ─── BRANCH PICKER ──────────────────────────────────────────────────────── */
+async function ensureBranch(){
+  if(BRANCH) return;
+  const el=document.getElementById("view-home");
+  el.innerHTML=`<div class="topbar"><div><div class="topbar-title">ClaudeFormula 2.0</div><div style="font-size:12px;color:var(--text-muted);margin-top:2px">Выберите филиал</div></div></div>${skeleton(3)}`;
+  try{ CFG=CFG||await api("/api/config"); }
+  catch(e){
+    el.innerHTML=`<div class="topbar"><div><div class="topbar-title">ClaudeFormula 2.0</div></div></div><div style="padding:24px 16px"><p class="empty">Не удалось связаться с сервером.<br>Проверь подключение.</p><div class="btn-wrap"><button class="btn secondary" onclick="location.reload()">Обновить</button></div></div>`;
+    return;
+  }
+  let branchStats = [];
+  try {
+    const r = await api("/api/branches/summary");
+    branchStats = r.branches || [];
+  } catch(e){}
+  const statByBranch = {};
+  branchStats.forEach(b => { statByBranch[b.branch] = b; });
+
+  el.innerHTML=`
+    <div class="topbar"><div><div class="topbar-title">Выбери филиал</div></div></div>
+    <div style="padding:8px 0">
+      ${CFG.branches.map((b)=>{
+        const st = statByBranch[b] || { total: 0, cars: 0, trend: [0,0,0,0,0] };
+        const maxT = Math.max(1, ...st.trend);
+        const pts = st.trend.map((v,i) => `${i*20},${30 - Math.round((v/maxT)*26)}`).join(" ");
+        const trendUp = st.trend[st.trend.length-1] >= (st.trend[0] || 0);
+        return `
+        <div class="branch-card" onclick="pickBranch('${b.replace(/'/g,"\\'")}')">
+          <div>
+            <div class="bc-pin"><i class="ti ti-map-pin"></i>${b}</div>
+            <div class="bc-amount">${fmt(st.total)}</div>
+            <div class="bc-sub">${st.cars} машин сегодня</div>
+          </div>
+          <div class="bc-right">
+            <i class="ti ${trendUp?'ti-trending-up':'ti-trending-down'} bc-trend" style="color:${trendUp?'var(--green)':'var(--red)'}"></i>
+            <svg class="bc-mini-chart" viewBox="0 0 80 30"><polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+        </div>`;
+      }).join("")}
+    </div>`;
+}
+window.pickBranch=(b)=>{ BRANCH=b; ME=null; haptic("medium"); switchTab("home"); };
+
+/* ─── ГЛАВНАЯ ────────────────────────────────────────────────────────────── */
+async function renderHome(){
+  if(!BRANCH) return ensureBranch();
+  await ensureMe();
+  if(document.querySelector(".tab.active")?.dataset.tab!=="home") return;
+  const el=document.getElementById("view-home");
+  el.innerHTML=`<div class="home-wrap"><div class="home-topbar"><div class="home-who"><div class="home-avatar">${initials(ME?.name||"")}</div><div class="home-who-text"><div class="hi">${greetingWord()}</div><div class="name">${(ME?.name||"").split(/\s+/)[0]||"—"}</div></div></div><div class="home-branch-chip" onclick="switchBranch()"><span>${BRANCH}</span><i class="ti ti-chevron-down"></i></div></div>${skeleton(4)}</div>`;
+  const [{session,summary},{workers,schedule},week]=await Promise.all([
+    api(`/api/session?branch=${encodeURIComponent(BRANCH)}`),
+    api(`/api/workers?branch=${encodeURIComponent(BRANCH)}`),
+    api(`/api/reports/week?branch=${encodeURIComponent(BRANCH)}`).catch(()=>({grand_total:0,days:[]})),
+  ]);
+  const totalSalary=Object.values(summary.washer_salaries||{}).reduce((a,b)=>a+b,0);
+  const avgCheck=session.cars.length?Math.round(summary.total/session.cars.length):0;
+  const now=new Date(), todayIdx=(now.getDay()+6)%7;
+  const byDate={};
+  (week.days||[]).forEach(d=>{byDate[d.date]=d.total;});
+  const weekTotals=[];
+  for(let i=0;i<=todayIdx;i++){
+    const dt=new Date(now); dt.setDate(now.getDate()-(todayIdx-i));
+    const key=dt.toLocaleDateString("ru-RU").split(".").map((p,idx)=>idx<2?p.padStart(2,"0"):p).join(".");
+    weekTotals.push(byDate[key]||0);
+  }
+  const maxVal=Math.max(1,...weekTotals);
+  const waveSvg=buildWaveSvg(weekTotals,todayIdx,maxVal,"#fff");
+
+  const prevAvg=weekTotals.slice(0,-1).reduce((a,b)=>a+b,0)/Math.max(1,weekTotals.length-1);
+  const trendPct=prevAvg>0?Math.round(((summary.total-prevAvg)/prevAvg)*100):null;
+  const trendBadge=trendPct===null?"":
+    `<div class="home-hero-badge${trendPct<0?" negative":""}"><i class="ti ${trendPct<0?"ti-trending-down":"ti-trending-up"}" style="font-size:12px"></i>${trendPct>=0?"+":""}${trendPct}%</div>`;
+
+  const workingCount=workers.filter(w=>schedule?.[w]?.working!==false).length;
+  const teamHtml=workers.slice(0,6).map(w=>{
+    const working=schedule?.[w]?.working!==false;
+    const col=avatarColor(w);
+    const salary=(summary.washer_salaries||{})[w]||0;
+    return `<div class="home-member" onclick="uiWorkerQuick('${w.replace(/'/g,"\\'")}')">
+      <div class="av" style="background:linear-gradient(140deg,${col}33,${col}11);color:${col}">${initials(w)}<span class="dot${working?"":" off"}"></span></div>
+      <div class="nm">${w}</div>
+      <div class="amt">${fmt(salary)}</div>
+    </div>`;
+  }).join("");
+  const moreTeam=workers.length>6?`<div class="home-member more" onclick="switchTab('workers')"><div class="av"><i class="ti ti-dots"></i></div><div class="nm">Ещё</div></div>`:"";
+
+  const recentRows=session.cars.length?session.cars.slice().reverse().slice(0,4).map(c=>{
+    const paid=c.payment!=="Долг"&&c.payment!=="unpaid";
+    return `<div class="row" onclick="switchTab('cash')">
+      <div class="home-row-ic"><i class="ti ti-car"></i></div>
+      <div class="home-row-mid"><div class="home-row-title">${c.num||c.brand||"Машина"}${c.service?" · "+c.service:""}</div><div class="home-row-sub">${c.washer||""}${c.time?" · "+c.time:""}</div></div>
+      <div class="home-row-right"><div class="home-row-price">${fmt(c.total||0)}</div><span class="pill ${paid?"ok":"wip"}">${paid?"Оплачено":"В работе"}</span></div>
+    </div>`;
+  }).join(""):"";
+
+  el.innerHTML=`
+    <div class="home-wrap">
+      <div class="home-topbar">
+        <div class="home-who">
+          <div class="home-avatar">${initials(ME?.name||"")}</div>
+          <div class="home-who-text"><div class="hi">${greetingWord()}</div><div class="name">${(ME?.name||"").split(/\s+/)[0]||"—"}</div></div>
+        </div>
+        <div class="home-branch-chip" onclick="switchBranch()"><span>${BRANCH}</span><i class="ti ti-chevron-down"></i></div>
+      </div>
+
+      <div class="hero-glass home-hero">
+        <div class="home-hero-top">
+          <div class="home-hero-label">Выручка сегодня</div>
+          <div class="home-hero-right">${trendBadge}<div class="home-hero-chart-btn" onclick="switchTab('reports')"><i class="ti ti-chart-line"></i></div></div>
+        </div>
+        <div class="home-hero-sum">${(summary.total||0).toLocaleString("ru-RU")} <span>₽</span></div>
+        <div class="home-hero-sub">${session.cars.length} машин${workers.length?" · "+workingCount+" мойщик"+(workingCount===1?"":workingCount<5?"а":"ов")+" на смене":""}</div>
+        <div class="home-hero-wave">${waveSvg}</div>
+      </div>
+
+      <div class="home-stats">
+        <div class="glass-card home-stat"><div class="ic"><i class="ti ti-car"></i></div><div class="val">${session.cars.length}</div><div class="lab">Машин</div></div>
+        <div class="glass-card home-stat"><div class="ic"><i class="ti ti-receipt-2"></i></div><div class="val">${avgCheck.toLocaleString("ru-RU")}</div><div class="lab">Средний чек</div></div>
+        <div class="glass-card home-stat"><div class="ic"><i class="ti ti-credit-card-pay"></i></div><div class="val">${totalSalary.toLocaleString("ru-RU")}</div><div class="lab">Выплаты</div></div>
+      </div>
+
+      <div class="home-section">
+        <div class="home-section-head"><h2>Действия</h2></div>
+        <div class="home-actions">
+          <div class="action-tile" onclick="switchTab('add')"><div class="sq b1"><i class="ti ti-square-rounded-plus"></i></div><div class="lab">Добавить<br>машину</div></div>
+          <div class="action-tile" onclick="switchTab('cash')"><div class="sq b2"><i class="ti ti-cash"></i></div><div class="lab">Касса</div></div>
+          <div class="action-tile" onclick="switchTab('workers')"><div class="sq b3"><i class="ti ti-users"></i></div><div class="lab">Сотрудники</div></div>
+          <div class="action-tile" onclick="switchTab('reports')"><div class="sq b4"><i class="ti ti-chart-bar"></i></div><div class="lab">Отчёты</div></div>
+        </div>
+      </div>
+
+      <div class="home-section">
+        <div class="home-section-head"><h2>Сегодня в мойке</h2><a onclick="switchTab('cash')">Все машины</a></div>
+        ${session.cars.length
+          ?`<div class="glass-card home-list">${recentRows}</div>`
+          :emptyState("ti-car","Сегодня ещё не было ни одной машины",{label:"Добавить машину",onclick:"switchTab('add')"})}
+      </div>
+
+      ${workers.length?`<div class="home-section">
+        <div class="home-section-head"><h2>На смене</h2></div>
+        <div class="home-team">${teamHtml}${moreTeam}</div>
+      </div>`:""}
+    </div>
+  `;
+  attachPullToRefresh("view-home",renderHome);
+}
+function greetingWord(){
+  const h=new Date().getHours();
+  if(h<5) return "Доброй ночи";
+  if(h<12) return "С добрым утром";
+  if(h<18) return "Добрый день";
+  return "Добрый вечер";
+}
+
+/* ─── КАССА (операции смены — вынесено из «Главной») ─────────────────────── */
+async function renderCash(){
+  if(!BRANCH) return ensureBranch();
+  await ensureMe();
+  const el=document.getElementById("view-cash");
+  el.innerHTML=`<div class="topbar"><div><div class="topbar-title">Касса</div><div class="topbar-sub">${BRANCH}</div></div></div>${skeleton(4)}`;
+  const {session,summary}=await api(`/api/session?branch=${encodeURIComponent(BRANCH)}`);
+  el.innerHTML=`
+    <div class="topbar"><div><div class="topbar-title">Касса</div><div class="topbar-sub">${BRANCH} · сегодня</div></div></div>
+
+    <div class="total-card"><div class="tl">Выручка за смену</div><div class="tr">${fmt(summary.total)}</div></div>
+
+    <div class="shift-bar">
+      <i class="ti ti-clock"></i>
+      <div class="sb-body">
+        <div class="sb-text">До закрытия смены</div>
+        <div class="sb-sub">осталось ${Math.max(0,15-session.cars.length)} машин</div>
+        <div class="sb-track"><div class="sb-fill" style="width:${Math.min(100,Math.round(session.cars.length/15*100))}%"></div></div>
+      </div>
+    </div>
+
+    <div class="section-label">Операции сегодня<span class="see-all" onclick="switchTab('all-cars')">Все машины</span></div>
+    <div id="home-swipe-wrap"></div>
+
+    <div class="btn-wrap"><button class="btn btn-sm" onclick="switchTab('add')"><i class="ti ti-plus"></i>Новая машина</button></div>
+    ${(ME.is_owner||ME.is_branch_admin)?(session.day_open===false
+      ?`<div class="btn-wrap" style="padding-top:0"><button class="btn" onclick="openShift()"><i class="ti ti-lock-open"></i>Открыть смену</button></div>`
+      :`<div class="btn-wrap" style="padding-top:0"><button class="btn danger-outline" onclick="startNewDay()">Закрыть смену / новый день</button></div>`
+    ):""}
+  `;
+  HOME_CARS=session.cars.slice().reverse();
+  HOME_IDX=0;
+  renderHomeSwipeCard();
+  attachPullToRefresh("view-cash",renderCash);
+}
+
+let HOME_CARS=[],HOME_IDX=0;
+window.toggleHomeCarStatus=async(num,cur)=>{
+  haptic("medium");
+  const next=cur==="done"?"in_progress":"done";
+  try{
+    await api(`/api/car/${encodeURIComponent(BRANCH)}/${num}/status`,{method:"PATCH",body:JSON.stringify({status:next})});
+    const car=HOME_CARS.find(c=>c.num===num);
+    if(car) car.status=next;
+    renderHomeSwipeCard();
+  }catch(e){}
+};
+function renderHomeSwipeCard(){
+  const wrap=document.getElementById("home-swipe-wrap");
+  if(!wrap) return;
+  if(!HOME_CARS.length){wrap.innerHTML=emptyState("ti-car","Сегодня ещё не было ни одной машины",{label:"Добавить машину",onclick:"switchTab('add')"});return;}
+  if(HOME_IDX<0) HOME_IDX=HOME_CARS.length-1;
+  if(HOME_IDX>=HOME_CARS.length) HOME_IDX=0;
+  const c=HOME_CARS[HOME_IDX];
+  const dots=HOME_CARS.slice(0,8).map((_,i)=>`<span class="${i===HOME_IDX?"on":""}"></span>`).join("");
+  const cStatus=c.status||"done";
+  const isDone=cStatus==="done";
+  const statusLabel=isDone?"Оплачено":"В работе";
+  const statusColor=isDone?"#22C55E":"#F97316";
+  wrap.innerHTML=`
+    <div class="swipe-card" id="home-swipe-el">
+      <span class="sc-counter">${HOME_IDX+1}/${HOME_CARS.length}</span>
+      <p class="sc-car">${c.car||"Машина"}</p>
+      <p class="sc-sub">${c.employee} · ${c.service}</p>
+      <p class="sc-price">${fmt(c.price)}</p>
+      <div style="display:flex;align-items:center;gap:10px;margin-top:10px">
+        <span class="sc-status" style="background:${statusColor}22;color:${statusColor}" onclick="toggleHomeCarStatus(${c.num},'${cStatus}')">${statusLabel}</span>
+        <span style="font-size:12px;color:var(--text-muted);cursor:pointer" onclick="uiCarQuick(${c.num})">Удалить</span>
+      </div>
+    </div>
+    <div class="swipe-nav">
+      <button onclick="homeSwipeStep(-1)"><i class="ti ti-chevron-left"></i></button>
+      <div class="swipe-dots">${dots}</div>
+      <button onclick="homeSwipeStep(1)"><i class="ti ti-chevron-right"></i></button>
+    </div>`;
+  const el=document.getElementById("home-swipe-el");
+  let startX=null;
+  el.addEventListener("touchstart",e=>{startX=e.touches[0].clientX;});
+  el.addEventListener("touchend",e=>{
+    if(startX===null) return;
+    const dx=e.changedTouches[0].clientX-startX;
+    if(Math.abs(dx)>40) homeSwipeStep(dx<0?1:-1);
+    startX=null;
+  });
+}
+window.homeSwipeStep=(dir)=>{haptic();HOME_IDX+=dir;renderHomeSwipeCard();};
+
+window.uiWorkerQuick=async(name)=>{
+  const {schedule}=await api(`/api/workers?branch=${encodeURIComponent(BRANCH)}`);
+  const stats=await api(`/api/employee-stats?branch=${encodeURIComponent(BRANCH)}&name=${encodeURIComponent(name)}&period=today`).catch(()=>null);
+  const cnt=stats?.cars||0;
+  const sal=stats?.total||0;
+  const roleLine=stats?.roles?.length?stats.roles.join(", "):"";
+  const sched=schedule?.[name]?.schedule;
+  const working=schedule?.[name]?.working!==false;
+  const schedLine=sched?`График: ${sched.work}/${sched.rest} · ${working?"работает":"отдыхает 🌙"}`:"График не задан";
+  tg.showPopup({
+    title:name,
+    message:`${roleLine?roleLine+"\n":""}${cnt} машин · к выплате ${fmt(sal)}\n${schedLine}`,
+    buttons:[{id:"schedule",type:"default",text:"График работы"},{id:"cancel",type:"cancel"}],
+  },(id)=>{if(id==="schedule") uiSetSchedule(name);});
+};
+window.uiCarQuick=(num)=>{
+  tg.showConfirm("Удалить эту машину?",async(ok)=>{
+    if(!ok) return;
+    haptic("medium");
+    await api(`/api/car/${encodeURIComponent(BRANCH)}/${num}`,{method:"DELETE"});
+    HOME_IDX=Math.max(0,HOME_IDX-1);
+    switchTab(document.querySelector(".tab.active")?.dataset.tab||"home");
+  });
+};
+function refreshFinanceCtx(){
+  const t=document.querySelector(".tab.active")?.dataset.tab;
+  if(t==="finance") renderFinance(); else renderHome();
+}
+window.uiAddExpense=()=>{
+  const name=window.prompt("Название расхода:");
+  if(!name) return;
+  const amountStr=window.prompt("Сумма (₽):","500");
+  const amount=parseInt((amountStr||"").replace(/[^\d]/g,""),10);
+  if(!amount) return tg.showAlert("Введи корректную сумму");
+  api("/api/expense",{method:"POST",body:JSON.stringify({branch:BRANCH,name,amount})})
+    .then(()=>{haptic("medium");toast("Расход добавлен");refreshFinanceCtx();}).catch(()=>{});
+};
+window.delExpense=async(idx)=>{
+  tg.showConfirm("Удалить расход?",async(ok)=>{
+    if(!ok) return;
+    haptic("medium");
+    await api(`/api/expense/${encodeURIComponent(BRANCH)}/${idx}`,{method:"DELETE"});
+    toast("Расход удалён");
+    refreshFinanceCtx();
+  });
+};
+window.uiAddIncome=()=>{
+  const name=window.prompt("Название дохода:");
+  if(!name) return;
+  const amountStr=window.prompt("Сумма (₽):","500");
+  const amount=parseInt((amountStr||"").replace(/[^\d]/g,""),10);
+  if(!amount) return tg.showAlert("Введи корректную сумму");
+  const payStr=(window.prompt("Способ оплаты: нал / visa / безнал / разделить","нал")||"нал").trim().toLowerCase();
+  if(payStr==="разделить"||payStr==="split"){ uiAddIncomeSplit(name,amount); return; }
+  const PAY_MAP={"нал":"нал","наличка":"нал","visa":"visa","виза":"visa","безнал":"безнал","петрон":"безнал"};
+  const payment=PAY_MAP[payStr]||"нал";
+  api("/api/income",{method:"POST",body:JSON.stringify({branch:BRANCH,name,amount,payment})})
+    .then(()=>{haptic("medium");toast("Доход добавлен");refreshFinanceCtx();}).catch(()=>{tg.showAlert("Не удалось сохранить доход");});
+};
+window.uiAddIncomeSplit=(name,amount)=>{
+  const cashStr=window.prompt(`Сколько наличными из ${fmt(amount)}₽?`,"0");
+  const cash=parseInt((cashStr||"").replace(/[^\d]/g,""),10)||0;
+  const visaStr=window.prompt(`Сколько по Visa?`,"0");
+  const visa=parseInt((visaStr||"").replace(/[^\d]/g,""),10)||0;
+  const beznalStr=window.prompt(`Сколько безналом?`,"0");
+  const beznal=parseInt((beznalStr||"").replace(/[^\d]/g,""),10)||0;
+  const split={};
+  if(cash) split["нал"]=cash;
+  if(visa) split["visa"]=visa;
+  if(beznal) split["безнал"]=beznal;
+  if(!Object.keys(split).length) return tg.showAlert("Укажи хотя бы одну сумму");
+  const total=cash+visa+beznal;
+  api("/api/income",{method:"POST",body:JSON.stringify({branch:BRANCH,name,amount:total,payment_split:split})})
+    .then(()=>{haptic("medium");refreshFinanceCtx();}).catch(()=>{tg.showAlert("Не удалось сохранить доход");});
+};
+window.delIncome=async(idx)=>{
+  tg.showConfirm("Удалить доход?",async(ok)=>{
+    if(!ok) return;
+    haptic("medium");
+    await api(`/api/income/${encodeURIComponent(BRANCH)}/${idx}`,{method:"DELETE"});
+    toast("Доход удалён");
+    refreshFinanceCtx();
+  });
+};
+window.startNewDay=()=>{
+  tg.showConfirm("Закрыть смену и начать новый день? Касса уйдёт в архив.",async(ok)=>{
+    if(!ok) return;
+    try{await api(`/api/newday?branch=${encodeURIComponent(BRANCH)}`,{method:"POST"});}
+    catch(e){return;}
+    haptic("medium");toast("Смена закрыта");switchTab("home");
+  });
+};
+window.openShift=async()=>{
+  haptic("medium");
+  try{await api(`/api/openday?branch=${encodeURIComponent(BRANCH)}`,{method:"POST"});}
+  catch(e){return;}
+  toast("Смена открыта");renderCash();
+};
+window.downloadPdf=()=>window.open(`/api/reports/pdf?branch=${encodeURIComponent(BRANCH)}`,"_blank");
+window.downloadXlsx=()=>window.open(`/api/reports/xlsx?branch=${encodeURIComponent(BRANCH)}`,"_blank");
+window.delCar=async(num)=>{
+  tg.showConfirm("Удалить машину?",async(ok)=>{
+    if(!ok) return;
+    haptic("medium");
+    await api(`/api/car/${encodeURIComponent(BRANCH)}/${num}`,{method:"DELETE"});
+    toast("Машина удалена");
+    if(!document.getElementById("view-all-cars").classList.contains("hidden")) renderAllCars();
+    else switchTab("home");
+  });
+};
+
+/* ─── ДОБАВЛЕНИЕ МАШИНЫ ──────────────────────────────────────────────────── */
+let EDIT_CAR_NUM=null;
+async function renderAdd(editNum){
+  const el=document.getElementById("view-add");
+  if(!BRANCH){el.innerHTML=`<div class="px" style="padding-top:20px"><p class="empty">Сначала выбери филиал</p></div>`;return;}
+  CFG=CFG||await api("/api/config");
+  const [{workers,schedule},{presets}]=await Promise.all([
+    api(`/api/workers?branch=${encodeURIComponent(BRANCH)}`),
+    api(`/api/presets?branch=${encodeURIComponent(BRANCH)}`).catch(()=>({presets:[]})),
+  ]);
+  EDIT_CAR_NUM=editNum||null;
+  let editCar=null;
+  if(EDIT_CAR_NUM){
+    const {session}=await api(`/api/session?branch=${encodeURIComponent(BRANCH)}`);
+    editCar=session.cars.find(c=>c.num===EDIT_CAR_NUM);
+    if(!editCar) EDIT_CAR_NUM=null;
+  }
+  selectedServices=editCar?[...editCar.service_keys]:[];
+  customServices=editCar?editCar.custom_services.map(c=>({...c})):[];
+  el.innerHTML=`
+    <div class="back-header">
+      <div class="back-btn" onclick="switchTab(${EDIT_CAR_NUM?"'all-cars'":"'home'"})"><i class="ti ti-chevron-left"></i></div>
+      <span class="back-header-title">${EDIT_CAR_NUM?"Изменить машину":"Новая машина"}</span>
+    </div>
+    <div style="padding:0 0 20px">
+      ${!EDIT_CAR_NUM&&presets.length?`
+        <div class="field-wrap" style="padding-bottom:6px">
+          <div class="field-label">Быстрые пресеты</div>
+          <div class="preset-row">
+            ${presets.map(p=>`<div class="preset-chip" onclick="applyPreset('${p.name.replace(/'/g,"\\'")}')"><span class="pc-name">${p.name}</span><span class="pc-count">${p.service_keys.length+p.custom_services.length} усл.</span></div>`).join("")}
+          </div>
+        </div>`:""}
+      <div class="field-wrap"><div class="field-label">Марка машины</div><input id="f-car" placeholder="Camry" value="${editCar?.car||""}"></div>
+      <div class="field-wrap"><div class="field-label">Тип кузова</div><div class="field-select"><select id="f-body">${CFG.body_types.map(b=>`<option value="${b.key}" ${editCar?.body_type===b.key?"selected":""}>${b.name}</option>`).join("")}</select></div></div>
+      <div class="field-wrap" style="padding-bottom:6px"><div class="field-label">Услуги</div></div>
+      <div class="card" id="f-services"></div>
+      <div class="btn-wrap" style="padding-top:8px"><button class="btn ghost btn-sm" onclick="addCustomService()"><i class="ti ti-plus"></i>Своя услуга</button></div>
+      <div id="f-custom"></div>
+      ${!EDIT_CAR_NUM?`<div class="btn-wrap" style="padding-top:0"><button class="btn ghost btn-sm" onclick="uiSavePreset()"><i class="ti ti-bookmark-plus"></i>Сохранить как пресет</button></div>`:""}
+      <div class="field-wrap" style="margin-top:4px"><div class="field-label">Мойщик</div><div class="field-select"><select id="f-emp">${workers.length?workers.slice().sort((a,b)=>{const wa=schedule?.[a]?.working!==false,wb=schedule?.[b]?.working!==false;return wb-wa;}).map(w=>{const working=schedule?.[w]?.working!==false;return `<option value="${w}" ${editCar?.employee===w?"selected":""}>${w}${working?"":" (отдыхает)"}</option>`;}).join(""):`<option value="">Нет сотрудников</option>`}</select></div></div>
+      <div class="field-wrap"><div class="field-label">Способ оплаты</div><div class="field-select"><select id="f-payment" ${editCar?.payment_split?"disabled":""}>
+        ${CFG.payment_types.map(p=>`<option ${editCar?.payment===p?"selected":""}>${p}</option>`).join("")}
+      </select></div></div>
+      <div class="field-wrap" style="padding-bottom:4px">
+        <div style="display:flex;justify-content:space-between;align-items:center;background:var(--surface-1);border-radius:14px;padding:14px 16px;cursor:pointer;border:0.5px solid var(--border)" onclick="toggleSplitRow()">
+          <span style="font-size:15px;font-weight:500">Раздельная оплата</span>
+          <input type="checkbox" id="f-split-toggle" ${editCar?.payment_split?"checked":""} style="width:18px;height:18px;accent-color:var(--accent);pointer-events:none">
+        </div>
+      </div>
+      <div id="f-split-wrap"></div>
+      <div class="field-wrap"><div class="field-label">Комментарий</div><textarea id="f-comment" placeholder="Комментарий (необязательно)">${editCar?.comment||""}</textarea></div>
+      <div class="total-card">
+        <span class="tl">Стоимость</span>
+        <span class="tr" id="f-total">0 ₽</span>
+      </div>
+      <div class="btn-wrap" style="margin-top:4px"><button class="btn" id="f-submit" onclick="submitCar()">${EDIT_CAR_NUM?"Сохранить изменения":"Добавить машину"}</button></div>
+    </div>`;
+  renderServiceChips();
+  document.getElementById("f-body").addEventListener("change",renderServiceChips);
+  if(editCar?.payment_split){renderSplitInputs();Object.entries(editCar.payment_split).forEach(([method,val])=>{const inp=document.querySelector(`.split-input[data-method="${method}"]`);if(inp) inp.value=val;});updateTotal();}
+}
+window.applyPreset=(name)=>{
+  api(`/api/presets?branch=${encodeURIComponent(BRANCH)}`).then(({presets})=>{
+    const p=presets.find(x=>x.name===name);if(!p) return;
+    haptic("medium");
+    selectedServices=[...p.service_keys];customServices=p.custom_services.map(c=>({...c}));
+    renderServiceChips();renderCustomList();
+  });
+};
+window.uiSavePreset=async()=>{
+  if(!selectedServices.length&&!customServices.length) return tg.showAlert("Сначала выбери услуги");
+  const name=window.prompt("Название пресета:");if(!name) return;
+  try{await api("/api/presets",{method:"POST",body:JSON.stringify({branch:BRANCH,name,service_keys:selectedServices,custom_services:customServices})});haptic("medium");tg.showAlert("Пресет сохранён ✓");}catch(e){}
+};
+function renderServiceChips(){
+  const bodyType=document.getElementById("f-body").value;
+  const wrap=document.getElementById("f-services");
+  if(!wrap) return;
+  wrap.innerHTML=CFG.services.map(s=>{
+    const price=s.prices[bodyType]??Object.values(s.prices)[0];
+    const active=selectedServices.includes(s.key);
+    return `<div class="chip-label ${active?"active":""}" data-key="${s.key}" onclick="toggleService('${s.key}')">
+      <span class="chip-l">${s.name}</span>
+      <span class="chip-r"><span class="chip-p">${price}₽</span><span class="tick ${active?"on":""}"><i class="ti ti-check" style="font-size:12px"></i></span></span>
+    </div>`;
+  }).join("");
+  updateTotal();
+}
+window.toggleService=(key)=>{
+  haptic();
+  selectedServices=selectedServices.includes(key)?selectedServices.filter(k=>k!==key):[...selectedServices,key];
+  renderServiceChips();
+};
+window.addCustomService=()=>{
+  const name=window.prompt("Название услуги:");if(!name) return;
+  const price=parseInt(window.prompt("Цена (₽):","1000")||"0",10);
+  const percent=parseFloat(window.prompt("Процент мойщику (%):","30")||"30");
+  customServices.push({name,price,percent});renderCustomList();
+};
+function renderCustomList(){
+  const wrap=document.getElementById("f-custom");
+  if(!customServices.length){wrap.innerHTML="";updateTotal();return;}
+  wrap.innerHTML=`<div class="card" style="margin-top:10px">`+customServices.map((c,i)=>`
+    <div class="expense-row">
+      <div><div class="expense-name">${c.name}</div><div style="font-size:11px;color:var(--text-muted)">${c.percent}% мойщику</div></div>
+      <div class="expense-right"><span style="font-size:14px;font-weight:700">${c.price}₽</span><span class="expense-del" onclick="removeCustom(${i})">Убрать</span></div>
+    </div>`).join("")+`</div>`;
+  updateTotal();
+}
+window.removeCustom=(i)=>{customServices.splice(i,1);renderCustomList();};
+window.toggleSplitRow=()=>{const cb=document.getElementById("f-split-toggle");cb.checked=!cb.checked;haptic();toggleSplit();};
+window.toggleSplit=()=>{const on=document.getElementById("f-split-toggle").checked;document.getElementById("f-payment").disabled=on;renderSplitInputs();};
+function renderSplitInputs(){
+  const wrap=document.getElementById("f-split-wrap");
+  const on=document.getElementById("f-split-toggle").checked;
+  if(!on){wrap.innerHTML="";return;}
+  wrap.innerHTML=`<div class="card card-pad" style="margin:0 16px 12px">
+    ${CFG.payment_types.map(p=>`
+      <div class="split-row">
+        <span style="font-size:14px;font-weight:500">${p}</span>
+        <input type="number" inputmode="numeric" class="split-input" data-method="${p}" placeholder="0" style="width:110px;margin:0;text-align:right;padding:8px 12px" oninput="updateTotal()">
+      </div>`).join("")}
+    <p id="f-split-hint" style="font-size:12px;margin:8px 0 0;font-weight:500"></p>
+  </div>`;
+  updateTotal();
+}
+function getSplitValues(){
+  return [...document.querySelectorAll(".split-input")].reduce((acc,inp)=>{
+    const v=parseInt(inp.value||"0",10);if(v) acc[inp.dataset.method]=v;return acc;
+  },{});
+}
+function updateTotal(){
+  const bodyType=document.getElementById("f-body")?.value;
+  let total=selectedServices.reduce((sum,k)=>{
+    const s=CFG.services.find(s=>s.key===k);
+    return sum+(s.prices[bodyType]??Object.values(s.prices)[0]);
+  },0);
+  total+=customServices.reduce((sum,c)=>sum+c.price,0);
+  const totalEl=document.getElementById("f-total");
+  if(totalEl) totalEl.textContent=fmt(total);
+  const hint=document.getElementById("f-split-hint");
+  if(document.getElementById("f-split-toggle")?.checked&&hint){
+    const sum=Object.values(getSplitValues()).reduce((a,b)=>a+b,0);
+    const diff=total-sum;
+    hint.textContent=diff===0?"Сумма сходится ✓":`Осталось: ${fmt(diff)}`;
+    hint.style.color=diff===0?"var(--green)":"var(--red)";
+  }
+}
+window.submitCar=async()=>{
+  const btn=document.getElementById("f-submit");
+  if(!selectedServices.length&&!customServices.length) return tg.showAlert("Выбери хотя бы одну услугу");
+  const emp=document.getElementById("f-emp").value;
+  if(!emp) return tg.showAlert("Сначала добавь сотрудника");
+  const isSplit=document.getElementById("f-split-toggle").checked;
+  let paymentSplit=null;
+  if(isSplit){
+    paymentSplit=getSplitValues();
+    const total=parseInt((document.getElementById("f-total").textContent||"0").replace(/\D/g,""),10);
+    const sum=Object.values(paymentSplit).reduce((a,b)=>a+b,0);
+    if(!Object.keys(paymentSplit).length) return tg.showAlert("Укажи суммы по способам оплаты");
+    if(sum!==total) return tg.showAlert(`Сумма оплаты (${sum}₽) ≠ стоимости (${total}₽)`);
+  }
+  await withLoading(btn,async()=>{
+    const body={
+      branch:BRANCH,employee:emp,
+      body_type:document.getElementById("f-body").value,
+      service_keys:selectedServices,custom_services:customServices,
+      car:document.getElementById("f-car").value,
+      payment:isSplit?"Раздельно":document.getElementById("f-payment").value,
+      payment_split:paymentSplit,
+      comment:document.getElementById("f-comment").value,
+    };
+    if(EDIT_CAR_NUM){
+      await api(`/api/car/${encodeURIComponent(BRANCH)}/${EDIT_CAR_NUM}`,{method:"PUT",body:JSON.stringify(body)});
+      haptic("medium");toast("Изменения сохранены");switchTab("all-cars");
+    }else{
+      await api("/api/car",{method:"POST",body:JSON.stringify(body)});
+      haptic("medium");toast("Машина добавлена");switchTab("home");
+    }
+  });
+};
+
+/* ─── ОТЧЁТЫ ─────────────────────────────────────────────────────────────── */
+async function renderReports(){
+  const el=document.getElementById("view-reports");
+  if(!BRANCH){el.innerHTML=`<div class="px" style="padding-top:20px"><p class="empty">Сначала выбери филиал</p></div>`;return;}
+  await ensureMe();
+  el.innerHTML=`<div class="topbar" style="align-items:center"><div class="back-btn" style="margin-right:8px" onclick="switchTab('more')"><i class="ti ti-chevron-left"></i></div><div class="topbar-title">Отчёты</div></div>${skeleton(3)}`;
+  const [today,week]=await Promise.all([
+    api(`/api/reports/today?branch=${encodeURIComponent(BRANCH)}`),
+    api(`/api/reports/week?branch=${encodeURIComponent(BRANCH)}`),
+  ]);
+  const dayLetters=["Пн","Вт","Ср","Чт","Пт","Сб","Вс"];
+  const now=new Date(),todayIdx=(now.getDay()+6)%7;
+  const byDate={};
+  (week.days||[]).forEach(d=>{byDate[d.date]=d.total;});
+  const weekTotals=[];
+  for(let i=0;i<=todayIdx;i++){
+    const dt=new Date(now);dt.setDate(now.getDate()-(todayIdx-i));
+    const key=dt.toLocaleDateString("ru-RU").split(".").map((p,idx)=>idx<2?p.padStart(2,"0"):p).join(".");
+    weekTotals.push(byDate[key]||0);
+  }
+  const maxVal=Math.max(1,...weekTotals);
+  const revenueWave=buildWaveSvg(weekTotals,todayIdx,maxVal,"#fff");
+  const carsToday=today.session.cars.length;
+  const avgCheck=carsToday?Math.round(today.summary.grand_total/carsToday):0;
+  const yestTotal=week.days.length?week.days[week.days.length-1]?.total||0:0;
+  const trendRevenue=yestTotal>0?Math.round(((today.summary.grand_total-yestTotal)/yestTotal)*100):null;
+  const trendAvg=yestTotal>0?Math.round(((avgCheck-yestTotal/Math.max(1,week.days.length-1))/Math.max(1,yestTotal/Math.max(1,week.days.length-1)))*100):null;
+
+  const weekBarSvg=(()=>{
+    const vals=weekTotals;
+    const max=Math.max(1,...vals);
+    const bw=30,gap=8,h=50;
+    const total=vals.length*(bw+gap)-gap;
+    return `<svg viewBox="0 0 ${Math.max(total,220)} ${h}" style="width:100%;height:${h}px;overflow:visible">
+      ${vals.map((v,i)=>{
+        const bh=Math.max(4,Math.round(v/max*(h-6)));
+        const x=i*(bw+gap);
+        const active=i===vals.length-1;
+        return `<rect x="${x}" y="${h-bh}" width="${bw}" height="${bh}" rx="6" fill="${active?"var(--accent)":"rgba(255,255,255,0.12)"}"/>
+        <text x="${x+bw/2}" y="${h+12}" text-anchor="middle" font-size="9" fill="${active?"var(--text)":"var(--text-muted)"}">${dayLetters[i]}</text>`;
+      }).join("")}
+    </svg>`;
+  })();
+
+  el.innerHTML=`
+    <div class="topbar">
+      <div class="back-btn" style="margin-right:8px" onclick="switchTab('more')"><i class="ti ti-chevron-left"></i></div><div class="topbar-title">Отчёты</div>
+      <div class="bell-btn" onclick="uiAddExpense()"><i class="ti ti-calendar-event"></i></div>
+    </div>
+
+    <div class="segmented">
+      <div class="seg active" onclick="">Сегодня</div>
+      <div class="seg" onclick="switchTab('workers')">Неделя</div>
+      <div class="seg" onclick="openMonthReport()">Месяц</div>
+    </div>
+
+    <div class="hero-card">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div class="hc-label">Выручка сегодня</div>
+        ${trendRevenue!==null?`<span class="trend-pill ${trendRevenue<0?"negative":""}">${trendRevenue>=0?"+":""}${trendRevenue}% от вчера</span>`:""}
+      </div>
+      <div class="hc-amount">${fmt(today.summary.grand_total)}</div>
+      <div class="wave-chart">${revenueWave}</div>
+    </div>
+
+    <div class="hero-card green-card" style="margin-top:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div class="hc-label">Средний чек</div>
+        ${trendAvg!==null?`<span class="trend-pill ${trendAvg<0?"negative":""}">${trendAvg>=0?"+":""}${trendAvg}% от вчера</span>`:""}
+      </div>
+      <div class="hc-amount">${fmt(avgCheck)}</div>
+      <div class="wave-chart">${buildWaveSvg(weekTotals.map(v=>v||1),todayIdx,maxVal,"#fff")}</div>
+    </div>
+
+    <div class="rstat-grid">
+      <div class="rstat-box">
+        <p><i class="ti ti-cash"></i>Наличные</p>
+        <p>${fmt(today.summary.cash)}</p>
+      </div>
+      <div class="rstat-box">
+        <p><i class="ti ti-credit-card"></i>Карта</p>
+        <p>${fmt(today.summary.visa+today.summary.beznal)}</p>
+      </div>
+    </div>
+
+    <div class="section-label">Расходы<span style="color:var(--red);font-size:13px;font-weight:700">-${fmt(today.summary.total_expenses||0)}</span></div>
+    <div class="card">
+      ${(today.session.expenses||[]).length
+        ?(today.session.expenses||[]).map(e=>`<div class="expense-row"><span class="expense-name">${e.name}</span><span class="expense-amount">-${fmt(e.amount)}</span></div>`).join("")
+        :`<p class="empty" style="padding:14px">Расходов нет</p>`}
+      ${today.session.expenses?.length?`<div class="expense-row"><span style="font-weight:600;color:var(--text-secondary)">Шеф</span><span class="expense-amount">-${fmt(today.summary.total_expenses||0)}</span></div>`:""}
+    </div>
+
+    <div class="section-label">Доходы<span style="color:var(--green);font-size:13px;font-weight:700">+${fmt(today.summary.total_incomes||0)}</span></div>
+    <div class="card">
+      ${(today.session.incomes||[]).length
+        ?(today.session.incomes||[]).map(inc=>`<div class="expense-row"><span class="expense-name">${inc.name}</span><span class="expense-amount" style="color:var(--green)">+${fmt(inc.amount)}</span></div>`).join("")
+        :`<p class="empty" style="padding:14px">Доходов нет</p>`}
+    </div>
+
+    <div class="section-label">Сравнение с вчера</div>
+    <div class="card card-pad" style="padding-bottom:20px">${weekBarSvg}</div>
+
+    <div class="section-label">Инструменты</div>
+    <div class="tile-grid">
+      <div class="tile" onclick="switchTab('day-report')"><i class="ti ti-chart-donut"></i><p>Общий отчёт</p></div>
+      <div class="tile" onclick="openMonthReport()"><i class="ti ti-calendar-event"></i><p>За месяц</p></div>
+      ${ME.is_owner?`<div class="tile" onclick="openAllReport()"><i class="ti ti-building-store"></i><p>Все филиалы</p></div>`:`<div></div>`}
+      <div class="tile primary" onclick="downloadPdf()"><i class="ti ti-file-type-pdf"></i><p>Скачать PDF</p></div>
+      <div class="tile" onclick="downloadXlsx()"><i class="ti ti-file-spreadsheet"></i><p>Excel</p></div>
+    </div>
+
+    <div class="section-label">Операции сегодня</div>
+    <div class="op-list">
+      ${today.session.cars.length
+        ?today.session.cars.slice().reverse().slice(0,8).map(c=>`
+          <div class="op-row" onclick="uiCarQuick(${c.num})">
+            <div class="op-dot ${c.status==='in_progress'?'orange':''}"></div>
+            <div class="op-info">
+              <p class="op-name">${c.car||"Машина"} · ${c.service}</p>
+              <p class="op-meta">${c.employee} · ${c.time||""}</p>
+            </div>
+            <span class="op-price">${fmt(c.price)}</span>
+          </div>`).join("")
+        :`<p class="empty">Машин пока нет</p>`}
+    </div>
+
+    <div class="section-label">За неделю (${week.from||""} – ${week.to||""})</div>
+    <div class="card">
+      ${week.days?.length?week.days.map(d=>`
+        <div class="row">
+          <div><p class="row-name">${d.date}</p><p class="row-sub">${d.cars} машин</p></div>
+          <p class="row-price">${fmt(d.total)}</p>
+        </div>`).join(""):`<p class="empty">Архив пуст</p>`}
+    </div>
+    <div style="height:20px"></div>
+  `;
+  attachPullToRefresh("view-reports",renderReports);
+}
+window.openMonthReport=async()=>{
+  const month=window.prompt("Месяц (например: июнь):","");if(!month) return;
+  try{
+    const r=await api(`/api/reports/month?branch=${encodeURIComponent(BRANCH)}&month=${encodeURIComponent(month)}`);
+    const lines=Object.entries(r.by_worker).map(([emp,weeks])=>`${emp}: ${Object.values(weeks).reduce((a,b)=>a+b,0)} ₽`).join("\n")||"Нет данных";
+    tg.showAlert(`${month} ${r.year}\nИтого: ${fmt(r.grand_total)}\n\n${lines}`);
+  }catch(e){}
+};
+window.openAllReport=async()=>{
+  try{
+    const r=await api("/api/reports/allreport");
+    const lines=r.branches.map(b=>`${b.branch}: ${fmt(b.total)} (${b.cars} машин)`).join("\n")||"Нет данных";
+    tg.showAlert(`Все филиалы\nИтого: ${fmt(r.grand_total)}\n\n${lines}`);
+  }catch(e){}
+};
+
+/* ─── ОБЩИЙ ОТЧЁТ (день) ────────────────────────────────────────────────── */
+async function renderDayReport(){
+  const el=document.getElementById("view-day-report");
+  el.innerHTML=`<div class="back-header"><div class="back-btn" onclick="switchTab('reports')"><i class="ti ti-chevron-left"></i></div><span class="back-header-title">Общий отчёт (сегодня)</span></div>${skeleton(2)}`;
+  const r=await api(`/api/reports/today?branch=${encodeURIComponent(BRANCH)}`);
+  const s=r.summary;
+  const parts=[
+    {name:"Наличные",val:s.cash,color:"#33D17A"},
+    {name:"Безнал",val:s.beznal,color:"#0A84FF"},
+    {name:"Карта",val:s.visa,color:"#FF9F0A"},
+  ].filter(p=>p.val>0);
+  const total=parts.reduce((a,p)=>a+p.val,0)||1;
+  let acc=0;
+  const gradient=parts.map(p=>{const from=acc/total*360;acc+=p.val;const to=acc/total*360;return `${p.color} ${from}deg ${to}deg`;}).join(", ")||"#333 0deg 360deg";
+  el.innerHTML=`
+    <div class="back-header"><div class="back-btn" onclick="switchTab('reports')"><i class="ti ti-chevron-left"></i></div><span class="back-header-title">Общий отчёт (сегодня)</span></div>
+    <div style="padding:0 0 20px">
+      <div class="hero-card"><div class="hc-label">Итого за сегодня</div><div class="hc-amount">${fmt(s.grand_total)}</div><div class="hc-sub">${r.session.cars.length} машин</div></div>
+      <div class="card" style="margin-top:14px">
+        <div class="donut-wrap">
+          <div class="donut" style="background:conic-gradient(${gradient})"><div class="center"><b>${fmt(s.grand_total)}</b><span>Всего</span></div></div>
+          <div class="legend">${parts.map(p=>`<div class="item"><span class="dot" style="background:${p.color}"></span>${p.name}<b>${fmt(p.val)}</b></div>`).join("")||`<p class="empty">Нет данных</p>`}</div>
+        </div>
+      </div>
+      <div class="section-label">По услугам</div>
+      <div class="card">${r.top_services?.length?r.top_services.map(([name,count])=>`<div class="row"><span class="row-name">${name}</span><span style="font-size:13px;color:var(--text-muted)">${count} раз</span></div>`).join(""):`<p class="empty">Нет данных</p>`}</div>
+      <div class="btn-wrap"><button class="btn" onclick="downloadPdf()"><i class="ti ti-file-type-pdf"></i>Скачать PDF</button></div>
+    </div>`;
+}
+
+/* ─── ВСЕ МАШИНЫ ─────────────────────────────────────────────────────────── */
+let ALL_CARS=[],ALL_CARS_FILTER_EMP="",ALL_LOYALTY=[];
+async function renderAllCars(){
+  const el=document.getElementById("view-all-cars");
+  el.innerHTML=`<div class="back-header"><div class="back-btn" onclick="switchTab('home')"><i class="ti ti-chevron-left"></i></div><span class="back-header-title">Все машины</span></div>${skeleton(4)}`;
+  const {session}=await api(`/api/session?branch=${encodeURIComponent(BRANCH)}`);
+  ALL_CARS=session.cars.slice().reverse();
+  ALL_LOYALTY=session.loyalty||[];
+  const workers=[...new Set(ALL_CARS.map(c=>c.employee).filter(Boolean))];
+  el.innerHTML=`
+    <div class="back-header"><div class="back-btn" onclick="switchTab('home')"><i class="ti ti-chevron-left"></i></div><span class="back-header-title">Все машины</span></div>
+    <div style="padding:0 0 20px">
+      <div class="search-wrap">
+        <i class="ti ti-search"></i>
+        <input id="cars-search" placeholder="Поиск по марке или мойщику" oninput="filterAllCars()">
+        <i class="ti ti-x clear-btn" onclick="clearCarsSearch()"></i>
+      </div>
+      ${workers.length?`<div class="filter-chips" id="cars-filter-chips">
+        <div class="filter-chip ${!ALL_CARS_FILTER_EMP?"active":""}" onclick="setCarsEmpFilter('')">Все</div>
+        ${workers.map(w=>`<div class="filter-chip ${ALL_CARS_FILTER_EMP===w?"active":""}" onclick="setCarsEmpFilter('${w.replace(/'/g,"\\'")}')">  ${w}</div>`).join("")}
+      </div>`:""}
+      <div id="cars-list" style="padding:0 16px"></div>
+      <div class="btn-wrap"><button class="btn btn-sm" onclick="switchTab('add')"><i class="ti ti-plus"></i>Новая машина</button></div>
+    </div>`;
+  renderCarsList();
+  attachPullToRefresh("view-all-cars",renderAllCars);
+}
+window.setCarsEmpFilter=(w)=>{haptic();ALL_CARS_FILTER_EMP=w;renderCarsList();};
+window.clearCarsSearch=()=>{document.getElementById("cars-search").value="";filterAllCars();};
+window.filterAllCars=()=>renderCarsList();
+window.toggleCarStatus=async(num,cur)=>{
+  haptic("medium");
+  const next=cur==="done"?"in_progress":"done";
+  try{
+    await api(`/api/car/${encodeURIComponent(BRANCH)}/${num}/status`,{method:"PATCH",body:JSON.stringify({status:next})});
+    const car=ALL_CARS.find(c=>c.num===num);if(car) car.status=next;renderCarsList();
+  }catch(e){}
+};
+function renderCarsList(){
+  const wrap=document.getElementById("cars-list");
+  const searchWrap=document.querySelector(".search-wrap");
+  const q=(document.getElementById("cars-search")?.value||"").trim().toLowerCase();
+  if(searchWrap) searchWrap.classList.toggle("has-value",!!q);
+  let list=ALL_CARS;
+  if(ALL_CARS_FILTER_EMP) list=list.filter(c=>c.employee===ALL_CARS_FILTER_EMP);
+  if(q) list=list.filter(c=>(c.car||"").toLowerCase().includes(q)||(c.employee||"").toLowerCase().includes(q));
+  if(!list.length){
+    wrap.innerHTML=ALL_CARS.length
+      ?emptyState("ti-search-off","Ничего не найдено по этому запросу")
+      :emptyState("ti-car","Здесь появятся машины, как только добавишь первую",{label:"Новая машина",onclick:"switchTab('add')"});
+    return;
+  }
+  wrap.innerHTML=list.map(c=>{
+    const status=c.status||"done",isDone=status==="done";
+    const discount=ALL_LOYALTY.filter(l=>l.car_num===c.num).reduce((s,l)=>s+(l.discount||0),0);
+    return `<div class="swipe-item" data-num="${c.num}">
+      <div class="swipe-bg" onclick="delCar(${c.num})"><i class="ti ti-trash"></i></div>
+      <div class="swipe-fg">
+        <div class="row" data-longpress-num="${c.num}">
+          <div><p class="row-name">${c.time?c.time+" · ":""}${c.car||"Машина"} · ${c.service}</p><p class="row-sub">${c.employee} · ${paymentLabel(c)}${discount?` · скидка ${fmt(discount)}`:""}</p></div>
+          <div class="row-right">
+            <p class="row-price">${fmt(c.price)}</p>
+            <span class="status-badge ${isDone?"status-done":"status-progress"}" onclick="event.stopPropagation();toggleCarStatus(${c.num},'${status}')">${isDone?"Оплачено":"В работе"}</span>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+  wrap.querySelectorAll(".swipe-item").forEach(item=>bindSwipeToDelete(item));
+  wrap.querySelectorAll("[data-longpress-num]").forEach(row=>bindLongPress(row,()=>openCarQuickMenu(parseInt(row.dataset.longpressNum,10))));
+}
+function bindSwipeToDelete(item){
+  const fg=item.querySelector(".swipe-fg"),num=parseInt(item.dataset.num,10);
+  let startX=null,dx=0,dragging=false,moved=false;
+  fg.addEventListener("touchstart",e=>{startX=e.touches[0].clientX;dragging=true;fg.classList.add("dragging");moved=false;});
+  fg.addEventListener("touchmove",e=>{
+    if(!dragging) return;dx=e.touches[0].clientX-startX;
+    if(Math.abs(dx)>6) moved=true;
+    if(dx<0) fg.style.transform=`translateX(${Math.max(dx,-84)}px)`;
+  });
+  fg.addEventListener("touchend",()=>{
+    dragging=false;fg.classList.remove("dragging");
+    if(dx<-50) fg.style.transform="translateX(-84px)";
+    else fg.style.transform="translateX(0)";dx=0;
+  });
+  fg.addEventListener("click",e=>{if(moved){e.stopPropagation();e.preventDefault();}});
+}
+function bindLongPress(el,onLongPress){
+  let timer=null,moved=false,startX=0,startY=0;
+  const clear=()=>{if(timer){clearTimeout(timer);timer=null;}};
+  el.addEventListener("touchstart",e=>{moved=false;startX=e.touches[0].clientX;startY=e.touches[0].clientY;timer=setTimeout(()=>{if(!moved){haptic("medium");onLongPress();}},480);},{passive:true});
+  el.addEventListener("touchmove",e=>{if(Math.abs(e.touches[0].clientX-startX)>10||Math.abs(e.touches[0].clientY-startY)>10){moved=true;clear();}},{passive:true});
+  el.addEventListener("touchend",clear);el.addEventListener("touchcancel",clear);
+}
+window.openCarQuickMenu=(num)=>{
+  const c=ALL_CARS.find(x=>x.num===num);if(!c) return;
+  const discount=ALL_LOYALTY.filter(l=>l.car_num===num).reduce((s,l)=>s+(l.discount||0),0);
+  openSheet(`${c.car||"Машина"} · ${fmt(c.price)}`,[
+    {icon:"ti-pencil",label:"Изменить",fn:`()=>switchTab('add',${num})`},
+    {icon:"ti-discount-2",label:discount?`Скидка: ${fmt(discount)} (изменить)`:"Добавить скидку",fn:`()=>editCarLoyalty(${num})`},
+    {icon:"ti-trash",label:"Удалить",destructive:true,fn:`()=>delCar(${num})`},
+  ]);
+};
+window.editCarLoyalty=async(num)=>{
+  const existing=ALL_LOYALTY.map((l,idx)=>({...l,idx})).filter(l=>l.car_num===num);
+  const currentTotal=existing.reduce((s,l)=>s+(l.discount||0),0);
+  const amountStr=window.prompt("Скидка по этой машине (₽), 0 — убрать:",String(currentTotal||""));
+  if(amountStr===null) return;
+  const amount=parseInt(amountStr||"0",10)||0;
+  haptic("medium");
+  try{
+    // Убираем старые записи скидки по этой машине и (если нужно) добавляем новую —
+    // так один car_num всегда соответствует ОДНОЙ актуальной скидке, без дублей.
+    for(const l of existing.slice().reverse()){
+      await api(`/api/loyalty/${encodeURIComponent(BRANCH)}/${l.idx}`,{method:"DELETE"});
+    }
+    if(amount>0){
+      await api("/api/loyalty",{method:"POST",body:JSON.stringify({branch:BRANCH,car_num:num,discount:amount})});
+    }
+    toast(amount>0?"Скидка сохранена":"Скидка удалена");
+    renderAllCars();
+  }catch(e){ tg.showAlert(e.message||"Не удалось сохранить скидку"); }
+};
+
+/* ─── ИСТОРИЯ ────────────────────────────────────────────────────────────── */
+async function renderHistory(){
+  const el=document.getElementById("view-history");
+  el.innerHTML=`<div class="back-header"><div class="back-btn" onclick="switchTab('settings')"><i class="ti ti-chevron-left"></i></div><span class="back-header-title">История кассы</span></div>${skeleton(4)}`;
+  const {entries}=await api(`/api/history?branch=${encodeURIComponent(BRANCH)}`).catch(()=>({entries:[]}));
+  const labels={add:"Добавлено",edit:"Изменено",delete:"Удалено"};
+  el.innerHTML=`
+    <div class="back-header"><div class="back-btn" onclick="switchTab('settings')"><i class="ti ti-chevron-left"></i></div><span class="back-header-title">История кассы</span></div>
+    <div style="padding:0 0 20px">
+      <div class="card">
+        ${entries.length?entries.map(e=>`
+          <div class="hist-row">
+            <div class="hist-top"><span><b>${e.actor_name}</b></span><span class="hist-badge ${e.action}">${labels[e.action]||e.action}</span></div>
+            <p class="hist-meta">${e.details||""}</p>
+            <p class="hist-meta">${e.at}</p>
+          </div>`).join(""):emptyState("ti-history","Здесь появится история изменений кассы")}
+      </div>
+    </div>`;
+}
+
+/* ─── МОЙЩИКИ ────────────────────────────────────────────────────────────── */
+async function renderWorkers(){
+  const el=document.getElementById("view-workers");
+  if(!BRANCH){el.innerHTML=`<div class="px" style="padding-top:20px"><p class="empty">Сначала выбери филиал</p></div>`;return;}
+  el.innerHTML=`<div class="topbar" style="align-items:center"><div class="back-btn" style="margin-right:8px" onclick="switchTab('more')"><i class="ti ti-chevron-left"></i></div><div class="topbar-title">Мойщики</div></div>${skeleton(3)}`;
+  const [{session,summary},{workers,schedule}]=await Promise.all([
+    api(`/api/session?branch=${encodeURIComponent(BRANCH)}`),
+    api(`/api/workers?branch=${encodeURIComponent(BRANCH)}`),
+  ]);
+  const totalSalary=Object.values(summary.washer_salaries||{}).reduce((a,b)=>a+b,0);
+  const maxSal=Math.max(1,...workers.map(w=>summary.washer_salaries?.[w]||0));
+
+  el.innerHTML=`
+    <div class="topbar">
+      <div class="back-btn" style="margin-right:8px" onclick="switchTab('more')"><i class="ti ti-chevron-left"></i></div><div class="topbar-title">Мойщики</div>
+    </div>
+
+    <div class="btn-wrap" style="padding-top:0">
+      <button class="btn secondary btn-sm" onclick="switchTab('schedule')"><i class="ti ti-calendar-week"></i>График работы</button>
+      <button class="btn secondary btn-sm" onclick="switchTab('employees')"><i class="ti ti-users-group"></i>Все сотрудники</button>
+    </div>
+
+    <div class="home-stat-row">
+      <div class="home-stat-box">
+        <span><i class="ti ti-credit-card-pay"></i>К выплате сегодня</span>
+        <b>${fmt(totalSalary)}</b>
+      </div>
+      <div class="home-stat-box">
+        <span><i class="ti ti-users"></i>Мойщиков сегодня</span>
+        <b>${workers.length}</b>
+      </div>
+    </div>
+
+    <div class="section-label">${BRANCH} · сегодня</div>
+    <div class="card">
+      ${workers.length?workers.slice().sort((a,b)=>(summary.washer_salaries?.[b]||0)-(summary.washer_salaries?.[a]||0)).map(w=>{
+        const cnt=session.cars.filter(c=>c.employee===w).length;
+        const sal=summary.washer_salaries?.[w]||0;
+        const earned=Object.values(summary.washer_totals||{}).find?summary.washer_totals?.[w]||0:0;
+        const working=schedule?.[w]?.working!==false;
+        const col=avatarColor(w);
+        const pct=maxSal>0?Math.round(sal/maxSal*100):0;
+        return `<div class="worker-card" onclick="uiWorkerQuick('${w.replace(/'/g,"\\'")}')">
+          <div class="wc-top">
+            <div class="wc-info">
+              <div class="wc-av" style="background:${col}22;color:${col}">${initials(w)}</div>
+              <div>
+                <div class="wc-name">${w}${working?"":" 🌙"}</div>
+                <div class="wc-sub">${cnt} машин</div>
+              </div>
+            </div>
+            <div class="wc-sal">${fmt(sal)}</div>
+          </div>
+          <div class="wc-bar"><div class="wc-bar-fill" style="width:${pct}%"></div></div>
+          <div class="wc-pct">${pct}%</div>
+        </div>`;
+      }).join(""):emptyState("ti-users","Пока нет ни одного мойщика",{label:"Добавить мойщика",onclick:"uiAddWorker()"})}
+      <div class="add-worker-btn" onclick="uiAddWorker()"><i class="ti ti-plus"></i>Добавить мойщика</div>
+    </div>
+    <div style="height:20px"></div>
+  `;
+  attachPullToRefresh("view-workers",renderWorkers);
+}
+
+/* ─── МОЯ СМЕНА (личный кабинет мойщика) ─────────────────────────────────── */
+let MY_STATS_PERIOD = "today";
+let MY_STATS_DAYS = [];
+let MY_DAY_CARS_INDEX = null;
+window.uiOpenMyDayCars=(i)=>{ haptic(); MY_DAY_CARS_INDEX=i; switchTab("my-day-cars"); };
+async function renderMyStats(){
+  const el=document.getElementById("view-my-stats");
+  if(!BRANCH){el.innerHTML=`<div class="px" style="padding-top:20px"><p class="empty">Сначала выбери филиал</p></div>`;return;}
+  el.innerHTML=`<div class="topbar"><div class="topbar-title">Моя смена</div></div>${skeleton(3)}`;
+
+  let data;
+  try{
+    data = await api(`/api/my-employee-stats?branch=${encodeURIComponent(BRANCH)}&period=${MY_STATS_PERIOD}`);
+  }catch(e){
+    el.innerHTML=`<div class="topbar"><div class="topbar-title">Моя смена</div></div><div style="padding:24px 16px"><p class="empty">Не удалось загрузить данные.<br>Убедись, что тебя добавили сотрудником филиала.</p></div>`;
+    return;
+  }
+
+  const periods=[["today","Сегодня"],["week","Неделя"],["month","Месяц"]];
+  const tabsHtml=`<div class="segmented">${periods.map(([k,label])=>
+    `<div class="seg${MY_STATS_PERIOD===k?" active":""}" onclick="uiMyStatsPeriod('${k}')">${label}</div>`
+  ).join("")}</div>`;
+
+  const roleRowsHtml=Object.entries(data.by_role||{}).map(([role,amount])=>`
+    <div class="worker-card"><div class="wc-top">
+      <div class="wc-info"><div><div class="wc-name">${role[0].toUpperCase()+role.slice(1)}</div></div></div>
+      <div class="wc-sal">${fmt(amount)}</div>
+    </div></div>`).join("");
+
+  MY_STATS_DAYS = data.days||[];
+  const dayRowsHtml=MY_STATS_DAYS.slice().reverse().map((d,revI)=>{
+    const i = MY_STATS_DAYS.length-1-revI;
+    const carsCount = d.cars||0;
+    return `
+    <div class="worker-card"${carsCount?` onclick="uiOpenMyDayCars(${i})"`:""}${carsCount?` style="cursor:pointer"`:""}>
+      <div class="wc-top">
+        <div class="wc-info"><div>
+          <div class="wc-name">${d.date}</div>
+          <div class="wc-sub">${Object.entries(d.roles).map(([r,a])=>`${r}: ${fmt(a)}`).join(" · ")}${carsCount?` · ${carsCount} машин`:""}</div>
+        </div></div>
+        <div class="wc-sal">${fmt(d.total)}</div>
+        ${carsCount?`<i class="ti ti-chevron-right" style="color:var(--text-faint);margin-left:8px"></i>`:""}
+      </div>
+    </div>`;
+  }).join("");
+
+  el.innerHTML=`
+    <div class="topbar">
+      <div><div class="topbar-title">Моя смена</div><div class="topbar-sub">${data.name} · ${data.roles.join(", ")}${MY_STATS_PERIOD!=="today"?` · ${data.from} – ${data.to}`:""}</div></div>
+    </div>
+    ${tabsHtml}
+    <div class="home-stat-row">
+      <div class="home-stat-box">
+        <span><i class="ti ti-wallet"></i>Общий заработок</span>
+        <b>${fmt(data.total)}</b>
+      </div>
+      <div class="home-stat-box">
+        <span><i class="ti ti-car"></i>Машин</span>
+        <b>${data.cars}</b>
+      </div>
+    </div>
+    ${data.shifts?`<div class="home-stat-row">
+      <div class="home-stat-box"><span><i class="ti ti-calendar"></i>Смен</span><b>${data.shifts}</b></div>
+      <div class="home-stat-box"><span><i class="ti ti-chart-bar"></i>Средняя за смену</span><b>${fmt(data.avg_per_shift)}</b></div>
+    </div>`:""}
+    <div class="section-label">Разбивка по ролям</div>
+    <div class="card">${roleRowsHtml||`<p class="empty">За этот период данных нет</p>`}</div>
+    <div class="section-label">По дням</div>
+    <div class="card">${dayRowsHtml||`<p class="empty">За этот период данных нет</p>`}</div>
+    <div style="height:20px"></div>
+  `;
+  attachPullToRefresh("view-my-stats",renderMyStats);
+}
+window.uiMyStatsPeriod=(p)=>{ MY_STATS_PERIOD=p; haptic(); renderMyStats(); };
+window.uiToggleMyStatsDay=(i)=>{ haptic(); document.getElementById(`my-stats-day-${i}`)?.classList.toggle("hidden"); };
+
+/* ─── МОЯ СМЕНА: машины за конкретный день (клик по дате) ────────────────── */
+function renderMyDayCars(){
+  const el=document.getElementById("view-my-day-cars");
+  const d=MY_STATS_DAYS[MY_DAY_CARS_INDEX];
+  if(!d){
+    el.innerHTML=`<div class="back-header"><div class="back-btn" onclick="switchTab('my-stats')"><i class="ti ti-chevron-left"></i></div><span class="back-header-title">Машины за день</span></div><div style="padding:24px 16px"><p class="empty">Данные не найдены</p></div>`;
+    return;
+  }
+  const cars=d.car_list||[];
+  const rowsHtml=cars.length?cars.map(c=>`
+    <div class="op-row">
+      <div class="op-info">
+        <p class="op-name">${c.car||"Машина"} · ${c.service||""}</p>
+        <p class="op-meta">${c.time||""}${c.payment?` · ${c.payment}`:""}</p>
+      </div>
+      <span class="op-price">${fmt(c.price)}</span>
+    </div>`).join(""):`<p class="empty" style="padding:20px">В этот день машин нет</p>`;
+
+  el.innerHTML=`
+    <div class="back-header"><div class="back-btn" onclick="switchTab('my-stats')"><i class="ti ti-chevron-left"></i></div><span class="back-header-title">${d.date} · ${d.cars} машин</span></div>
+    <div class="home-stat-row" style="padding:0 16px 14px">
+      <div class="home-stat-box"><span><i class="ti ti-car"></i>Машин</span><b>${d.cars}</b></div>
+      <div class="home-stat-box"><span><i class="ti ti-wallet"></i>Заработано</span><b>${fmt(d.total)}</b></div>
+    </div>
+    <div class="section-label">Список машин</div>
+    <div class="op-list">${rowsHtml}</div>
+    <div style="height:20px"></div>
+  `;
+}
+
+/* ─── ВСЕ СОТРУДНИКИ (сводка по ролям для админа) ────────────────────────── */
+let EMPLOYEES_PERIOD = "today";
+async function renderEmployees(){
+  const el=document.getElementById("view-employees");
+  if(!BRANCH){el.innerHTML=`<div class="px" style="padding-top:20px"><p class="empty">Сначала выбери филиал</p></div>`;return;}
+  el.innerHTML=`<div class="back-header"><div class="back-btn" onclick="switchTab('workers')"><i class="ti ti-chevron-left"></i></div><span class="back-header-title">Все сотрудники</span></div>${skeleton(3)}`;
+
+  let data;
+  try{
+    data = await api(`/api/employees-stats?branch=${encodeURIComponent(BRANCH)}&period=${EMPLOYEES_PERIOD}`);
+  }catch(e){
+    el.innerHTML=`<div class="back-header"><div class="back-btn" onclick="switchTab('workers')"><i class="ti ti-chevron-left"></i></div><span class="back-header-title">Все сотрудники</span></div><div style="padding:24px 16px"><p class="empty">Не удалось загрузить данные.</p></div>`;
+    return;
+  }
+
+  const periods=[["today","Сегодня"],["week","Неделя"],["month","Месяц"]];
+  const tabsHtml=`<div class="segmented">${periods.map(([k,label])=>
+    `<div class="seg${EMPLOYEES_PERIOD===k?" active":""}" onclick="uiEmployeesPeriod('${k}')">${label}</div>`
+  ).join("")}</div>`;
+
+  const employees=data.employees||[];
+  const cardsHtml=employees.length?employees.map(emp=>{
+    const col=avatarColor(emp.name);
+    const roleRows=Object.entries(emp.by_role||{}).map(([role,amount])=>
+      `<div class="wc-sub" style="display:flex;justify-content:space-between"><span>${role[0].toUpperCase()+role.slice(1)}</span><span>${fmt(amount)}</span></div>`
+    ).join("");
+    return `<div class="worker-card">
+      <div class="wc-top">
+        <div class="wc-info">
+          <div class="wc-av" style="background:${col}22;color:${col}">${initials(emp.name)}</div>
+          <div>
+            <div class="wc-name">${emp.name}</div>
+            <div class="wc-sub">${(emp.roles||[]).join(", ")} · ${emp.shifts} смен · ${emp.cars} машин</div>
+          </div>
+        </div>
+        <div class="wc-sal">${fmt(emp.total)}</div>
+      </div>
+      ${roleRows?`<div style="margin-top:8px;padding-top:8px;border-top:0.5px solid var(--border)">${roleRows}</div>`:""}
+    </div>`;
+  }).join(""):`<p class="empty">За этот период данных нет</p>`;
+
+  el.innerHTML=`
+    <div class="back-header"><div class="back-btn" onclick="switchTab('workers')"><i class="ti ti-chevron-left"></i></div><span class="back-header-title">Все сотрудники</span></div>
+    <div style="padding:0 0 20px">
+      ${tabsHtml}
+      <div class="home-stat-row">
+        <div class="home-stat-box">
+          <span><i class="ti ti-wallet"></i>Всего выплат</span>
+          <b>${fmt(data.grand_total)}</b>
+        </div>
+        <div class="home-stat-box">
+          <span><i class="ti ti-users"></i>Сотрудников</span>
+          <b>${employees.length}</b>
+        </div>
+      </div>
+      <div class="section-label">${data.from} – ${data.to}</div>
+      <div class="card">${cardsHtml}</div>
+    </div>`;
+  attachPullToRefresh("view-employees",renderEmployees);
+}
+window.uiEmployeesPeriod=(p)=>{ EMPLOYEES_PERIOD=p; haptic(); renderEmployees(); };
+
+/* ─── ГРАФИК НА НЕДЕЛЮ ───────────────────────────────────────────────────── */
+async function renderScheduleWeek(){
+  const el=document.getElementById("view-schedule");
+  if(!BRANCH){el.innerHTML=`<div class="px" style="padding-top:20px"><p class="empty">Сначала выбери филиал</p></div>`;return;}
+  el.innerHTML=`<div class="back-header"><div class="back-btn" onclick="switchTab('workers')"><i class="ti ti-chevron-left"></i></div><span class="back-header-title">График на неделю</span></div>${skeleton(3)}`;
+  const data=await api(`/api/schedule/week?branch=${encodeURIComponent(BRANCH)}`);
+  const workers=Object.keys(data.workers);
+  el.innerHTML=`
+    <div class="back-header"><div class="back-btn" onclick="switchTab('workers')"><i class="ti ti-chevron-left"></i></div><span class="back-header-title">График на неделю</span></div>
+    <div style="padding:0 0 20px">
+      <div class="section-label">${BRANCH} · Пн ${data.day_labels[0]} — Вс ${data.day_labels[6]}</div>
+      <div class="card card-pad" style="overflow-x:auto">
+        ${!workers.length?`<p class="empty">Мойщиков пока нет</p>`:`
+        <div style="display:grid;grid-template-columns:70px repeat(7,28px);gap:4px;align-items:center;margin-bottom:10px">
+          <span></span>
+          ${data.weekday_labels.map((d,i)=>`<span style="text-align:center;font-size:10px;color:var(--text-muted)">${d}<br><span style="font-size:8px">${data.day_labels[i]}</span></span>`).join("")}
+        </div>
+        ${workers.map(w=>{
+          const col=avatarColor(w);
+          return `<div style="display:grid;grid-template-columns:70px repeat(7,28px);gap:4px;align-items:center;padding:8px 0;border-top:0.5px solid var(--border)">
+            <span style="font-size:12px;font-weight:500;display:flex;align-items:center;gap:5px;overflow:hidden">
+              <span style="width:20px;height:20px;border-radius:50%;font-size:8px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:${col}22;color:${col}">${initials(w)}</span>
+              <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${w}</span>
+            </span>
+            ${data.workers[w].map(working=>`<div style="width:22px;height:22px;border-radius:7px;margin:0 auto;background:${working?"var(--accent)":"var(--surface-2)"};display:flex;align-items:center;justify-content:center">${working?'<i class="ti ti-check" style="font-size:11px;color:#fff"></i>':""}</div>`).join("")}
+          </div>`;}).join("")}
+        `}
+      </div>
+      <p style="font-size:11px;color:var(--text-muted);padding:10px 16px">Синим — рабочие дни. Без графика — мойщик доступен всегда.</p>
+    </div>`;
+}
+
+/* ─── НАСТРОЙКИ ──────────────────────────────────────────────────────────── */
+async function renderSettings(){
+  const el=document.getElementById("view-settings");
+  if(!BRANCH){el.innerHTML=`<div class="px" style="padding-top:20px"><p class="empty">Сначала выбери филиал</p></div>`;return;}
+  el.innerHTML=`<div class="topbar" style="align-items:center"><div class="back-btn" style="margin-right:8px" onclick="switchTab('more')"><i class="ti ti-chevron-left"></i></div><div class="topbar-title">Настройки</div></div>${skeleton(2)}`;
+  await ensureMe();
+  if(!ME.is_owner&&!ME.is_branch_admin){
+    el.innerHTML=`<div class="topbar" style="align-items:center"><div class="back-btn" style="margin-right:8px" onclick="switchTab('more')"><i class="ti ti-chevron-left"></i></div><div class="topbar-title">Настройки</div></div><div style="padding:20px 16px"><p class="empty">Доступно только администратору</p></div>`;
+    return;
+  }
+  const {workers}=await api(`/api/workers?branch=${encodeURIComponent(BRANCH)}`);
+  const ownerName=ME.name||"Салим";
+  const col=avatarColor(ownerName);
+  el.innerHTML=`
+    <div class="topbar" style="align-items:center"><div class="back-btn" style="margin-right:8px" onclick="switchTab('more')"><i class="ti ti-chevron-left"></i></div><div class="topbar-title">Настройки</div></div>
+    <div style="padding:8px 0 20px">
+      <div style="text-align:center;margin-bottom:8px;padding:8px">
+        <div class="settings-avatar" style="background:${col}22;color:${col}">${initials(ownerName)}</div>
+        <p class="settings-name">${ownerName}</p>
+        <p class="settings-role">${ME.is_owner?"Владелец":ME.is_branch_admin?"Администратор":"Мойщик"}</p>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-section-label">Филиал</div>
+        <div class="card">
+          <div class="settings-row" onclick="switchBranch()">
+            <div class="sr-left"><div class="ib blue"><i class="ti ti-building-store"></i></div><span class="sr-label">Филиалы</span></div>
+            <div class="sr-right"><span class="sr-badge">${BRANCH}</span><i class="ti ti-chevron-right"></i></div>
+          </div>
+          <div class="settings-row" onclick="switchTab('workers')">
+            <div class="sr-left"><div class="ib green"><i class="ti ti-users"></i></div><span class="sr-label">Сотрудники</span></div>
+            <div class="sr-right"><i class="ti ti-chevron-right"></i></div>
+          </div>
+          <div class="settings-row" onclick="switchTab('reports')">
+            <div class="sr-left"><div class="ib orange"><i class="ti ti-list-details"></i></div><span class="sr-label">Услуги и цены</span></div>
+            <div class="sr-right"><i class="ti ti-chevron-right"></i></div>
+          </div>
+          <div class="settings-row" onclick="uiAddExpense&&uiAddExpense()">
+            <div class="sr-left"><div class="ib red"><i class="ti ti-receipt"></i></div><span class="sr-label">Расходы</span></div>
+            <div class="sr-right"><i class="ti ti-chevron-right"></i></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-section-label">Система</div>
+        <div class="card">
+          <div class="settings-row">
+            <div class="sr-left"><div class="ib purple"><i class="ti ti-bell"></i></div><span class="sr-label">Уведомления</span></div>
+            <div class="sr-right"><i class="ti ti-chevron-right"></i></div>
+          </div>
+          <div class="settings-row">
+            <div class="sr-left"><div class="ib blue"><i class="ti ti-shield"></i></div><span class="sr-label">Безопасность</span></div>
+            <div class="sr-right"><i class="ti ti-chevron-right"></i></div>
+          </div>
+          <div class="settings-row" onclick="switchTab('history')">
+            <div class="sr-left"><div class="ib gray"><i class="ti ti-history"></i></div><span class="sr-label">История кассы</span></div>
+            <div class="sr-right"><i class="ti ti-chevron-right"></i></div>
+          </div>
+          <div class="settings-row">
+            <div class="sr-left"><div class="ib gray"><i class="ti ti-info-circle"></i></div><span class="sr-label">О приложении</span></div>
+            <div class="sr-right"><span class="sr-badge">v2.0</span><i class="ti ti-chevron-right"></i></div>
+          </div>
+        </div>
+      </div>
+
+      ${ME.is_owner?`
+      <div class="settings-section">
+        <div class="settings-section-label">Администрирование</div>
+        <div class="card">
+          <div class="settings-row" onclick="uiSetBranchAdmin()"><div class="sr-left"><div class="ib blue"><i class="ti ti-shield-star"></i></div><span class="sr-label">Назначить админа</span></div><div class="sr-right"><i class="ti ti-chevron-right"></i></div></div>
+          <div class="settings-row" onclick="uiAddUser()"><div class="sr-left"><div class="ib green"><i class="ti ti-lock-access"></i></div><span class="sr-label">Добавить доступ</span></div><div class="sr-right"><i class="ti ti-chevron-right"></i></div></div>
+          <div class="settings-row" onclick="uiRemoveUser()"><div class="sr-left"><div class="ib red"><i class="ti ti-lock-open"></i></div><span class="sr-label">Убрать доступ</span></div><div class="sr-right"><i class="ti ti-chevron-right"></i></div></div>
+          <div class="settings-row" onclick="uiListUsers()"><div class="sr-left"><div class="ib purple"><i class="ti ti-users"></i></div><span class="sr-label">Пользователи</span></div><div class="sr-right"><i class="ti ti-chevron-right"></i></div></div>
+        </div>
+      </div>`:""}
+
+      ${renderThemeSwitch()}
+
+      <div style="padding:14px 16px 0">
+        <button class="btn-logout" onclick="switchBranch()">Выйти из аккаунта</button>
+      </div>
+
+      <div class="group-label">Сотрудники (${workers.length})</div>
+      <div class="tag-row">
+        ${workers.map(w=>{const col=avatarColor(w);return `<div class="tag" onclick="uiWorkerRow('${w.replace(/'/g,"\\'")}')"><span class="tav" style="background:${col}22;color:${col}">${initials(w)}</span><span>${w}</span></div>`;}).join("")}
+        <div class="tag-add" onclick="uiAddWorker()"><i class="ti ti-plus" style="font-size:13px"></i>Добавить</div>
+      </div>
+    </div>
+  `;
+}
+
+/* ─── WORKERS HEADER MENU ────────────────────────────────────────────────── */
+window.uiWorkersMenu=()=>{
+  tg.showPopup({
+    title:"Мойщики",message:"Что хочешь сделать?",
+    buttons:[
+      {id:"schedule",type:"default",text:"График работы"},
+      {id:"add",type:"default",text:"Добавить мойщика"},
+      {id:"cancel",type:"cancel"},
+    ],
+  },(id)=>{
+    if(id==="schedule") switchTab("schedule");
+    else if(id==="add") uiAddWorker();
+  });
+};
+
+/* ─── WORKER ACTIONS ─────────────────────────────────────────────────────── */
+window.uiWorkerRow=(name)=>{
+  tg.showPopup({
+    title:name,message:"Что сделать с сотрудником?",
+    buttons:[
+      {id:"schedule",type:"default",text:"График работы"},
+      {id:"admin",type:"default",text:"Назначить админом"},
+      {id:"remove",type:"destructive",text:"Удалить"},
+      {id:"cancel",type:"cancel"},
+    ],
+  },async(id)=>{
+    if(id==="remove"){
+      try{await api(`/api/workers/${encodeURIComponent(BRANCH)}/${encodeURIComponent(name)}`,{method:"DELETE"});haptic("medium");toast("Мойщик удалён");renderSettings();}catch(e){}
+    }else if(id==="admin"){
+      const idStr=window.prompt(`Telegram ID для ${name}:`);const uid=parseInt(idStr||"",10);if(!uid) return;
+      try{await api("/api/branch-admin",{method:"POST",body:JSON.stringify({branch:BRANCH,user_id:uid})});haptic("medium");tg.showAlert("Админ назначен");}catch(e){}
+    }else if(id==="schedule"){uiSetSchedule(name);}
+  });
+};
+window.uiSetSchedule=(name)=>{
+  const refresh=()=>{ const t=document.querySelector(".tab.active")?.dataset.tab||"home"; switchTab(t); };
+  const pattern=window.prompt(`График для ${name}\n"3/1" — 3 рабочих, 1 выходной.\nПусто = доступен всегда.`,"3/1");
+  if(pattern===null) return;
+  if(pattern.trim()===""){
+    api(`/api/schedule/${encodeURIComponent(BRANCH)}/${encodeURIComponent(name)}`,{method:"DELETE"})
+      .then(()=>{haptic("medium");tg.showAlert("График сброшен");refresh();}).catch(()=>{});
+    return;
+  }
+  const m=pattern.trim().match(/^(\d+)\s*\/\s*(\d+)$/);
+  if(!m) return tg.showAlert('Формат: "3/1"');
+  const work_days=parseInt(m[1],10),rest_days=parseInt(m[2],10);
+  const startStr=window.prompt("С какой даты (ГГГГ-ММ-ДД)?",new Date().toISOString().slice(0,10));
+  if(!startStr) return;
+  api("/api/schedule",{method:"POST",body:JSON.stringify({branch:BRANCH,name,work_days,rest_days,start_date:startStr})})
+    .then(()=>{haptic("medium");tg.showAlert(`График ${work_days}/${rest_days} установлен`);refresh();}).catch(()=>{});
+};
+window.switchBranch=()=>{BRANCH=null;ME=null;switchTab("home");};
+window.uiAddWorker=async()=>{
+  const name=window.prompt("Имя мойщика:");if(!name) return;
+  try{await api("/api/workers",{method:"POST",body:JSON.stringify({branch:BRANCH,name})});haptic("medium");toast("Мойщик добавлен");renderWorkers();}catch(e){}
+};
+window.uiSetBranchAdmin=async()=>{
+  const idStr=window.prompt("Telegram ID нового админа:");const uid=parseInt(idStr||"",10);if(!uid) return;
+  try{await api("/api/branch-admin",{method:"POST",body:JSON.stringify({branch:BRANCH,user_id:uid})});haptic("medium");tg.showAlert("Админ назначен");}catch(e){}
+};
+window.uiAddUser=async()=>{
+  const idStr=window.prompt("Telegram ID пользователя:");const uid=parseInt(idStr||"",10);if(!uid) return;
+  const name=window.prompt("Имя пользователя:","")||"Без имени";
+  try{await api("/api/users",{method:"POST",body:JSON.stringify({user_id:uid,name})});haptic("medium");tg.showAlert("Доступ выдан");}catch(e){}
+};
+window.uiRemoveUser=async()=>{
+  const idStr=window.prompt("Telegram ID для удаления:");const uid=parseInt(idStr||"",10);if(!uid) return;
+  try{await api(`/api/users/${uid}`,{method:"DELETE"});haptic("medium");tg.showAlert("Доступ отозван");}catch(e){}
+};
+window.uiListUsers=async()=>{
+  try{const {users}=await api("/api/users");const lines=users.map(u=>`${u.name} — ${u.user_id}`).join("\n")||"Список пуст";tg.showAlert(lines);}catch(e){}
+};
+
+/* ─── ФИНАНСЫ (новый раздел) ─────────────────────────────────────────────── */
+async function renderFinance(){
+  if(!BRANCH) return ensureBranch();
+  const el=document.getElementById("view-finance");
+  el.innerHTML=`<div class="topbar"><div><div class="topbar-title">Финансы</div><div class="topbar-sub">${BRANCH}</div></div></div>${skeleton(4)}`;
+  let session,summary;
+  try{ ({session,summary}=await api(`/api/session?branch=${encodeURIComponent(BRANCH)}`)); }
+  catch(e){ el.innerHTML=`<div class="topbar"><div><div class="topbar-title">Финансы</div></div></div><div class="px" style="padding-top:20px"><p class="empty">Не удалось загрузить данные.</p></div>`; return; }
+  const expenses=session.expenses||[], incomes=session.incomes||[];
+  const net=(summary.total_incomes||0)-(summary.total_expenses||0);
+  el.innerHTML=`
+    <div class="topbar"><div><div class="topbar-title">Финансы</div><div class="topbar-sub">${BRANCH} · сегодня</div></div></div>
+    <div style="display:flex;gap:10px;padding:0 16px 4px">
+      <div class="total-card" style="flex:1;margin:0"><div class="tl">Доходы</div><div class="tr" style="color:var(--green)">+${fmt(summary.total_incomes||0)}</div></div>
+      <div class="total-card" style="flex:1;margin:0"><div class="tl">Расходы</div><div class="tr" style="color:var(--red)">-${fmt(summary.total_expenses||0)}</div></div>
+    </div>
+    <div class="total-card" style="margin-top:10px"><div class="tl">Итог за смену</div><div class="tr" style="color:${net>=0?"var(--green)":"var(--red)"}">${net>=0?"+":""}${fmt(net)}</div></div>
+
+    <div class="section-label"><span>Расходы</span></div>
+    <div class="card">
+      ${expenses.length
+        ?expenses.map((e,i)=>`
+          <div class="expense-row">
+            <span class="expense-name">${e.name}</span>
+            <div class="expense-right">
+              <span class="expense-amount">-${fmt(e.amount)}</span>
+              <span class="expense-del" onclick="delExpense(${i})">Удалить</span>
+            </div>
+          </div>`).join("")
+        :emptyState("ti-receipt-2","Расходов пока нет",{label:"Добавить расход",onclick:"uiAddExpense()"})}
+    </div>
+    <div class="btn-wrap"><button class="btn secondary btn-sm" onclick="uiAddExpense()"><i class="ti ti-plus"></i>Добавить расход</button></div>
+
+    <div class="section-label"><span>Доходы</span></div>
+    <div class="card">
+      ${incomes.length
+        ?incomes.map((inc,i)=>`
+          <div class="expense-row">
+            <span class="expense-name">${inc.name}<span style="color:var(--text-muted);font-weight:400"> · ${inc.payment_split?Object.entries(inc.payment_split).map(([k,v])=>`${k} ${v}₽`).join(" + "):(inc.payment||"нал")}</span></span>
+            <div class="expense-right">
+              <span class="expense-amount" style="color:var(--green)">+${fmt(inc.amount)}</span>
+              <span class="expense-del" onclick="delIncome(${i})">Удалить</span>
+            </div>
+          </div>`).join("")
+        :emptyState("ti-cash","Доходов пока нет",{label:"Добавить доход",onclick:"uiAddIncome()"})}
+    </div>
+    <div class="btn-wrap"><button class="btn secondary btn-sm" onclick="uiAddIncome()"><i class="ti ti-plus"></i>Добавить доход</button></div>
+    <div class="btn-wrap"><button class="btn btn-sm" onclick="switchTab('reports')"><i class="ti ti-chart-bar"></i>Отчёты за период</button></div>
+  `;
+  attachPullToRefresh("view-finance",renderFinance);
+}
+
+/* ─── ФИЛИАЛЫ (новый раздел, для владельца) ──────────────────────────────── */
+async function renderBranchesAdmin(){
+  const el=document.getElementById("view-branches");
+  el.innerHTML=`<div class="back-header"><div class="back-btn" onclick="switchTab('more')"><i class="ti ti-chevron-left"></i></div><span class="back-header-title">Филиалы</span></div>${skeleton(3)}`;
+  if(!(ME?.is_owner)){
+    el.innerHTML=`<div class="back-header"><div class="back-btn" onclick="switchTab('more')"><i class="ti ti-chevron-left"></i></div><span class="back-header-title">Филиалы</span></div><div class="px" style="padding-top:20px"><p class="empty">Доступно только владельцу.</p></div>`;
+    return;
+  }
+  let branchStats=[];
+  try{ const r=await api("/api/branches/summary"); branchStats=r.branches||[]; }catch(e){}
+  el.innerHTML=`
+    <div class="back-header"><div class="back-btn" onclick="switchTab('more')"><i class="ti ti-chevron-left"></i></div><span class="back-header-title">Филиалы</span></div>
+    <div style="padding:8px 0">
+      ${branchStats.length?branchStats.map(b=>`
+        <div class="branch-card" onclick="pickBranch('${b.branch.replace(/'/g,"\\'")}')">
+          <div>
+            <div class="bc-pin"><i class="ti ti-map-pin"></i>${b.branch}</div>
+            <div class="bc-amount">${fmt(b.total||0)}</div>
+            <div class="bc-sub">${b.cars||0} машин сегодня</div>
+          </div>
+        </div>`).join(""):`<div class="px"><p class="empty">Нет данных по филиалам</p></div>`}
+    </div>`;
+}
+
+/* ─── ЕЩЁ (меню остальных разделов) ──────────────────────────────────────── */
+function renderMore(){
+  const el=document.getElementById("view-more");
+  const isOwner=!!ME?.is_owner;
+  const groups=[
+    {title:"Аналитика",items:[
+      {icon:"ti-chart-bar",label:"Отчёты",tab:"reports"},
+      {icon:"ti-history",label:"История изменений",tab:"history"},
+    ]},
+    {title:"Команда",items:[
+      {icon:"ti-users",label:"Мойщики",tab:"workers"},
+      {icon:"ti-calendar",label:"График смен",tab:"schedule"},
+    ]},
+    {title:"Система",items:[
+      ...(isOwner?[{icon:"ti-building-store",label:"Филиалы",tab:"branches"}]:[]),
+      {icon:"ti-settings",label:"Настройки",tab:"settings"},
+    ]},
+  ];
+  el.innerHTML=`
+    <div class="topbar"><div><div class="topbar-title">Ещё</div><div class="topbar-sub">${BRANCH||""}</div></div></div>
+    ${groups.map(g=>`
+      <div class="section-label"><span>${g.title}</span></div>
+      <div class="card" style="padding:4px 0">
+        ${g.items.map(it=>`
+          <div class="row" onclick="switchTab('${it.tab}')" style="cursor:pointer">
+            <div class="qb-icon" style="width:34px;height:34px;border-radius:10px;background:var(--accent-tint);color:var(--accent);display:flex;align-items:center;justify-content:center"><i class="ti ${it.icon}"></i></div>
+            <span style="flex:1;margin-left:10px">${it.label}</span>
+            <i class="ti ti-chevron-right" style="color:var(--text-muted)"></i>
+          </div>`).join("")}
+      </div>`).join("")}
+  `;
+}
+
+/* ─── ДОПОЛНИТЕЛЬНЫЕ ЭКРАНЫ (виртуальные роуты новой навигации) ──────────── */
+document.getElementById("view-home").insertAdjacentHTML("afterend",
+  `<div id="view-cash" class="hidden"></div><div id="view-day-report" class="hidden"></div><div id="view-all-cars" class="hidden"></div><div id="view-history" class="hidden"></div><div id="view-schedule" class="hidden"></div><div id="view-my-stats" class="hidden"></div><div id="view-my-day-cars" class="hidden"></div><div id="view-employees" class="hidden"></div><div id="view-finance" class="hidden"></div><div id="view-more" class="hidden"></div><div id="view-branches" class="hidden"></div>`
+);
+const _switchTab=switchTab;
+// Виртуальные роуты: экран не в основном наборе switchTab, но должен
+// открываться как полноценный раздел (в т.ч. по клику в нижнем меню).
+// activeTabName — на какой пункт нижнего меню подсвечиваться для этого роута
+// (например «Ещё» подсвечивается и для history/schedule/employees, потому
+// что физически они открываются ИЗ раздела «Ещё»).
+const VIRTUAL_ROUTES={
+  "day-report":{view:"view-day-report",render:()=>renderDayReport(),activeTab:"more"},
+  "all-cars":{view:"view-all-cars",render:()=>renderAllCars(),activeTab:"all-cars"},
+  "cash":{view:"view-cash",render:()=>renderCash(),activeTab:"cash"},
+  "history":{view:"view-history",render:()=>renderHistory(),activeTab:"more"},
+  "schedule":{view:"view-schedule",render:()=>renderScheduleWeek(),activeTab:"more"},
+  "employees":{view:"view-employees",render:()=>renderEmployees(),activeTab:"more"},
+  "my-day-cars":{view:"view-my-day-cars",render:()=>renderMyDayCars(),activeTab:"my-stats"},
+  "finance":{view:"view-finance",render:()=>renderFinance(),activeTab:"finance"},
+  "branches":{view:"view-branches",render:()=>renderBranchesAdmin(),activeTab:"more"},
+  "more":{view:"view-more",render:()=>renderMore(),activeTab:"more"},
+};
+switchTab=function(name,editNum){
+  const route=VIRTUAL_ROUTES[name];
+  if(route){
+    document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t.dataset.tab===route.activeTab));
+    document.querySelectorAll("[id^=view-]").forEach(v=>v.classList.add("hidden"));
+    document.getElementById(route.view).classList.remove("hidden");
+    route.render();
+    return;
+  }
+  _switchTab(name,editNum);
+};
+
+switchTab("home");
+</script>
+</body>
+</html>

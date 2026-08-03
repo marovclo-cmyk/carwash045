@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CarWash Cloud — Лояльность</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="css/theme.css">
+</head>
+<body>
+
+<div class="shell">
+  <div class="sidebar" id="sidebarRoot"></div>
+
+  <div class="main">
+    <div class="err-banner" id="errBanner"><i class="fa-solid fa-triangle-exclamation"></i><span id="errText"></span></div>
+
+    <div class="page-head">
+      <div>
+        <div class="page-title">Лояльность</div>
+        <div class="page-sub" id="pageSub">—</div>
+      </div>
+    </div>
+
+    <div class="metrics-grid" style="grid-template-columns:1fr 1fr 1fr;">
+      <div class="metric-card">
+        <div class="metric-top"><span class="metric-label">Скидок за смену</span><span class="metric-icon" style="color:var(--color-magenta);background:var(--color-magenta-wash)"><i class="fa-solid fa-tags"></i></span></div>
+        <div class="metric-value" id="mCount">—</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-top"><span class="metric-label">Сумма скидок</span><span class="metric-icon" style="color:var(--color-magenta);background:var(--color-magenta-wash)"><i class="fa-solid fa-percent"></i></span></div>
+        <div class="metric-value" id="mSum">—</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-top"><span class="metric-label">Машин за смену</span><span class="metric-icon" style="color:var(--color-sky);background:var(--color-sky-wash)"><i class="fa-solid fa-car"></i></span></div>
+        <div class="metric-value" id="mCars">—</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div><div class="panel-title">Скидки по машинам за текущую смену</div></div>
+        <div class="list-amount" style="color:var(--color-magenta)" id="loyTotal">0 ₽</div>
+      </div>
+      <div id="loyList"></div>
+      <div id="loyEmpty" class="empty-note" style="display:none">Скидок лояльности пока нет</div>
+      <div class="add-row">
+        <input class="f-amount" id="loyCar" type="number" placeholder="№ машины" style="width:110px">
+        <input class="f-amount" id="loyAmount" type="number" placeholder="Сумма скидки, ₽" style="flex:1">
+        <button class="btn btn-primary btn-icon" id="loyAddBtn"><i class="fa-solid fa-plus"></i></button>
+      </div>
+      <div style="padding:12px 20px; font-size:12px; color:var(--color-ash); border-top:1px solid var(--color-fog)">
+        Скидка привязывается к номеру машины в текущей смене (см. страницу «Машины») и автоматически вычитается из итога кассы по способу оплаты этой машины.
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><i class="fa-solid fa-circle-check"></i><span id="toastText"></span></div>
+
+<script src="site-common.js"></script>
+<script>
+/* Демо: машины текущей смены (для валидации номера) + список уже применённых скидок. */
+const BRANCHES = {
+  "Северный": {
+    cars:[
+      {num:1, car:"Camry, А123ВС", service:"Комплекс"},
+      {num:2, car:"Solaris, В456КМ", service:"Экспресс-мойка"},
+      {num:3, car:"X5, Е777АА", service:"Полировка"},
+    ],
+    loyalty:[ {car_num:1, discount:200} ],
+  },
+  "Южный": {
+    cars:[ {num:1, car:"Logan, У111ВВ", service:"Экспресс-мойка"} ],
+    loyalty:[],
+  },
+};
+let state = { branch:"Северный" };
+
+function showErr(msg){
+  const el = document.getElementById("errBanner");
+  if(!msg){ el.style.display="none"; return; }
+  document.getElementById("errText").textContent = msg; el.style.display="flex";
+}
+
+function carLabel(num){
+  const b = BRANCHES[state.branch];
+  const c = b.cars.find(c=>c.num===num);
+  if(!c) return `Машина №${num} (не найдена в смене)`;
+  return `${c.car} · ${c.service}`;
+}
+
+function render(){
+  const b = BRANCHES[state.branch];
+  document.getElementById("mCount").textContent = b.loyalty.length;
+  const total = b.loyalty.reduce((a,l)=>a+l.discount,0);
+  document.getElementById("mSum").textContent = CW.money(total);
+  document.getElementById("mCars").textContent = b.cars.length;
+  document.getElementById("loyTotal").textContent = "−"+CW.money(total);
+
+  const list = document.getElementById("loyList"), empty = document.getElementById("loyEmpty");
+  if(!b.loyalty.length){ list.innerHTML=""; empty.style.display="block"; return; }
+  empty.style.display="none";
+  list.innerHTML = b.loyalty.map((l,i)=>`
+    <div class="list-row">
+      <div class="avatar-circle sm" style="background:var(--color-magenta-wash);color:var(--color-magenta)">№${l.car_num}</div>
+      <div class="worker-info"><div class="worker-name">${carLabel(l.car_num)}</div><div class="worker-meta">Машина №${l.car_num}</div></div>
+      <div class="list-amount" style="color:var(--color-magenta)">−${CW.money(l.discount)}</div>
+      <div class="icon-btn del" onclick="delLoyalty(${i})"><i class="fa-solid fa-trash"></i></div>
+    </div>`).join("");
+}
+
+document.getElementById("loyAddBtn").addEventListener("click", ()=>{
+  const b = BRANCHES[state.branch];
+  const car_num = parseInt(document.getElementById("loyCar").value, 10);
+  const discount = parseInt(document.getElementById("loyAmount").value, 10);
+  if(!car_num || !discount){ showErr("Укажите номер машины и сумму скидки"); return; }
+  if(!b.cars.find(c=>c.num===car_num)){ showErr(`Машина №${car_num} не найдена в текущей смене. Проверьте номер на странице «Машины».`); return; }
+  showErr(null);
+  b.loyalty.push({car_num, discount});
+  document.getElementById("loyCar").value=""; document.getElementById("loyAmount").value="";
+  render();
+});
+window.delLoyalty = (i)=>{ BRANCHES[state.branch].loyalty.splice(i,1); render(); };
+
+CW.renderSidebar("loyalty", {
+  branches: { "Северный":"СВ", "Южный":"ЮЖ" },
+  activeBranch: state.branch,
+  userName: "Ирина А.", userRole: "Владелец",
+  onBranchChange: (name)=>{ state.branch = name; render(); },
+  onLogout: ()=> CW.showToast("Демо-режим: выход не выполняется"),
+});
+document.getElementById("pageSub").textContent = `${state.branch} · ${CW.todayLabel()}`;
+render();
+</script>
+</body>
+</html>

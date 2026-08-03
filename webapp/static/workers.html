@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CarWash Cloud — Сотрудники</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="css/theme.css">
+</head>
+<body>
+
+<div class="shell">
+  <div class="sidebar" id="sidebarRoot"></div>
+
+  <div class="main">
+    <div class="err-banner" id="errBanner"><i class="fa-solid fa-triangle-exclamation"></i><span id="errText"></span></div>
+
+    <div class="page-head">
+      <div>
+        <div class="page-title">Сотрудники</div>
+        <div class="page-sub" id="pageSub">—</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div><div class="panel-title">Мойщики</div><div class="panel-caption">Список сотрудников филиала и их график работы</div></div>
+      </div>
+      <div id="workerList"></div>
+      <div id="workerEmpty" class="empty-note" style="display:none">Сотрудников пока нет — добавьте первого ниже</div>
+      <div class="add-row">
+        <input class="f-name" id="wName" type="text" placeholder="Имя сотрудника">
+        <button class="btn btn-primary btn-icon" id="wAddBtn"><i class="fa-solid fa-plus"></i></button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div><div class="panel-title">Администраторы</div><div class="panel-caption" id="adminsSub">—</div></div>
+      </div>
+      <div id="adminsList"></div>
+      <div id="adminsEmpty" class="empty-note" style="display:none">Администраторов пока нет — добавьте первого ниже</div>
+      <div class="add-row">
+        <input class="f-name" id="aName" type="text" placeholder="Имя администратора">
+        <button class="btn btn-primary btn-icon" id="aAddBtn"><i class="fa-solid fa-plus"></i></button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div><div class="panel-title">График на неделю</div><div class="panel-caption" id="weekSub">—</div></div>
+      </div>
+      <div class="table-scroll"><table class="week" id="weekTable"></table></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="schedModal">
+  <div class="modal">
+    <h3>График — <span id="schedWorkerName"></span></h3>
+    <p class="modal-sub">Циклический график: N дней работает, затем M дней отдыхает.</p>
+    <div class="row2">
+      <div class="field"><label>Работает дней</label><input type="number" id="schedWork" min="1" value="3"></div>
+      <div class="field"><label>Отдыхает дней</label><input type="number" id="schedRest" min="0" value="1"></div>
+    </div>
+    <div class="field"><label>Дата начала цикла</label><input type="date" id="schedStart"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="schedClearBtn"><i class="fa-solid fa-xmark"></i>Убрать график</button>
+      <button class="btn btn-primary" id="schedSaveBtn"><i class="fa-solid fa-check"></i>Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="salModal">
+  <div class="modal" style="max-width:460px">
+    <h3>Зарплата — <span id="salWorkerName"></span></h3>
+    <div class="tab-row" id="salTabs">
+      <button class="btn btn-primary sal-tab active" data-period="today">Сегодня</button>
+      <button class="btn sal-tab" data-period="week">Неделя</button>
+      <button class="btn sal-tab" data-period="month">Месяц</button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px" id="salSummary"></div>
+    <div style="max-height:240px;overflow-y:auto;border:1px solid var(--color-fog);border-radius:12px" id="salDays"></div>
+    <div class="modal-actions"><button class="btn btn-ghost" id="salCloseBtn" style="flex:1">Закрыть</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><i class="fa-solid fa-circle-check"></i><span id="toastText"></span></div>
+
+<script src="site-common.js"></script>
+<script>
+/* Демо-данные. По каждому сотруднику — расписание (work/rest/start) и ставка (если задана). */
+const BRANCHES = {
+  "Северный": {
+    workers:["Данияр Т.","Марат С.","Алина К."],
+    admins:["Ирина А."],
+    schedules:{ "Данияр Т.":{work:3,rest:1,start:"2026-07-27"}, "Марат С.":{work:2,rest:2,start:"2026-07-28"} },
+    rates:{ "Алина К.":1500 },
+    carsToday:{ "Данияр Т.":3, "Марат С.":2, "Алина К.":2 },
+  },
+  "Южный": {
+    workers:["Бекзат Н.","Салтанат Е."],
+    admins:[],
+    schedules:{},
+    rates:{},
+    carsToday:{ "Бекзат Н.":2, "Салтанат Е.":1 },
+  },
+};
+let state = { branch:"Северный" };
+
+function showErr(msg){
+  const el = document.getElementById("errBanner");
+  if(!msg){ el.style.display="none"; return; }
+  document.getElementById("errText").textContent = msg; el.style.display="flex";
+}
+
+function isWorkingToday(sched){
+  if(!sched) return null;
+  const start = new Date(sched.start); const today = new Date();
+  const diffDays = Math.floor((today - start) / 86400000);
+  const cycle = sched.work + sched.rest;
+  const pos = ((diffDays % cycle) + cycle) % cycle;
+  return pos < sched.work;
+}
+
+function renderWorkers(){
+  const b = BRANCHES[state.branch];
+  const list = document.getElementById("workerList"), empty = document.getElementById("workerEmpty");
+  if(!b.workers.length){ list.innerHTML=""; empty.style.display="block"; return; }
+  empty.style.display="none";
+  list.innerHTML = b.workers.map(name=>{
+    const sched = b.schedules[name];
+    const working = isWorkingToday(sched);
+    let tag = !sched ? `<span class="tag noschedule">без графика</span>` : (working ? `<span class="tag working">работает сегодня</span>` : `<span class="tag resting">отдыхает</span>`);
+    const schedMeta = sched ? `${sched.work}/${sched.rest} · с ${sched.start}` : "график не задан";
+    const rate = b.rates[name];
+    const rateTag = rate ? `<span class="tag rate">ставка ${rate}₽</span>` : "";
+    const cars = b.carsToday[name] || 0;
+    return `
+      <div class="worker-row">
+        <div class="avatar-circle sm" style="background:var(--color-lavender-wash);color:var(--color-lavender)">${CW.initials(name)}</div>
+        <div class="worker-info">
+          <div class="worker-name">${name} ${tag} ${rateTag}</div>
+          <div class="worker-meta">${schedMeta} · машин сегодня: ${cars}</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          <div class="icon-btn" title="Зарплата за период" onclick="openSalary('${name.replace(/'/g,"\\'")}')"><i class="fa-solid fa-sack-dollar"></i></div>
+          <div class="icon-btn ${rate?'rate-active':''}" title="Ставка" onclick="toggleRate('${name.replace(/'/g,"\\'")}')"><i class="fa-solid fa-money-bill"></i></div>
+          <div class="icon-btn" title="График" onclick="openSched('${name.replace(/'/g,"\\'")}')"><i class="fa-solid fa-calendar-days"></i></div>
+          <div class="icon-btn del" title="Удалить" onclick="delWorker('${name.replace(/'/g,"\\'")}')"><i class="fa-solid fa-trash"></i></div>
+        </div>
+      </div>`;
+  }).join("");
+}
+
+function renderAdmins(){
+  const b = BRANCHES[state.branch];
+  document.getElementById("adminsSub").textContent = b.admins.length ? `Дежурный сегодня: ${b.admins[0]}` : "Администраторов нет";
+  const list = document.getElementById("adminsList"), empty = document.getElementById("adminsEmpty");
+  if(!b.admins.length){ list.innerHTML=""; empty.style.display="block"; return; }
+  empty.style.display="none";
+  list.innerHTML = b.admins.map((name,i)=>`
+    <div class="worker-row">
+      <div class="avatar-circle sm" style="background:var(--color-magenta-wash);color:var(--color-magenta)">${CW.initials(name)}</div>
+      <div class="worker-info"><div class="worker-name">${name} <span class="tag admin">админ</span></div><div class="worker-meta">Дежурства и % от оборота</div></div>
+      <div class="icon-btn del" title="Удалить" onclick="delAdmin(${i})"><i class="fa-solid fa-trash"></i></div>
+    </div>`).join("");
+}
+
+function renderWeek(){
+  const b = BRANCHES[state.branch];
+  const today = new Date();
+  const labels = []; const weekdays = ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"];
+  const monday = new Date(today); monday.setDate(today.getDate() - ((today.getDay()+6)%7));
+  for(let i=0;i<7;i++){ const d = new Date(monday); d.setDate(monday.getDate()+i); labels.push(`${d.getDate()}.${String(d.getMonth()+1).padStart(2,"0")}`); }
+  document.getElementById("weekSub").textContent = `${labels[0]} — ${labels[6]}`;
+
+  const table = document.getElementById("weekTable");
+  if(!b.workers.length){ table.innerHTML = `<tr><td style="padding:20px;color:var(--color-ash)">Нет сотрудников для отображения графика</td></tr>`; return; }
+  const head = `<tr><th>Сотрудник</th>${weekdays.map((wd,i)=>`<th>${wd}<br>${labels[i]}</th>`).join("")}</tr>`;
+  const rows = b.workers.map(w=>{
+    const sched = b.schedules[w];
+    const cells = Array.from({length:7}).map((_,i)=>{
+      const d = new Date(monday); d.setDate(monday.getDate()+i);
+      let on = false;
+      if(sched){ const start=new Date(sched.start); const diff=Math.floor((d-start)/86400000); const cyc=sched.work+sched.rest; const pos=((diff%cyc)+cyc)%cyc; on = pos<sched.work; }
+      return `<td><span class="wk-cell ${on?"on":"off"}">${on?"✓":"—"}</span></td>`;
+    }).join("");
+    return `<tr><td>${w}</td>${cells}</tr>`;
+  }).join("");
+  table.innerHTML = head + rows;
+}
+
+function render(){ renderWorkers(); renderAdmins(); renderWeek(); }
+
+document.getElementById("wAddBtn").addEventListener("click", ()=>{
+  const name = document.getElementById("wName").value.trim();
+  if(!name){ showErr("Укажите имя сотрудника"); return; }
+  showErr(null);
+  BRANCHES[state.branch].workers.push(name);
+  document.getElementById("wName").value=""; render();
+});
+window.delWorker = (name)=>{
+  if(!confirm(`Удалить сотрудника «${name}» из филиала?`)) return;
+  const b = BRANCHES[state.branch];
+  b.workers = b.workers.filter(w=>w!==name); delete b.schedules[name]; delete b.rates[name];
+  render();
+};
+
+document.getElementById("aAddBtn").addEventListener("click", ()=>{
+  const name = document.getElementById("aName").value.trim();
+  if(!name){ showErr("Укажите имя администратора"); return; }
+  showErr(null);
+  BRANCHES[state.branch].admins.push(name);
+  document.getElementById("aName").value=""; render();
+});
+window.delAdmin = (i)=>{ BRANCHES[state.branch].admins.splice(i,1); render(); };
+
+window.toggleRate = (name)=>{
+  const b = BRANCHES[state.branch];
+  const current = b.rates[name] || 0;
+  const cars = b.carsToday[name] || 0;
+  if(cars > 0){ CW.showToast("Ставка доступна только если за смену 0 машин"); return; }
+  const input = prompt(`Фиксированная ставка для «${name}» (₽ за смену, 0 — убрать):`, String(current));
+  if(input===null) return;
+  const val = parseInt(input, 10) || 0;
+  if(val > 0) b.rates[name] = val; else delete b.rates[name];
+  render();
+};
+
+let schedWorker = null;
+const schedModal = document.getElementById("schedModal");
+window.openSched = (name)=>{
+  schedWorker = name;
+  const b = BRANCHES[state.branch]; const sched = b.schedules[name];
+  document.getElementById("schedWorkerName").textContent = name;
+  document.getElementById("schedWork").value = sched ? sched.work : 3;
+  document.getElementById("schedRest").value = sched ? sched.rest : 1;
+  document.getElementById("schedStart").value = sched ? sched.start : new Date().toISOString().slice(0,10);
+  schedModal.classList.add("show");
+};
+schedModal.addEventListener("click",(e)=>{ if(e.target===schedModal) schedModal.classList.remove("show"); });
+document.getElementById("schedSaveBtn").addEventListener("click", ()=>{
+  const work = parseInt(document.getElementById("schedWork").value,10) || 1;
+  const rest = parseInt(document.getElementById("schedRest").value,10) || 0;
+  const start = document.getElementById("schedStart").value || new Date().toISOString().slice(0,10);
+  BRANCHES[state.branch].schedules[schedWorker] = { work, rest, start };
+  schedModal.classList.remove("show"); render(); CW.showToast("График сохранён");
+});
+document.getElementById("schedClearBtn").addEventListener("click", ()=>{
+  delete BRANCHES[state.branch].schedules[schedWorker];
+  schedModal.classList.remove("show"); render(); CW.showToast("График убран");
+});
+
+let salWorker = null, salPeriod = "today";
+const salModal = document.getElementById("salModal");
+window.openSalary = (name)=>{
+  salWorker = name; salPeriod = "today";
+  document.getElementById("salWorkerName").textContent = name;
+  document.querySelectorAll(".sal-tab").forEach(t=>t.classList.toggle("active", t.dataset.period==="today"));
+  document.querySelectorAll(".sal-tab").forEach(t=>t.classList.toggle("btn-primary", t.classList.contains("active")));
+  salModal.classList.add("show"); loadSalary();
+};
+salModal.addEventListener("click",(e)=>{ if(e.target===salModal) salModal.classList.remove("show"); });
+document.getElementById("salCloseBtn").addEventListener("click", ()=> salModal.classList.remove("show"));
+document.querySelectorAll(".sal-tab").forEach(tab=>{
+  tab.addEventListener("click", ()=>{
+    salPeriod = tab.dataset.period;
+    document.querySelectorAll(".sal-tab").forEach(t=>{ t.classList.toggle("active", t===tab); t.classList.toggle("btn-primary", t===tab); });
+    loadSalary();
+  });
+});
+function loadSalary(){
+  const mult = { today:1, week:6, month:24 }[salPeriod];
+  const b = BRANCHES[state.branch];
+  const carsPerShift = b.carsToday[salWorker] || 2;
+  const shifts = salPeriod==="today" ? 1 : (salPeriod==="week" ? 4 : 16);
+  const cars = carsPerShift * shifts;
+  const total = b.rates[salWorker] ? b.rates[salWorker]*shifts : cars * 630;
+  document.getElementById("salSummary").innerHTML = `
+    <div class="mini-stat"><div class="ms-label">Смен</div><div class="ms-value">${shifts}</div></div>
+    <div class="mini-stat"><div class="ms-label">Машин</div><div class="ms-value">${cars}</div></div>
+    <div class="mini-stat"><div class="ms-label">Заработок</div><div class="ms-value" style="color:var(--color-mint)">${CW.money(total)}</div></div>`;
+  const days = Array.from({length:shifts}).map((_,i)=>{
+    const d = new Date(); d.setDate(d.getDate()-i);
+    const dayTotal = Math.round(total/shifts);
+    return `<div class="worker-row" style="padding:10px 14px">
+      <div class="worker-info"><div class="worker-name">${d.toLocaleDateString("ru-RU")}</div><div class="worker-meta">мойщик: ${CW.money(dayTotal)}</div></div>
+      <div class="worker-sal" style="color:var(--color-mint)">${CW.money(dayTotal)}</div></div>`;
+  }).join("");
+  document.getElementById("salDays").innerHTML = days;
+}
+
+CW.renderSidebar("workers", {
+  branches: { "Северный":"СВ", "Южный":"ЮЖ" },
+  activeBranch: state.branch,
+  userName: "Ирина А.", userRole: "Владелец",
+  onBranchChange: (name)=>{ state.branch = name; render(); },
+  onLogout: ()=> CW.showToast("Демо-режим: выход не выполняется"),
+});
+document.getElementById("pageSub").textContent = `${state.branch} · ${CW.todayLabel()}`;
+render();
+</script>
+</body>
+</html>

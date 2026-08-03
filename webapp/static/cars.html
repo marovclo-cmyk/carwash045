@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CarWash Cloud — Машины</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="css/theme.css">
+</head>
+<body>
+
+<div class="shell">
+  <div class="sidebar" id="sidebarRoot"></div>
+
+  <div class="main">
+    <div class="page-head">
+      <div>
+        <div class="page-title">Машины</div>
+        <div class="page-sub"><strong id="branchLabel">—</strong> · <span id="countLabel">—</span></div>
+      </div>
+      <div class="head-actions">
+        <button class="btn btn-ghost" id="exportBtn"><i class="fa-solid fa-file-arrow-down"></i>Экспорт PDF</button>
+        <button class="btn btn-primary" id="addCarBtn"><i class="fa-solid fa-plus"></i>Добавить машину</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title">Все машины</div>
+          <div class="panel-caption" id="tableCaption">—</div>
+        </div>
+        <div class="field" style="width:240px; margin:0;">
+          <input type="text" id="searchInput" placeholder="Поиск: клиент, авто, сотрудник...">
+        </div>
+      </div>
+
+      <div class="filter-chips" id="filterChips">
+        <button class="chip active" data-filter="all">Все</button>
+        <button class="chip" data-filter="cash">Наличные</button>
+        <button class="chip" data-filter="card">Visa/MIR</button>
+        <button class="chip" data-filter="transfer">Безнал</button>
+      </div>
+
+      <div class="table-scroll">
+        <table class="data" id="carsTable">
+          <tr><th>Клиент</th><th>Сотрудник</th><th>Услуга</th><th>Оплата</th><th style="text-align:right">Сумма</th></tr>
+        </table>
+      </div>
+      <div id="carsEmpty" class="empty-note" style="display:none">Ничего не найдено</div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <h3>Новая машина</h3>
+    <p class="modal-sub">Добавьте заезд — появится в таблице сразу.</p>
+    <form id="addCarForm">
+      <div class="field"><label>Клиент / авто</label><input type="text" id="fCar" placeholder="Toyota Camry, А123ВС" required></div>
+      <div class="field"><label>Сотрудник</label><select id="fEmployee"></select></div>
+      <div class="field"><label>Услуга</label>
+        <select id="fService">
+          <option>Комплекс</option><option>Экспресс-мойка</option><option>Химчистка салона</option><option>Полировка</option>
+        </select>
+      </div>
+      <div class="field"><label>Оплата</label>
+        <select id="fPayment">
+          <option value="cash">Наличные</option><option value="card">Visa / MIR</option><option value="transfer">Безнал</option>
+        </select>
+      </div>
+      <div class="field"><label>Сумма, ₽</label><input type="number" id="fPrice" placeholder="1200" min="0" required></div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="cancelModal">Отмена</button>
+        <button type="submit" class="btn btn-primary">Добавить</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="toast" id="toast"><i class="fa-solid fa-circle-check"></i><span id="toastText"></span></div>
+
+<script src="site-common.js"></script>
+<script>
+/* Демо-данные (в реальном проекте — ответ API, тот же массив что и в dashboard.html). */
+const BRANCHES = {
+  "Северный": {
+    label:"СВ", employees:["Данияр Т.","Марат С.","Алина К."],
+    cars:[
+      {car:"Camry, А123ВС", employee:"Данияр Т.", service:"Комплекс", payment:"cash", price:1800},
+      {car:"Solaris, В456КМ", employee:"Марат С.", service:"Экспресс-мойка", payment:"card", price:700},
+      {car:"X5, Е777АА", employee:"Алина К.", service:"Полировка", payment:"transfer", price:4200},
+      {car:"Rio, К321ОР", employee:"Данияр Т.", service:"Комплекс", payment:"cash", price:1800},
+      {car:"Tiguan, М555ТТ", employee:"Марат С.", service:"Химчистка салона", payment:"card", price:3500},
+      {car:"Vesta, О222НН", employee:"Алина К.", service:"Экспресс-мойка", payment:"cash", price:700},
+      {car:"Creta, Р888СС", employee:"Данияр Т.", service:"Комплекс", payment:"transfer", price:1800},
+    ],
+  },
+  "Южный": {
+    label:"ЮЖ", employees:["Бекзат Н.","Салтанат Е."],
+    cars:[
+      {car:"Logan, У111ВВ", employee:"Бекзат Н.", service:"Экспресс-мойка", payment:"cash", price:650},
+      {car:"Sportage, Т999ЕЕ", employee:"Салтанат Е.", service:"Комплекс", payment:"card", price:1700},
+      {car:"Duster, Н444КК", employee:"Бекзат Н.", service:"Комплекс", payment:"transfer", price:1700},
+    ],
+  },
+};
+
+let state = { branch:"Северный", filter:"all", query:"" };
+
+function payTag(method){
+  if(method==="cash") return `<span class="pay-tag cash">Наличные</span>`;
+  if(method==="card") return `<span class="pay-tag card">Visa/MIR</span>`;
+  return `<span class="pay-tag transfer">Безнал</span>`;
+}
+
+function renderTable(){
+  const all = BRANCHES[state.branch].cars;
+  let filtered = state.filter==="all" ? all : all.filter(c=>c.payment===state.filter);
+  if(state.query){
+    const q = state.query.toLowerCase();
+    filtered = filtered.filter(c => (c.car+c.employee+c.service).toLowerCase().includes(q));
+  }
+  const table = document.getElementById("carsTable");
+  const empty = document.getElementById("carsEmpty");
+  document.getElementById("countLabel").textContent = `${all.length} машин всего`;
+  document.getElementById("tableCaption").textContent = `Показано ${filtered.length} из ${all.length}`;
+
+  if(!filtered.length){ table.style.display="none"; empty.style.display="block"; return; }
+  table.style.display="table"; empty.style.display="none";
+  const rows = filtered.slice().reverse().map(c=>`
+    <tr class="data-row">
+      <td class="strong">${c.car}</td>
+      <td><div class="emp-cell"><span class="emp-dot" style="background:${CW.empColor(c.employee)}">${CW.initials(c.employee)}</span>${c.employee}</div></td>
+      <td>${c.service}</td><td>${payTag(c.payment)}</td>
+      <td style="text-align:right" class="strong">${CW.money(c.price)}</td>
+    </tr>`).join("");
+  table.innerHTML = `<tr><th>Клиент</th><th>Сотрудник</th><th>Услуга</th><th>Оплата</th><th style="text-align:right">Сумма</th></tr>${rows}`;
+}
+
+document.getElementById("filterChips").addEventListener("click",(e)=>{
+  const chip = e.target.closest(".chip"); if(!chip) return;
+  document.querySelectorAll("#filterChips .chip").forEach(c=>c.classList.remove("active"));
+  chip.classList.add("active"); state.filter = chip.dataset.filter; renderTable();
+});
+document.getElementById("searchInput").addEventListener("input",(e)=>{
+  state.query = e.target.value.trim(); renderTable();
+});
+
+function renderEmployeeSelect(){
+  document.getElementById("fEmployee").innerHTML = BRANCHES[state.branch].employees.map(e=>`<option>${e}</option>`).join("");
+}
+
+const modalBg = document.getElementById("modalBg");
+document.getElementById("addCarBtn").addEventListener("click", ()=> modalBg.classList.add("show"));
+document.getElementById("cancelModal").addEventListener("click", ()=> modalBg.classList.remove("show"));
+modalBg.addEventListener("click",(e)=>{ if(e.target===modalBg) modalBg.classList.remove("show"); });
+document.getElementById("addCarForm").addEventListener("submit",(e)=>{
+  e.preventDefault();
+  BRANCHES[state.branch].cars.push({
+    car: document.getElementById("fCar").value.trim() || "Без названия",
+    employee: document.getElementById("fEmployee").value,
+    service: document.getElementById("fService").value,
+    payment: document.getElementById("fPayment").value,
+    price: Number(document.getElementById("fPrice").value) || 0,
+  });
+  modalBg.classList.remove("show"); document.getElementById("addCarForm").reset();
+  renderTable(); CW.showToast("Машина добавлена");
+});
+document.getElementById("exportBtn").addEventListener("click", ()=> CW.showToast("PDF-отчёт сформирован (демо)"));
+
+document.getElementById("branchLabel").textContent = state.branch;
+CW.renderSidebar("cars", {
+  branches: { "Северный":"СВ", "Южный":"ЮЖ" },
+  activeBranch: state.branch,
+  userName: "Ирина А.", userRole: "Владелец",
+  onBranchChange: (name)=>{ state.branch = name; document.getElementById("branchLabel").textContent = name; renderEmployeeSelect(); renderTable(); },
+  onLogout: ()=> CW.showToast("Демо-режим: выход не выполняется"),
+});
+renderEmployeeSelect();
+renderTable();
+</script>
+</body>
+</html>

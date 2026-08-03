@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CarWash Cloud — Филиалы</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="css/theme.css">
+</head>
+<body>
+
+<div class="shell">
+  <div class="sidebar" id="sidebarRoot"></div>
+
+  <div class="main">
+    <div class="err-banner" id="errBanner"><i class="fa-solid fa-triangle-exclamation"></i><span id="errText"></span></div>
+
+    <div class="page-head">
+      <div>
+        <div class="page-title">Филиалы</div>
+        <div class="page-sub" id="pageSub">—</div>
+      </div>
+      <button class="btn btn-ghost" id="refreshBtn"><i class="fa-solid fa-rotate"></i>Обновить</button>
+    </div>
+
+    <div class="info-banner">
+      <i class="fa-solid fa-circle-info"></i>
+      Список филиалов задаётся в конфигурации бэкенда — добавить новый филиал через сайт пока нельзя, это отдельная доработка.
+      Здесь можно посмотреть сводку по каждому филиалу за сегодня и назначить администратора
+      (пользователь должен быть в белом списке — добавляется на странице «Настройки»).
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:12px" id="branchCards"></div>
+    <div class="empty-note" id="branchEmpty" style="display:none">Не удалось загрузить филиалы</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><i class="fa-solid fa-circle-check"></i><span id="toastText"></span></div>
+
+<script src="site-common.js"></script>
+<script>
+/* Демо: сводка по филиалам + белый список пользователей для назначения админа. */
+const USERS = [
+  { id:1, name:"Ирина А." }, { id:2, name:"Данияр Т." }, { id:3, name:"Бекзат Н." }, { id:4, name:"Салтанат Е." },
+];
+const BRANCHES = [
+  { branch:"Северный", total:16300, cars:7, workers:3, admin_id:1 },
+  { branch:"Южный",    total:4050,  cars:3, workers:2, admin_id:0 },
+];
+
+function showErr(msg){
+  const el = document.getElementById("errBanner");
+  if(!msg){ el.style.display="none"; return; }
+  document.getElementById("errText").textContent = msg; el.style.display="flex";
+}
+function userName(id){ const u = USERS.find(x=>x.id===id); return u ? u.name : null; }
+function cssId(s){ return s.replace(/[^a-zA-Z0-9]/g,"_"); }
+
+function render(){
+  const root = document.getElementById("branchCards");
+  if(!BRANCHES.length){ document.getElementById("branchEmpty").style.display="block"; root.innerHTML=""; return; }
+  document.getElementById("branchEmpty").style.display="none";
+  root.innerHTML = BRANCHES.map(b=>{
+    const adminName = userName(b.admin_id) || "не назначен";
+    const options = USERS.map(u=>`<option value="${u.id}" ${u.id===b.admin_id?"selected":""}>${u.name} (ID ${u.id})</option>`).join("");
+    return `
+      <div class="branch-card wide">
+        <div class="bc-name">${b.branch}</div>
+        <div class="bc-stats">
+          <div class="bc-stat">Выручка сегодня: <b>${CW.money(b.total)}</b></div>
+          <div class="bc-stat">Машин: <b>${b.cars}</b></div>
+          <div class="bc-stat">Сотрудников: <b>${b.workers}</b></div>
+        </div>
+        <div class="bc-admin-row">
+          <div class="bc-admin-label">Администратор:</div>
+          <div class="bc-admin-current">${adminName}</div>
+          <select class="bc-admin-select" id="sel_${cssId(b.branch)}">${options}</select>
+          <button class="btn btn-primary btn-icon" title="Назначить" onclick="setAdmin('${b.branch.replace(/'/g,"\\'")}')"><i class="fa-solid fa-check"></i></button>
+        </div>
+      </div>`;
+  }).join("");
+}
+
+window.setAdmin = (branch)=>{
+  const sel = document.getElementById(`sel_${cssId(branch)}`);
+  const userId = parseInt(sel.value, 10);
+  if(!userId){ showErr("Выберите пользователя из белого списка"); return; }
+  showErr(null);
+  const b = BRANCHES.find(x=>x.branch===branch);
+  b.admin_id = userId;
+  render();
+  CW.showToast(`Администратор филиала «${branch}» назначен`);
+};
+
+document.getElementById("refreshBtn").addEventListener("click", ()=>{ render(); CW.showToast("Обновлено"); });
+
+CW.renderSidebar("branches", {
+  branches: { "Северный":"СВ", "Южный":"ЮЖ" },
+  activeBranch: "Северный",
+  userName: "Ирина А.", userRole: "Владелец",
+  onBranchChange: ()=>{},
+  onLogout: ()=> CW.showToast("Демо-режим: выход не выполняется"),
+});
+document.getElementById("pageSub").textContent = CW.todayLabel();
+render();
+</script>
+</body>
+</html>

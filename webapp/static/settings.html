@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CarWash Cloud — Настройки</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="css/theme.css">
+</head>
+<body>
+
+<div class="shell">
+  <div class="sidebar" id="sidebarRoot"></div>
+
+  <div class="main">
+    <div class="err-banner" id="errBanner"><i class="fa-solid fa-triangle-exclamation"></i><span id="errText"></span></div>
+
+    <div class="page-head">
+      <div>
+        <div class="page-title">Настройки</div>
+        <div class="page-sub" id="pageSub">—</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><div class="panel-title">Мой профиль</div></div>
+      <div class="profile-grid">
+        <div class="profile-cell"><div class="profile-label">Имя</div><div class="profile-value" id="pName">—</div></div>
+        <div class="profile-cell"><div class="profile-label">Должность</div><div class="profile-value" id="pRole">—</div></div>
+        <div class="profile-cell"><div class="profile-label">Филиал входа</div><div class="profile-value" id="pBranch">—</div></div>
+      </div>
+    </div>
+
+    <div class="panel" id="whitelistPanel">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title">Белый список сотрудников (Telegram)</div>
+          <div class="panel-caption">Пользователь должен быть в этом списке, чтобы бот узнал его и чтобы его можно было назначить администратором филиала</div>
+        </div>
+      </div>
+      <div style="padding:0 20px">
+        <div class="info-banner" style="margin-top:16px">
+          <i class="fa-solid fa-circle-info"></i>
+          Как узнать Telegram ID: попросите сотрудника написать боту <b>@userinfobot</b> — он пришлёт его ID.
+          Впишите ID и имя сюда — после этого его можно будет выбрать в списке «Назначить администратора» на странице «Сотрудники».
+        </div>
+      </div>
+      <div id="userList"></div>
+      <div id="userEmpty" class="empty-note" style="display:none">Список пуст</div>
+      <div class="add-row">
+        <input class="f-amount" id="uId" type="number" placeholder="Telegram ID" style="width:150px">
+        <input class="f-name" id="uName" type="text" placeholder="Имя (Фамилия Имя)">
+        <button class="btn btn-primary btn-icon" id="uAddBtn"><i class="fa-solid fa-plus"></i></button>
+      </div>
+    </div>
+
+    <div class="close-panel">
+      <div>
+        <div class="cp-title">Выйти из аккаунта</div>
+        <div class="cp-sub">Потребуется снова ввести общий пароль</div>
+      </div>
+      <button class="btn btn-danger" id="logoutBtn"><i class="fa-solid fa-arrow-right-from-bracket"></i>Выйти</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><i class="fa-solid fa-circle-check"></i><span id="toastText"></span></div>
+
+<script src="site-common.js"></script>
+<script>
+/* Демо-профиль текущего пользователя (в реальном проекте — из токена сессии) + белый список. */
+const PROFILE = { name:"Ирина А.", role:"Владелец", branch:"Все филиалы" };
+let USERS = [
+  { id:100200300, name:"Данияр Т." }, { id:100200301, name:"Марат С." }, { id:100200302, name:"Алина К." },
+];
+
+function showErr(msg){
+  const el = document.getElementById("errBanner");
+  if(!msg){ el.style.display="none"; return; }
+  document.getElementById("errText").textContent = msg; el.style.display="flex";
+}
+
+function renderProfile(){
+  document.getElementById("pName").textContent = PROFILE.name;
+  document.getElementById("pRole").textContent = PROFILE.role;
+  document.getElementById("pBranch").textContent = PROFILE.branch;
+}
+
+function renderUsers(){
+  const list = document.getElementById("userList"), empty = document.getElementById("userEmpty");
+  if(!USERS.length){ list.innerHTML=""; empty.style.display="block"; return; }
+  empty.style.display="none";
+  list.innerHTML = USERS.map(u=>`
+    <div class="worker-row">
+      <div class="avatar-circle sm" style="background:var(--color-sky-wash);color:var(--color-sky)">${CW.initials(u.name)}</div>
+      <div class="worker-info"><div class="worker-name">${u.name}</div><div class="worker-meta">Telegram ID ${u.id}</div></div>
+      <div class="icon-btn del" title="Удалить из белого списка" onclick="delUser(${u.id})"><i class="fa-solid fa-trash"></i></div>
+    </div>`).join("");
+}
+
+document.getElementById("uAddBtn").addEventListener("click", ()=>{
+  const id = parseInt(document.getElementById("uId").value, 10);
+  const name = document.getElementById("uName").value.trim();
+  if(!id || !name){ showErr("Укажите Telegram ID и имя"); return; }
+  showErr(null);
+  USERS.push({id, name});
+  document.getElementById("uId").value=""; document.getElementById("uName").value="";
+  renderUsers();
+});
+window.delUser = (id)=>{
+  if(!confirm("Удалить пользователя из белого списка? Если он назначен администратором филиала — назначение перестанет работать.")) return;
+  USERS = USERS.filter(u=>u.id!==id);
+  renderUsers();
+};
+
+document.getElementById("logoutBtn").addEventListener("click", ()=>{
+  if(confirm("Выйти из аккаунта?")) CW.showToast("Демо-режим: выход не выполняется");
+});
+
+CW.renderSidebar("settings", {
+  branches: { "Северный":"СВ", "Южный":"ЮЖ" },
+  activeBranch: "Северный",
+  userName: PROFILE.name, userRole: PROFILE.role,
+  onBranchChange: ()=>{},
+  onLogout: ()=> CW.showToast("Демо-режим: выход не выполняется"),
+});
+document.getElementById("pageSub").textContent = CW.todayLabel();
+renderProfile();
+renderUsers();
+</script>
+</body>
+</html>

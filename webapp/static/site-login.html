@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CarWash Cloud — Вход</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="css/theme.css">
+<style>
+/* Экран входа не использует .shell/#sidebarRoot — свёрстан отдельно,
+   но целиком на токенах theme.css (цвета, типографика, radius, shadow). */
+body{
+  min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px;
+  background:
+    radial-gradient(60% 50% at 12% 8%, rgba(145,141,246,.10), transparent 60%),
+    radial-gradient(55% 45% at 92% 96%, rgba(44,120,252,.08), transparent 60%),
+    var(--color-linen);
+}
+.login-wrap{
+  width:100%; max-width:880px; display:flex; align-items:stretch;
+  background:var(--color-paper-white); border-radius:24px; overflow:hidden; box-shadow:var(--shadow-subtle-3);
+}
+.login-side{
+  width:300px; flex-shrink:0; padding:36px 30px; color:#fff; position:relative; overflow:hidden;
+  background:linear-gradient(165deg, var(--color-lavender) 0%, #6f6ae0 100%);
+  display:flex; flex-direction:column;
+}
+.login-side::after{
+  content:""; position:absolute; width:260px; height:260px; border-radius:50%; right:-90px; bottom:-100px;
+  background:radial-gradient(circle, rgba(255,255,255,.18), transparent 65%);
+}
+.login-side .mark{width:44px; height:44px; border-radius:14px; background:rgba(255,255,255,.2); display:flex; align-items:center; justify-content:center; font-size:20px; margin-bottom:22px;}
+.login-side h2{font-size:26px; font-weight:var(--font-weight-semibold); line-height:1.15; letter-spacing:-0.02em;}
+.login-side p{font-size:12.5px; line-height:1.55; color:rgba(255,255,255,.85); margin-top:12px; max-width:210px;}
+.login-side .foot{margin-top:auto; font-size:11px; color:rgba(255,255,255,.65); font-weight:600; letter-spacing:.03em; text-transform:uppercase;}
+
+.login-card{flex:1; padding:40px 40px 34px; position:relative;}
+.brand-row{display:flex; align-items:center; gap:9px; margin-bottom:26px;}
+.brand-row .dot{width:8px; height:8px; border-radius:50%; background:var(--color-mint);}
+.brand-row span{font-size:11.5px; font-weight:var(--font-weight-bold); color:var(--color-ash); text-transform:uppercase; letter-spacing:.06em;}
+
+.login-card h1{font-size:22px; font-weight:var(--font-weight-semibold); margin-bottom:4px; color:var(--color-carbon);}
+.login-card .sub{font-size:12.5px; color:var(--color-graphite); margin-bottom:22px;}
+
+.login-card label{font-size:11px; color:var(--color-ash); font-weight:var(--font-weight-bold); text-transform:uppercase; letter-spacing:.05em; display:block; margin:16px 0 7px;}
+.login-card input, .login-card select{
+  width:100%; height:44px; border-radius:var(--radius-inputs); background:var(--color-linen);
+  border:1px solid var(--color-fog); color:var(--color-carbon); font-size:14px; padding:0 14px; font-family:inherit;
+}
+.login-card input:focus, .login-card select:focus{outline:none; border-color:var(--color-lavender); box-shadow:0 0 0 3px var(--color-lavender-wash); background:#fff;}
+
+.roles{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:7px;}
+.role-btn{
+  height:42px; border-radius:var(--radius-buttons); background:var(--color-linen); border:1px solid var(--color-fog);
+  color:var(--color-graphite); font-size:12.5px; font-weight:var(--font-weight-bold); cursor:pointer; transition:all .12s; font-family:inherit;
+}
+.role-btn.active{background:var(--color-lavender); color:#fff; border-color:transparent; box-shadow:var(--shadow-subtle);}
+
+.btn-submit{
+  width:100%; height:46px; border-radius:var(--radius-buttons); border:none; background:var(--color-lavender); color:#fff;
+  box-shadow:var(--shadow-subtle); font-size:14px; font-weight:var(--font-weight-semibold); margin-top:22px; cursor:pointer;
+  transition:opacity .12s, transform .08s;
+}
+.btn-submit:hover{opacity:.92;}
+.btn-submit:active{transform:scale(.98);}
+.btn-submit:disabled{opacity:.5; cursor:default;}
+
+.login-error{margin-top:12px; background:rgba(255,62,0,0.08); color:var(--color-ember); font-size:12.5px; font-weight:var(--font-weight-medium); padding:10px 13px; border-radius:12px; display:none;}
+.branch-field{display:none;}
+
+@media(max-width:720px){ .login-side{display:none;} .login-card{padding:32px 26px;} }
+</style>
+</head>
+<body>
+
+<div class="login-wrap">
+  <div class="login-side">
+    <div class="mark"><i class="fa-solid fa-droplet"></i></div>
+    <h2>CarWash Cloud</h2>
+    <p>Касса, машины, зарплаты и отчёты по всем филиалам — в одном месте, в реальном времени.</p>
+    <div class="foot">5 филиалов · онлайн</div>
+  </div>
+
+  <div class="login-card">
+    <div class="brand-row"><span class="dot"></span><span>Система на связи</span></div>
+    <h1>Вход</h1>
+    <div class="sub">Общий пароль компании + ваше имя и должность</div>
+
+    <label>Пароль</label>
+    <input type="password" id="password" placeholder="Общий пароль">
+
+    <label>Ваше имя</label>
+    <input type="text" id="name" placeholder="Например, Иван">
+
+    <label>Должность</label>
+    <div class="roles">
+      <button type="button" class="role-btn" data-role="мойщик">Мойщик</button>
+      <button type="button" class="role-btn" data-role="админ">Админ</button>
+      <button type="button" class="role-btn" data-role="владелец">Владелец</button>
+    </div>
+
+    <div class="branch-field" id="branchField">
+      <label>Филиал</label>
+      <select id="branch"><option value="Северный">Северный</option><option value="Южный">Южный</option></select>
+    </div>
+
+    <button class="btn-submit" id="submitBtn">Войти</button>
+    <div class="login-error" id="err"></div>
+  </div>
+</div>
+
+<script>
+/* Демо-версия: без реального API. При корректном заполнении — переход на dashboard.html
+   (в реальном проекте здесь вызывается CW.authFetch("/api/site/login", ...) как в оригинале). */
+let role = "";
+
+document.querySelectorAll(".role-btn").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    document.querySelectorAll(".role-btn").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    role = btn.dataset.role;
+    document.getElementById("branchField").style.display = role==="владелец" ? "none" : "block";
+  });
+});
+
+document.getElementById("submitBtn").addEventListener("click", ()=>{
+  const password = document.getElementById("password").value;
+  const name = document.getElementById("name").value.trim();
+  const errEl = document.getElementById("err");
+  errEl.style.display = "none";
+  if(!password || !name || !role){
+    errEl.textContent = "Заполните пароль, имя и выберите должность";
+    errEl.style.display = "block";
+    return;
+  }
+  errEl.style.display = "none";
+  window.location.href = "dashboard.html";
+});
+</script>
+</body>
+</html>

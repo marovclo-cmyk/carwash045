@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CarWash Cloud — История изменений</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="css/theme.css">
+</head>
+<body>
+
+<div class="shell">
+  <div class="sidebar" id="sidebarRoot"></div>
+
+  <div class="main">
+    <div class="err-banner" id="errBanner"><i class="fa-solid fa-triangle-exclamation"></i><span id="errText"></span></div>
+
+    <div class="page-head">
+      <div>
+        <div class="page-title">История изменений</div>
+        <div class="page-sub" id="pageSub">—</div>
+      </div>
+      <div class="head-actions">
+        <button class="btn btn-ghost" id="refreshBtn"><i class="fa-solid fa-rotate"></i>Обновить</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><div class="panel-title">Последние действия</div></div>
+      <div id="entriesList"></div>
+      <div id="entriesEmpty" class="empty-note" style="display:none">Пока ничего не происходило</div>
+    </div>
+  </div>
+</div>
+
+<script src="site-common.js"></script>
+<script>
+const ACTION_META = {
+  add:              { icon:"fa-plus",             color:"mint",    label:"Добавлена машина" },
+  edit:             { icon:"fa-pen",               color:"sky",     label:"Изменена машина" },
+  delete:           { icon:"fa-trash",             color:"ember",   label:"Удалена машина" },
+  status:           { icon:"fa-check",             color:"mint",    label:"Изменён статус машины" },
+  expense_add:      { icon:"fa-minus",             color:"ember",   label:"Добавлен расход" },
+  expense_delete:   { icon:"fa-trash",             color:"ember",   label:"Удалён расход" },
+  income_add:       { icon:"fa-plus",              color:"mint",    label:"Добавлен доход" },
+  income_delete:    { icon:"fa-trash",             color:"ember",   label:"Удалён доход" },
+  product_add:      { icon:"fa-cart-shopping",     color:"magenta", label:"Продан товар" },
+  product_delete:   { icon:"fa-trash",             color:"ember",   label:"Удалён товар" },
+  loyalty_delete:   { icon:"fa-heart",             color:"magenta", label:"Удалена скидка" },
+  fixed_rate_set:   { icon:"fa-money-bill",        color:"amber",   label:"Установлена ставка" },
+  fixed_rate_clear: { icon:"fa-money-bill",        color:"ember",   label:"Убрана ставка" },
+  newday:           { icon:"fa-calendar-check",    color:"amber",   label:"Смена закрыта" },
+  dayopen:          { icon:"fa-lock-open",         color:"mint",    label:"Смена открыта" },
+};
+const COLOR_VARS = { mint:["var(--color-mint-wash)","var(--color-mint)"], sky:["var(--color-sky-wash)","var(--color-sky)"], ember:["rgba(255,62,0,0.08)","var(--color-ember)"], magenta:["var(--color-magenta-wash)","var(--color-magenta)"], amber:["var(--color-amber-wash)","#a66c00"] };
+
+/* Демо-журнал за филиал. */
+const BRANCHES = {
+  "Северный": [
+    {action:"add", at:"18:32", details:"Creta, Р888СС · Комплекс · 1800 ₽", actor_name:"Данияр Т."},
+    {action:"income_add", at:"17:10", details:"Продажа ароматизатора · 200 ₽", actor_name:"Ирина А."},
+    {action:"expense_add", at:"16:40", details:"Вода · 400 ₽", actor_name:"Ирина А."},
+    {action:"add", at:"15:05", details:"Vesta, О222НН · Экспресс-мойка · 700 ₽", actor_name:"Алина К."},
+    {action:"fixed_rate_set", at:"12:20", details:"Алина К. · ставка 1500 ₽/смену", actor_name:"Ирина А."},
+    {action:"dayopen", at:"09:00", details:"Начало смены", actor_name:"Ирина А."},
+    {action:"newday", at:"вчера 23:58", details:"Касса сошлась, недостачи нет", actor_name:"Ирина А."},
+  ],
+  "Южный": [
+    {action:"add", at:"14:12", details:"Duster, Н444КК · Комплекс · 1700 ₽", actor_name:"Бекзат Н."},
+    {action:"dayopen", at:"09:00", details:"Начало смены", actor_name:"Бекзат Н."},
+  ],
+};
+let state = { branch:"Северный" };
+
+function showErr(msg){
+  const el = document.getElementById("errBanner");
+  if(!msg){ el.style.display="none"; return; }
+  document.getElementById("errText").textContent = msg; el.style.display="flex";
+}
+
+function render(){
+  const entries = BRANCHES[state.branch] || [];
+  document.getElementById("pageSub").textContent = `${state.branch} · последние ${entries.length} действий`;
+  const list = document.getElementById("entriesList"), empty = document.getElementById("entriesEmpty");
+  if(!entries.length){ list.innerHTML=""; empty.style.display="block"; return; }
+  empty.style.display="none";
+  list.innerHTML = entries.map(e=>{
+    const meta = ACTION_META[e.action] || { icon:"fa-ellipsis", color:"sky", label:e.action };
+    const isWarn = e.action==="newday" && (e.details||"").includes("не сошлась");
+    const color = isWarn ? "ember" : meta.color;
+    const [bg, fg] = COLOR_VARS[color];
+    return `
+      <div class="entry">
+        <div class="entry-icon" style="background:${bg};color:${fg}"><i class="fa-solid ${meta.icon}"></i></div>
+        <div class="entry-body">
+          <div class="entry-top"><div class="entry-action">${meta.label}</div><div class="entry-time">${e.at||""}</div></div>
+          ${e.details ? `<div class="entry-details">${e.details}</div>` : ""}
+          <div class="entry-actor"><i class="fa-solid fa-user" style="font-size:10px"></i> ${e.actor_name||"—"}</div>
+        </div>
+      </div>`;
+  }).join("");
+}
+
+document.getElementById("refreshBtn").addEventListener("click", ()=>{ render(); CW.showToast("Обновлено"); });
+
+CW.renderSidebar("history", {
+  branches: { "Северный":"СВ", "Южный":"ЮЖ" },
+  activeBranch: state.branch,
+  userName: "Ирина А.", userRole: "Владелец",
+  onBranchChange: (name)=>{ state.branch = name; render(); },
+  onLogout: ()=> CW.showToast("Демо-режим: выход не выполняется"),
+});
+render();
+</script>
+</body>
+</html>
