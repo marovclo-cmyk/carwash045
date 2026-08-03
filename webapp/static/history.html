@@ -3,19 +3,74 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CarWash Cloud — История изменений</title>
+<title>CarWash Cloud — история изменений</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<style>
+:root{
+  --bg:#0A0A0B;
+  --surface-0:#141414;
+  --surface-1:#1C1C1E;
+  --surface-2:#232325;
+  --surface-3:#2C2C2E;
+  --text:#FFFFFF;
+  --text-secondary:#AEAEB2;
+  --text-muted:#6C6C70;
+  --border:rgba(255,255,255,0.08);
+  --border-strong:rgba(255,255,255,0.14);
+  --accent:#007AFF;
+  --accent-tint:rgba(0,122,255,0.14);
+  --green:#34C759;
+  --green-tint:rgba(52,199,89,0.14);
+  --red:#FF3B30;
+  --red-tint:rgba(255,59,48,0.12);
+  --orange:#FF9F0A;
+  --orange-tint:rgba(255,159,10,0.14);
+  --purple:#BF5AF2;
+  --purple-tint:rgba(191,90,242,0.14);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display",Segoe UI,Roboto,sans-serif;
+  background:var(--bg); color:var(--text);
+  -webkit-font-smoothing:antialiased;
+}
+.shell{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-<link rel="stylesheet" href="css/theme.css">
+/* Сайдбар (иконочный рейл) целиком стилизуется в site-theme.css —
+   см. .sidebar/.rail-* там; здесь ничего дублировать не нужно. */
+
+.main{padding:24px 32px 48px;max-width:1160px}
+.page-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px}
+.page-title{font-size:24px;font-weight:700;letter-spacing:-0.02em}
+.page-sub{font-size:13px;color:var(--text-secondary);margin-top:3px}
+.head-actions{display:flex;gap:8px}
+.btn{height:38px;padding:0 16px;border-radius:10px;border:none;font-family:inherit;font-size:13.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px}
+.btn.secondary{background:var(--surface-1);color:var(--text);border:0.5px solid var(--border)}
+
+.panel{background:var(--surface-1);border:0.5px solid var(--border);border-radius:14px;overflow:hidden}
+.panel-head{display:flex;justify-content:space-between;align-items:center;padding:16px 18px 12px}
+.panel-title{font-size:14.5px;font-weight:700}
+
+.entry{display:flex;gap:12px;padding:13px 18px;border-top:0.5px solid var(--border)}
+.entry-icon{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:15px}
+.entry-body{flex:1;min-width:0}
+.entry-top{display:flex;justify-content:space-between;gap:10px}
+.entry-action{font-size:13.5px;font-weight:600}
+.entry-time{font-size:11.5px;color:var(--text-muted);white-space:nowrap}
+.entry-details{font-size:12.5px;color:var(--text-secondary);margin-top:2px;word-break:break-word}
+.entry-actor{font-size:11.5px;color:var(--text-muted);margin-top:3px}
+
+.empty-note{padding:32px 18px;font-size:13px;color:var(--text-muted);text-align:center}
+.err-banner{background:var(--red-tint);color:var(--red);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:16px;display:none}
+</style>
+<link rel="stylesheet" href="/static/site-theme.css?v=studioblue2">
 </head>
-<body>
-
+<body class="v2-page">
 <div class="shell">
   <div class="sidebar" id="sidebarRoot"></div>
 
   <div class="main">
-    <div class="err-banner" id="errBanner"><i class="fa-solid fa-triangle-exclamation"></i><span id="errText"></span></div>
+    <div class="err-banner" id="errBanner"></div>
 
     <div class="page-head">
       <div>
@@ -23,96 +78,90 @@
         <div class="page-sub" id="pageSub">—</div>
       </div>
       <div class="head-actions">
-        <button class="btn btn-ghost" id="refreshBtn"><i class="fa-solid fa-rotate"></i>Обновить</button>
+        <button class="btn secondary" id="refreshBtn"><i class="ti ti-refresh"></i>Обновить</button>
       </div>
     </div>
 
     <div class="panel">
-      <div class="panel-head"><div class="panel-title">Последние действия</div></div>
+      <div class="panel-head">
+        <div class="panel-title">Последние действия</div>
+      </div>
       <div id="entriesList"></div>
       <div id="entriesEmpty" class="empty-note" style="display:none">Пока ничего не происходило</div>
     </div>
   </div>
 </div>
 
-<script src="site-common.js"></script>
+<script src="/static/site-common.js"></script>
 <script>
-const ACTION_META = {
-  add:              { icon:"fa-plus",             color:"mint",    label:"Добавлена машина" },
-  edit:             { icon:"fa-pen",               color:"sky",     label:"Изменена машина" },
-  delete:           { icon:"fa-trash",             color:"ember",   label:"Удалена машина" },
-  status:           { icon:"fa-check",             color:"mint",    label:"Изменён статус машины" },
-  expense_add:      { icon:"fa-minus",             color:"ember",   label:"Добавлен расход" },
-  expense_delete:   { icon:"fa-trash",             color:"ember",   label:"Удалён расход" },
-  income_add:       { icon:"fa-plus",              color:"mint",    label:"Добавлен доход" },
-  income_delete:    { icon:"fa-trash",             color:"ember",   label:"Удалён доход" },
-  product_add:      { icon:"fa-cart-shopping",     color:"magenta", label:"Продан товар" },
-  product_delete:   { icon:"fa-trash",             color:"ember",   label:"Удалён товар" },
-  loyalty_delete:   { icon:"fa-heart",             color:"magenta", label:"Удалена скидка" },
-  fixed_rate_set:   { icon:"fa-money-bill",        color:"amber",   label:"Установлена ставка" },
-  fixed_rate_clear: { icon:"fa-money-bill",        color:"ember",   label:"Убрана ставка" },
-  newday:           { icon:"fa-calendar-check",    color:"amber",   label:"Смена закрыта" },
-  dayopen:          { icon:"fa-lock-open",         color:"mint",    label:"Смена открыта" },
-};
-const COLOR_VARS = { mint:["var(--color-mint-wash)","var(--color-mint)"], sky:["var(--color-sky-wash)","var(--color-sky)"], ember:["rgba(255,62,0,0.08)","var(--color-ember)"], magenta:["var(--color-magenta-wash)","var(--color-magenta)"], amber:["var(--color-amber-wash)","#a66c00"] };
+if (CW.requireAuth()) {
+  CW.renderSidebar("history");
 
-/* Демо-журнал за филиал. */
-const BRANCHES = {
-  "Северный": [
-    {action:"add", at:"18:32", details:"Creta, Р888СС · Комплекс · 1800 ₽", actor_name:"Данияр Т."},
-    {action:"income_add", at:"17:10", details:"Продажа ароматизатора · 200 ₽", actor_name:"Ирина А."},
-    {action:"expense_add", at:"16:40", details:"Вода · 400 ₽", actor_name:"Ирина А."},
-    {action:"add", at:"15:05", details:"Vesta, О222НН · Экспресс-мойка · 700 ₽", actor_name:"Алина К."},
-    {action:"fixed_rate_set", at:"12:20", details:"Алина К. · ставка 1500 ₽/смену", actor_name:"Ирина А."},
-    {action:"dayopen", at:"09:00", details:"Начало смены", actor_name:"Ирина А."},
-    {action:"newday", at:"вчера 23:58", details:"Касса сошлась, недостачи нет", actor_name:"Ирина А."},
-  ],
-  "Южный": [
-    {action:"add", at:"14:12", details:"Duster, Н444КК · Комплекс · 1700 ₽", actor_name:"Бекзат Н."},
-    {action:"dayopen", at:"09:00", details:"Начало смены", actor_name:"Бекзат Н."},
-  ],
-};
-let state = { branch:"Северный" };
+  const branch = CW.getActiveBranch();
+  const errEl = document.getElementById("errBanner");
+  function showErr(msg) { errEl.textContent = msg; errEl.style.display = "block"; }
 
-function showErr(msg){
-  const el = document.getElementById("errBanner");
-  if(!msg){ el.style.display="none"; return; }
-  document.getElementById("errText").textContent = msg; el.style.display="flex";
+  const ACTION_META = {
+    add:             { icon: "ti-plus",          color: "green",  label: "Добавлена машина" },
+    edit:            { icon: "ti-pencil",        color: "accent", label: "Изменена машина" },
+    delete:          { icon: "ti-trash",         color: "red",    label: "Удалена машина" },
+    status:          { icon: "ti-check",         color: "green",  label: "Изменён статус машины" },
+    expense_add:     { icon: "ti-minus",         color: "red",    label: "Добавлен расход" },
+    expense_delete:  { icon: "ti-trash",         color: "red",    label: "Удалён расход" },
+    income_add:      { icon: "ti-plus",          color: "green",  label: "Добавлен доход" },
+    income_delete:   { icon: "ti-trash",         color: "red",    label: "Удалён доход" },
+    product_add:     { icon: "ti-shopping-cart", color: "purple", label: "Продан товар" },
+    product_delete:  { icon: "ti-trash",         color: "red",    label: "Удалён товар" },
+    loyalty_delete:  { icon: "ti-heart",         color: "purple", label: "Удалена скидка" },
+    fixed_rate_set:  { icon: "ti-cash-banknote", color: "orange", label: "Установлена ставка" },
+    fixed_rate_clear:{ icon: "ti-cash-banknote", color: "red",    label: "Убрана ставка" },
+    newday:          { icon: "ti-calendar-event",color: "orange", label: "Смена закрыта" },
+    dayopen:         { icon: "ti-lock-open",      color: "green",  label: "Смена открыта" },
+  };
+
+  if (!branch) {
+    showErr("Филиал не выбран. Выберите филиал в сайдбаре.");
+  } else {
+    document.getElementById("pageSub").textContent = `${branch} · последние 100 действий`;
+    load();
+  }
+
+  document.getElementById("refreshBtn").addEventListener("click", load);
+
+  async function load() {
+    errEl.style.display = "none";
+    try {
+      const data = await CW.authFetch(`/api/history?branch=${encodeURIComponent(branch)}&limit=100`);
+      const entries = data.entries || [];
+      const list = document.getElementById("entriesList");
+      const empty = document.getElementById("entriesEmpty");
+      if (!entries.length) {
+        list.innerHTML = ""; empty.style.display = "block"; return;
+      }
+      empty.style.display = "none";
+      list.innerHTML = entries.map(e => {
+        const meta = ACTION_META[e.action] || { icon: "ti-dots", color: "accent", label: e.action };
+        const isWarn = e.action === "newday" && (e.details || "").includes("не сошлась");
+        const color = isWarn ? "red" : meta.color;
+        return `
+          <div class="entry">
+            <div class="entry-icon" style="background:var(--${color}-tint);color:var(--${color})"><i class="ti ${meta.icon}"></i></div>
+            <div class="entry-body">
+              <div class="entry-top">
+                <div class="entry-action">${meta.label}</div>
+                <div class="entry-time">${e.at || ""}</div>
+              </div>
+              ${e.details ? `<div class="entry-details">${e.details}</div>` : ""}
+              <div class="entry-actor"><i class="ti ti-user" style="font-size:11px;vertical-align:-1px"></i> ${e.actor_name || "—"}</div>
+            </div>
+          </div>
+        `;
+      }).join("");
+    } catch (e) {
+      showErr(e.message);
+    }
+  }
 }
-
-function render(){
-  const entries = BRANCHES[state.branch] || [];
-  document.getElementById("pageSub").textContent = `${state.branch} · последние ${entries.length} действий`;
-  const list = document.getElementById("entriesList"), empty = document.getElementById("entriesEmpty");
-  if(!entries.length){ list.innerHTML=""; empty.style.display="block"; return; }
-  empty.style.display="none";
-  list.innerHTML = entries.map(e=>{
-    const meta = ACTION_META[e.action] || { icon:"fa-ellipsis", color:"sky", label:e.action };
-    const isWarn = e.action==="newday" && (e.details||"").includes("не сошлась");
-    const color = isWarn ? "ember" : meta.color;
-    const [bg, fg] = COLOR_VARS[color];
-    return `
-      <div class="entry">
-        <div class="entry-icon" style="background:${bg};color:${fg}"><i class="fa-solid ${meta.icon}"></i></div>
-        <div class="entry-body">
-          <div class="entry-top"><div class="entry-action">${meta.label}</div><div class="entry-time">${e.at||""}</div></div>
-          ${e.details ? `<div class="entry-details">${e.details}</div>` : ""}
-          <div class="entry-actor"><i class="fa-solid fa-user" style="font-size:10px"></i> ${e.actor_name||"—"}</div>
-        </div>
-      </div>`;
-  }).join("");
-}
-
-document.getElementById("refreshBtn").addEventListener("click", ()=>{ render(); CW.showToast("Обновлено"); });
-
-CW.renderSidebar("history", {
-  branches: { "Северный":"СВ", "Южный":"ЮЖ" },
-  activeBranch: state.branch,
-  userName: "Ирина А.", userRole: "Владелец",
-  onBranchChange: (name)=>{ state.branch = name; render(); },
-  onLogout: ()=> CW.showToast("Демо-режим: выход не выполняется"),
-});
-render();
 </script>
 </body>
 </html>

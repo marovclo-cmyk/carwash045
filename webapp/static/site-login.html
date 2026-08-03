@@ -3,87 +3,103 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CarWash Cloud — Вход</title>
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-<link rel="stylesheet" href="css/theme.css">
+<title>CarWash Cloud — вход</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="/static/site-theme.css?v=studioblue2">
 <style>
-/* Экран входа не использует .shell/#sidebarRoot — свёрстан отдельно,
-   но целиком на токенах theme.css (цвета, типографика, radius, shadow). */
+/* Тема v3 «Studio Blue» — экран входа не использует #sidebarRoot/.shell,
+   поэтому свёрстан отдельно, но берёт токены и шрифты (Gosha Sans, IBM Plex
+   Mono уже импортированы в site-theme.css) из общего файла темы. */
+*{box-sizing:border-box;margin:0;padding:0}
 body{
-  min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px;
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display",Segoe UI,Roboto,sans-serif;
+  min-height:100vh;
+  display:flex;align-items:center;justify-content:center;
+  -webkit-font-smoothing:antialiased;
+  position:relative;overflow:hidden;padding:24px;
   background:
-    radial-gradient(60% 50% at 12% 8%, rgba(145,141,246,.10), transparent 60%),
-    radial-gradient(55% 45% at 92% 96%, rgba(44,120,252,.08), transparent 60%),
-    var(--color-linen);
+    radial-gradient(60% 50% at 12% 8%, rgba(255,255,255,.14), transparent 60%),
+    radial-gradient(55% 45% at 92% 96%, rgba(139,92,246,.35), transparent 60%),
+    linear-gradient(160deg, var(--sidebar-bg) 0%, var(--sidebar-bg-2) 100%);
 }
-.login-wrap{
-  width:100%; max-width:880px; display:flex; align-items:stretch;
-  background:var(--color-paper-white); border-radius:24px; overflow:hidden; box-shadow:var(--shadow-subtle-3);
+/* лёгкий узор из капель — чисто CSS, без картинок */
+body::before{
+  content:"";position:absolute;inset:0;pointer-events:none;opacity:.5;
+  background-image:radial-gradient(rgba(255,255,255,.16) 1.6px, transparent 1.6px);
+  background-size:26px 26px;
+  mask-image:radial-gradient(70% 60% at 50% 20%, #000 0%, transparent 70%);
 }
-.login-side{
-  width:300px; flex-shrink:0; padding:36px 30px; color:#fff; position:relative; overflow:hidden;
-  background:linear-gradient(165deg, var(--color-lavender) 0%, #6f6ae0 100%);
-  display:flex; flex-direction:column;
-}
-.login-side::after{
-  content:""; position:absolute; width:260px; height:260px; border-radius:50%; right:-90px; bottom:-100px;
-  background:radial-gradient(circle, rgba(255,255,255,.18), transparent 65%);
-}
-.login-side .mark{width:44px; height:44px; border-radius:14px; background:rgba(255,255,255,.2); display:flex; align-items:center; justify-content:center; font-size:20px; margin-bottom:22px;}
-.login-side h2{font-size:26px; font-weight:var(--font-weight-semibold); line-height:1.15; letter-spacing:-0.02em;}
-.login-side p{font-size:12.5px; line-height:1.55; color:rgba(255,255,255,.85); margin-top:12px; max-width:210px;}
-.login-side .foot{margin-top:auto; font-size:11px; color:rgba(255,255,255,.65); font-weight:600; letter-spacing:.03em; text-transform:uppercase;}
 
-.login-card{flex:1; padding:40px 40px 34px; position:relative;}
-.brand-row{display:flex; align-items:center; gap:9px; margin-bottom:26px;}
-.brand-row .dot{width:8px; height:8px; border-radius:50%; background:var(--color-mint);}
-.brand-row span{font-size:11.5px; font-weight:var(--font-weight-bold); color:var(--color-ash); text-transform:uppercase; letter-spacing:.06em;}
+.wrap{position:relative;z-index:1;width:100%;max-width:880px;display:flex;align-items:stretch;
+  background:#fff;border-radius:32px;overflow:hidden;box-shadow:0 40px 80px -30px rgba(8,15,40,.55)}
 
-.login-card h1{font-size:22px; font-weight:var(--font-weight-semibold); margin-bottom:4px; color:var(--color-carbon);}
-.login-card .sub{font-size:12.5px; color:var(--color-graphite); margin-bottom:22px;}
-
-.login-card label{font-size:11px; color:var(--color-ash); font-weight:var(--font-weight-bold); text-transform:uppercase; letter-spacing:.05em; display:block; margin:16px 0 7px;}
-.login-card input, .login-card select{
-  width:100%; height:44px; border-radius:var(--radius-inputs); background:var(--color-linen);
-  border:1px solid var(--color-fog); color:var(--color-carbon); font-size:14px; padding:0 14px; font-family:inherit;
+.side{
+  width:300px;flex-shrink:0;padding:36px 30px;color:#fff;position:relative;overflow:hidden;
+  background:linear-gradient(165deg, var(--sidebar-bg) 0%, var(--sidebar-bg-2) 100%);
+  display:flex;flex-direction:column;
 }
-.login-card input:focus, .login-card select:focus{outline:none; border-color:var(--color-lavender); box-shadow:0 0 0 3px var(--color-lavender-wash); background:#fff;}
+.side::after{
+  content:"";position:absolute;width:260px;height:260px;border-radius:50%;right:-90px;bottom:-100px;
+  background:radial-gradient(circle, rgba(255,255,255,.16), transparent 65%);
+}
+.side .mark{width:44px;height:44px;border-radius:14px;background:rgba(255,255,255,.18);
+  display:flex;align-items:center;justify-content:center;font-size:21px;margin-bottom:22px}
+.side h2{font-family:var(--font-display);font-weight:700;font-size:26px;line-height:1.08;letter-spacing:-.01em}
+.side p{font-size:12.5px;line-height:1.55;color:rgba(255,255,255,.78);margin-top:12px;max-width:210px}
+.side .foot{margin-top:auto;font-size:11px;color:rgba(255,255,255,.55);font-weight:600;letter-spacing:.03em;text-transform:uppercase}
 
-.roles{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:7px;}
+.card{flex:1;padding:40px 40px 34px;position:relative}
+.brand-row{display:flex;align-items:center;gap:9px;margin-bottom:26px}
+.brand-row .dot{width:8px;height:8px;border-radius:50%;background:var(--green)}
+.brand-row span{font-size:11.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em}
+
+h1{font-family:var(--font-display);font-size:22px;font-weight:700;margin-bottom:4px;color:var(--text)}
+.sub{font-size:12.5px;color:var(--text-secondary);margin-bottom:22px}
+
+label{font-size:11px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em;display:block;margin:16px 0 7px}
+input,select{
+  width:100%;height:44px;border-radius:var(--radius-sm);background:var(--surface-2);
+  border:1px solid var(--border-strong);color:var(--input-text);font-size:14px;
+  padding:0 14px;font-family:inherit;
+}
+input:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-tint)}
+
+.roles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:7px}
 .role-btn{
-  height:42px; border-radius:var(--radius-buttons); background:var(--color-linen); border:1px solid var(--color-fog);
-  color:var(--color-graphite); font-size:12.5px; font-weight:var(--font-weight-bold); cursor:pointer; transition:all .12s; font-family:inherit;
+  height:42px;border-radius:100px;background:var(--surface-2);border:1px solid var(--border-strong);
+  color:var(--text-secondary);font-size:12.5px;font-weight:700;cursor:pointer;transition:all .12s;
 }
-.role-btn.active{background:var(--color-lavender); color:#fff; border-color:transparent; box-shadow:var(--shadow-subtle);}
+.role-btn.active{background:var(--accent-gradient);color:#fff;border-color:transparent;box-shadow:0 6px 16px -6px rgba(47,92,255,.45)}
 
 .btn-submit{
-  width:100%; height:46px; border-radius:var(--radius-buttons); border:none; background:var(--color-lavender); color:#fff;
-  box-shadow:var(--shadow-subtle); font-size:14px; font-weight:var(--font-weight-semibold); margin-top:22px; cursor:pointer;
-  transition:opacity .12s, transform .08s;
+  width:100%;height:46px;border-radius:100px;border:none;
+  background:var(--accent-gradient);color:#fff;
+  box-shadow:0 10px 22px -8px rgba(47,92,255,.5);
+  font-size:14px;font-weight:700;margin-top:22px;cursor:pointer;transition:opacity .12s,transform .08s;
 }
-.btn-submit:hover{opacity:.92;}
-.btn-submit:active{transform:scale(.98);}
-.btn-submit:disabled{opacity:.5; cursor:default;}
+.btn-submit:hover{opacity:.94}
+.btn-submit:active{transform:scale(.98)}
+.btn-submit:disabled{opacity:.5;cursor:default}
 
-.login-error{margin-top:12px; background:rgba(255,62,0,0.08); color:var(--color-ember); font-size:12.5px; font-weight:var(--font-weight-medium); padding:10px 13px; border-radius:12px; display:none;}
-.branch-field{display:none;}
+.error{
+  margin-top:12px;background:var(--red-tint);color:var(--red);font-size:12.5px;font-weight:600;
+  padding:10px 13px;border-radius:12px;display:none;
+}
+.branch-field{display:none}
 
-@media(max-width:720px){ .login-side{display:none;} .login-card{padding:32px 26px;} }
+@media(max-width:720px){ .side{display:none} .card{padding:32px 26px} }
 </style>
 </head>
 <body>
-
-<div class="login-wrap">
-  <div class="login-side">
-    <div class="mark"><i class="fa-solid fa-droplet"></i></div>
+<div class="wrap">
+  <div class="side">
+    <div class="mark"><i class="ti ti-droplet"></i></div>
     <h2>CarWash Cloud</h2>
     <p>Касса, машины, зарплаты и отчёты по всем филиалам — в одном месте, в реальном времени.</p>
     <div class="foot">5 филиалов · онлайн</div>
   </div>
 
-  <div class="login-card">
+  <div class="card">
     <div class="brand-row"><span class="dot"></span><span>Система на связи</span></div>
     <h1>Вход</h1>
     <div class="sub">Общий пароль компании + ваше имя и должность</div>
@@ -103,17 +119,16 @@ body{
 
     <div class="branch-field" id="branchField">
       <label>Филиал</label>
-      <select id="branch"><option value="Северный">Северный</option><option value="Южный">Южный</option></select>
+      <select id="branch"><option value="">Загрузка…</option></select>
     </div>
 
     <button class="btn-submit" id="submitBtn">Войти</button>
-    <div class="login-error" id="err"></div>
+    <div class="error" id="err"></div>
   </div>
 </div>
 
 <script>
-/* Демо-версия: без реального API. При корректном заполнении — переход на dashboard.html
-   (в реальном проекте здесь вызывается CW.authFetch("/api/site/login", ...) как в оригинале). */
+const API = ""; // тот же хост, что и сайт (FastAPI отдаёт и статику, и API)
 let role = "";
 
 document.querySelectorAll(".role-btn").forEach(btn=>{
@@ -121,22 +136,50 @@ document.querySelectorAll(".role-btn").forEach(btn=>{
     document.querySelectorAll(".role-btn").forEach(b=>b.classList.remove("active"));
     btn.classList.add("active");
     role = btn.dataset.role;
-    document.getElementById("branchField").style.display = role==="владелец" ? "none" : "block";
+    document.getElementById("branchField").style.display = role === "владелец" ? "none" : "block";
   });
 });
 
-document.getElementById("submitBtn").addEventListener("click", ()=>{
+// подгружаем список филиалов для выбора (публичный справочник)
+fetch(API + "/api/config").then(r=>r.json()).then(cfg=>{
+  const sel = document.getElementById("branch");
+  sel.innerHTML = cfg.branches.map(b=>`<option value="${b}">${b}</option>`).join("");
+}).catch(()=>{});
+
+document.getElementById("submitBtn").addEventListener("click", async ()=>{
   const password = document.getElementById("password").value;
   const name = document.getElementById("name").value.trim();
+  const branch = document.getElementById("branch").value;
   const errEl = document.getElementById("err");
   errEl.style.display = "none";
+
   if(!password || !name || !role){
     errEl.textContent = "Заполните пароль, имя и выберите должность";
     errEl.style.display = "block";
     return;
   }
-  errEl.style.display = "none";
-  window.location.href = "dashboard.html";
+
+  try{
+    const res = await fetch(API + "/api/site/login", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({password, name, role, branch})
+    });
+    const data = await res.json();
+    if(!res.ok){
+      errEl.textContent = data.detail || "Ошибка входа";
+      errEl.style.display = "block";
+      return;
+    }
+    localStorage.setItem("cw_token", data.token);
+    localStorage.setItem("cw_name", data.name);
+    localStorage.setItem("cw_role", data.role);
+    localStorage.setItem("cw_branch", data.branch || "");
+    window.location.href = "/static/dashboard.html";
+  }catch(e){
+    errEl.textContent = "Не удалось связаться с сервером";
+    errEl.style.display = "block";
+  }
 });
 </script>
 </body>

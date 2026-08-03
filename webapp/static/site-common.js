@@ -1,116 +1,215 @@
-/* site-common.js — общий модуль для всех страниц CarWash Cloud.
-   Подключается первым скриптом на каждой странице (после theme.css).
-   Отвечает за: конфиг навигации, рендер сайдбара, мелкие хелперы. */
+/* site-common.js — общая логика для всех страниц сайта CarWash Cloud.
+   Подключается на каждой странице (кроме site-login.html) первым скриптом.
+   Отвечает за:
+   - проверку входа (редирект на /static/site-login.html, если токена нет)
+   - обёртку fetch с заголовком X-Site-Token и обработкой 401
+   - рендер сайдбара (с подсветкой активного пункта)
+   - выбор активного филиала (для владельца — переключаемый, для админа/мойщика — фиксированный)
+*/
 
 const CW = (() => {
+  const API = ""; // сайт и API на одном хосте
+
+  // Тема сайта («Glass / Orb») подключается статическим <link> в <head>
+  // каждой HTML-страницы (сразу после инлайн-<style>, что гарантирует
+  // правильный порядок каскада) — см. webapp/static/*.html. Раньше тема
+  // подключалась через JS (document.head.appendChild) отсюда, но это
+  // зависело от момента выполнения скрипта и было ненадёжно
+  // (могло не успеть отработать до первой отрисовки/из-за кэша браузера).
+
+  // Тема v2 «Studio Blue» (светлая) больше не использует плавающие орбы —
+  // фон теперь простой градиент в теле site-theme.css. Функция оставлена
+  // пустой (а не удалена), чтобы не трогать порядок вызовов ниже.
+  (function injectOrbBg() {})();
+
+  function getToken() { return localStorage.getItem("cw_token") || ""; }
+  function getName() { return localStorage.getItem("cw_name") || ""; }
+  function getRole() { return localStorage.getItem("cw_role") || ""; }
+  function getLoginBranch() { return localStorage.getItem("cw_branch") || ""; }
+
+  function getActiveBranch() {
+    const role = getRole();
+    if (role === "владелец") {
+      return localStorage.getItem("cw_active_branch") || "";
+    }
+    return getLoginBranch();
+  }
+
+  function setActiveBranch(branch) {
+    localStorage.setItem("cw_active_branch", branch);
+  }
+
+  function requireAuth() {
+    if (!getToken()) {
+      window.location.href = "/static/site-login.html";
+      return false;
+    }
+    return true;
+  }
+
+  async function authFetch(path, opts = {}) {
+    const headers = Object.assign({}, opts.headers || {}, {
+      "X-Site-Token": getToken(),
+    });
+    if (opts.body && !headers["Content-Type"]) {
+      headers["Content-Type"] = "application/json";
+    }
+    const res = await fetch(API + path, Object.assign({}, opts, { headers }));
+    if (res.status === 401) {
+      logout();
+      throw new Error("Сессия истекла");
+    }
+    let data = null;
+    try { data = await res.json(); } catch (e) { /* no body */ }
+    if (!res.ok) {
+      const msg = (data && data.detail) || `Ошибка запроса (${res.status})`;
+      throw new Error(msg);
+    }
+    return data;
+  }
+
+  async function downloadFile(path, filenameFallback) {
+    const headers = { "X-Site-Token": getToken() };
+    const res = await fetch(API + path, { headers });
+    if (res.status === 401) { logout(); throw new Error("Сессия истекла"); }
+    if (!res.ok) {
+      let msg = `Ошибка запроса (${res.status})`;
+      try { const data = await res.json(); if (data && data.detail) msg = data.detail; } catch (e) {}
+      throw new Error(msg);
+    }
+    const blob = await res.blob();
+    let filename = filenameFallback || "file";
+    const disp = res.headers.get("Content-Disposition") || "";
+    const m = disp.match(/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i);
+    if (m) { try { filename = decodeURIComponent(m[1]); } catch (e) { filename = m[1]; } }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  }
+
+  function logout() {
+    localStorage.removeItem("cw_token");
+    localStorage.removeItem("cw_name");
+    localStorage.removeItem("cw_role");
+    localStorage.removeItem("cw_branch");
+    localStorage.removeItem("cw_active_branch");
+    window.location.href = "/static/site-login.html";
+  }
+
   const NAV = [
-    { key:"dashboard", icon:"fa-table-cells-large", label:"Дашборд", href:"dashboard.html" },
-    { key:"cars",      icon:"fa-car",               label:"Машины", href:"cars.html" },
-    { key:"cash",      icon:"fa-cash-register",     label:"Касса за смену", href:"cash.html" },
-    { div:true },
-    { key:"workers",   icon:"fa-users",             label:"Сотрудники", href:"workers.html" },
-    { key:"loyalty",   icon:"fa-heart",             label:"Лояльность", href:"loyalty.html" },
-    { key:"finance",   icon:"fa-receipt",           label:"Расходы и доходы", href:"finance.html" },
-    { key:"reports",   icon:"fa-chart-bar",         label:"Отчёты", href:"reports.html" },
-    { div:true },
-    { key:"history",   icon:"fa-clock-rotate-left", label:"История изменений", href:"history.html" },
-    { key:"branches",  icon:"fa-store",             label:"Филиалы", href:"branches.html" },
-    { key:"settings",  icon:"fa-gear",              label:"Настройки", href:"settings.html" },
+    { group: "Обзор", items: [
+      { key: "dashboard", icon: "ti-layout-dashboard", label: "Дашборд", href: "/static/dashboard.html" },
+      { key: "cars", icon: "ti-car", label: "Машины", href: "/static/cars.html" },
+      { key: "cash", icon: "ti-cash", label: "Касса за смену", href: "/static/cash.html" },
+    ]},
+    { group: "Управление", items: [
+      { key: "workers", icon: "ti-users", label: "Сотрудники", href: "/static/workers.html" },
+      { key: "loyalty", icon: "ti-heart", label: "Лояльность", href: "/static/loyalty.html" },
+      { key: "finance", icon: "ti-receipt", label: "Расходы и доходы", href: "/static/finance.html" },
+      { key: "reports", icon: "ti-chart-bar", label: "Отчёты", href: "/static/reports.html" },
+    ]},
+    { group: "Система", items: [
+      { key: "history", icon: "ti-history", label: "История изменений", href: "/static/history.html", adminOnly: true },
+      { key: "branches", icon: "ti-building-store", label: "Филиалы", href: "/static/branches.html", ownerOnly: true },
+      { key: "settings", icon: "ti-settings", label: "Настройки", href: "/static/settings.html" },
+    ]},
   ];
 
-  const EMP_COLORS = ["#918df6","#2c78fc","#33c758","#d6409f","#ffa600","#9580ff"];
-
-  function empColor(name){
-    let h=0; for(let i=0;i<name.length;i++) h=(h*31+name.charCodeAt(i))%EMP_COLORS.length;
-    return EMP_COLORS[h];
+  function initials(name) {
+    const parts = (name || "").trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return "??";
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0][0] + parts[1][0]).toUpperCase();
   }
 
-  function initials(name){
-    const parts=(name||"").trim().split(/\s+/).filter(Boolean);
-    if(!parts.length) return "??";
-    if(parts.length===1) return parts[0].slice(0,2).toUpperCase();
-    return (parts[0][0]+parts[1][0]).toUpperCase();
+  function roleLabel(role) {
+    return { "мойщик": "Мойщик", "админ": "Администратор", "владелец": "Владелец" }[role] || role;
   }
 
-  function money(n){ return (Math.round(n||0)).toLocaleString("ru-RU")+" ₽"; }
+  /* Рендерит сайдбар в элемент с id="sidebarRoot".
+     activeKey — ключ текущей страницы (см. NAV[].items[].key).
 
-  function todayLabel(){
-    return new Date().toLocaleDateString("ru-RU",{day:"numeric", month:"long", year:"numeric"});
-  }
-
-  /* Рендерит сайдбар в #sidebarRoot. activeKey — ключ текущей страницы (NAV[].key).
-     branches — { "Название": "ИН" } короткий инициал для чипа филиала; onBranchChange(name) — колбэк. */
-  function renderSidebar(activeKey, opts = {}) {
+     Тема v2 «Studio Blue»: узкий (76px) сплошной синий icon-rail вместо
+     текстового списка — подписи убраны (не помещались бы для длинных
+     пунктов вроде «Расходы и доходы» в узкой колонке), вместо них —
+     title-тултип на hover. Название филиала и текущей страницы всё
+     равно видно вверху каждой страницы (page-title/page-sub), так что
+     контекст не теряется. См. PROGRESS.md → «Решения/заметки». */
+  function renderSidebar(activeKey) {
     const root = document.getElementById("sidebarRoot");
     if (!root) return;
-    const branches = opts.branches || {};
-    const activeBranch = opts.activeBranch || Object.keys(branches)[0] || "";
+    const role = getRole();
 
-    const navHtml = NAV.map(it => {
-      if (it.div) return `<div class="rail-div"></div>`;
-      return `<div class="rail-item ${it.key === activeKey ? "active" : ""}" data-href="${it.href}" data-tip="${it.label}">
-                <i class="fa-solid ${it.icon}"></i>
-              </div>`;
-    }).join("");
+    const groupsHtml = NAV.map(group => {
+      const items = group.items.filter(it =>
+        (!it.ownerOnly || role === "владелец") &&
+        (!it.adminOnly || role === "админ" || role === "владелец")
+      );
+      if (!items.length) return "";
+      return items.map(it => `
+        <div class="rail-item ${it.key === activeKey ? "active" : ""}" data-href="${it.href}" title="${it.label}">
+          <i class="ti ${it.icon}"></i>
+        </div>`).join("") + `<div class="rail-div"></div>`;
+    }).filter(Boolean).join("");
+    // убираем последний лишний разделитель после последней группы
+    const navHtml = groupsHtml.replace(/<div class="rail-div"><\/div>$/, "");
+
+    const branch = getActiveBranch();
 
     root.innerHTML = `
-      <div class="rail-brand" data-tip="CarWash Cloud"><i class="fa-solid fa-droplet"></i></div>
+      <div class="rail-brand" title="CarWash Cloud"><i class="ti ti-droplet"></i></div>
 
-      <div class="rail-branch" id="cwBranchSelect" data-tip="Филиал: ${activeBranch || "не выбран"}">
-        <span id="cwBranchValue">${initials(activeBranch || "—")}</span>
-        <select id="cwBranchSelectInput"></select>
+      <div class="rail-branch" id="branchSelect" title="Филиал: ${branch || "не выбран"}">
+        <span id="bsValue">${initials(branch || "—")}</span>
+        <select id="bsSelect" style="position:absolute;inset:0;width:38px;height:38px;opacity:0;${role === 'владелец' ? 'cursor:pointer' : 'pointer-events:none'}"></select>
       </div>
 
       <div class="rail-nav">${navHtml}</div>
 
       <div class="rail-foot">
-        <div class="rail-item avatar" data-tip="${opts.userName || "Пользователь"} · ${opts.userRole || ""}">${initials(opts.userName || "")}</div>
-        <div class="rail-item" id="cwLogoutBtn" data-tip="Выйти"><i class="fa-solid fa-arrow-right-from-bracket"></i></div>
+        <div class="rail-item avatar" title="${getName() || "—"} · ${roleLabel(role)}">${initials(getName())}</div>
+        <div class="rail-item" id="logoutBtn" title="Выйти"><i class="ti ti-logout"></i></div>
       </div>
     `;
+
+    document.getElementById("branchSelect").style.position = "relative";
 
     root.querySelectorAll(".rail-item[data-href]").forEach(el => {
       el.addEventListener("click", () => { window.location.href = el.dataset.href; });
     });
+    document.getElementById("logoutBtn").addEventListener("click", logout);
 
-    document.getElementById("cwLogoutBtn").addEventListener("click", () => {
-      if (typeof opts.onLogout === "function") opts.onLogout();
-    });
-
-    const sel = document.getElementById("cwBranchSelectInput");
-    sel.innerHTML = Object.keys(branches).map(b => `<option value="${b}">${b}</option>`).join("");
-    sel.value = activeBranch;
-    sel.addEventListener("change", () => {
-      document.getElementById("cwBranchValue").textContent = initials(sel.value);
-      document.getElementById("cwBranchSelect").dataset.tip = "Филиал: " + sel.value;
-      if (typeof opts.onBranchChange === "function") opts.onBranchChange(sel.value);
-    });
-  }
-
-  /* Toast — ожидает элемент <div class="toast" id="toast"><i></i><span id="toastText"></span></div> в DOM. */
-  let toastTimer;
-  function showToast(text) {
-    const t = document.getElementById("toast");
-    if (!t) return;
-    document.getElementById("toastText").textContent = text;
-    t.classList.add("show");
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => t.classList.remove("show"), 2600);
-  }
-
-  /* Анимированный count-up для чисел в metric-value / hero-value. */
-  function countUp(el, to, isMoney) {
-    const dur = 700;
-    const start = performance.now();
-    function tick(now) {
-      const p = Math.min(1, (now - start) / dur);
-      const eased = 1 - Math.pow(1 - p, 3);
-      const val = Math.round(to * eased);
-      el.textContent = isMoney ? money(val) : val;
-      if (p < 1) requestAnimationFrame(tick);
+    if (role === "владелец") {
+      authFetch("/api/config").then(cfg => {
+        const sel = document.getElementById("bsSelect");
+        sel.innerHTML = cfg.branches.map(b => `<option value="${b}">${b}</option>`).join("");
+        const current = getActiveBranch() || cfg.branches[0];
+        sel.value = current;
+        if (!getActiveBranch()) setActiveBranch(current);
+        document.getElementById("bsValue").textContent = initials(current);
+        document.getElementById("branchSelect").title = "Филиал: " + current;
+        sel.addEventListener("change", () => {
+          setActiveBranch(sel.value);
+          window.location.reload();
+        });
+      }).catch(() => {});
     }
-    requestAnimationFrame(tick);
   }
 
-  return { NAV, empColor, initials, money, todayLabel, renderSidebar, showToast, countUp };
+  function money(n) {
+    return (Math.round(n || 0)).toLocaleString("ru-RU") + " ₽";
+  }
+
+  function todayLabel() {
+    return new Date().toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" });
+  }
+
+  return {
+    getToken, getName, getRole, getLoginBranch,
+    getActiveBranch, setActiveBranch,
+    requireAuth, authFetch, downloadFile, logout,
+    renderSidebar, initials, roleLabel, money, todayLabel,
+  };
 })();

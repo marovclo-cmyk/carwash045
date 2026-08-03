@@ -3,386 +3,291 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CarWash Cloud — Дашборд</title>
+<title>CarWash Cloud — панель управления</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<style>
+:root{
+  --bg:#0A0A0B;
+  --surface-0:#141414;
+  --surface-1:#1C1C1E;
+  --surface-2:#232325;
+  --surface-3:#2C2C2E;
+  --text:#FFFFFF;
+  --text-secondary:#AEAEB2;
+  --text-muted:#6C6C70;
+  --border:rgba(255,255,255,0.08);
+  --border-strong:rgba(255,255,255,0.14);
+  --accent:#007AFF;
+  --accent-tint:rgba(0,122,255,0.14);
+  --green:#34C759;
+  --green-tint:rgba(52,199,89,0.14);
+  --red:#FF3B30;
+  --red-tint:rgba(255,59,48,0.12);
+  --orange:#FF9F0A;
+  --orange-tint:rgba(255,159,10,0.14);
+  --purple:#BF5AF2;
+  --purple-tint:rgba(191,90,242,0.14);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display",Segoe UI,Roboto,sans-serif;
+  background:var(--bg); color:var(--text);
+  -webkit-font-smoothing:antialiased;
+}
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<link rel="stylesheet" href="css/theme.css">
+.shell{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
+
+/* Сайдбар (иконочный рейл) целиком стилизуется в site-theme.css —
+   см. .sidebar/.rail-* там; здесь ничего дублировать не нужно. */
+
+.main{padding:24px 32px 48px;max-width:1160px}
+.page-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px}
+.page-title{font-size:24px;font-weight:700;letter-spacing:-0.02em}
+.page-sub{font-size:13px;color:var(--text-secondary);margin-top:3px}
+.head-actions{display:flex;gap:8px}
+.btn{
+  height:38px;padding:0 16px;border-radius:10px;border:none;font-family:inherit;
+  font-size:13.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;
+}
+.btn.primary{background:var(--accent);color:#fff}
+.btn.secondary{background:var(--surface-1);color:var(--text);border:0.5px solid var(--border)}
+
+.stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+.stat-card{background:var(--surface-1);border:0.5px solid var(--border);border-radius:14px;padding:16px 18px}
+.stat-card .sc-label{font-size:12px;color:var(--text-muted);font-weight:500;margin-bottom:8px;display:flex;justify-content:space-between}
+.stat-card .sc-value{font-size:24px;font-weight:700;letter-spacing:-0.01em}
+.stat-card .sc-delta{font-size:11.5px;color:var(--green);margin-top:4px;font-weight:600}
+.stat-card .sc-delta.down{color:var(--red)}
+.stat-card .sc-delta.muted{color:var(--text-muted)}
+
+.grid-2{display:grid;grid-template-columns:1.5fr 1fr;gap:14px;align-items:start}
+.panel{background:var(--surface-1);border:0.5px solid var(--border);border-radius:14px;overflow:hidden}
+.panel-head{display:flex;justify-content:space-between;align-items:center;padding:16px 18px 12px}
+.panel-title{font-size:14.5px;font-weight:700}
+.panel-link{font-size:12px;color:var(--accent);font-weight:600;cursor:pointer}
+
+table.data{width:100%;border-collapse:collapse}
+table.data th{
+  text-align:left;font-size:11px;color:var(--text-muted);font-weight:600;
+  text-transform:uppercase;letter-spacing:.03em;padding:8px 18px;border-top:0.5px solid var(--border);
+}
+table.data td{padding:11px 18px;font-size:13.5px;border-top:0.5px solid var(--border)}
+table.data tr:hover td{background:var(--surface-2)}
+.pay-tag{
+  display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:600;
+}
+.pay-tag.cash{background:var(--green-tint);color:var(--green)}
+.pay-tag.card{background:var(--accent-tint);color:var(--accent)}
+.pay-tag.transfer{background:var(--orange-tint);color:var(--orange)}
+.emp-cell{display:flex;align-items:center;gap:8px}
+.emp-dot{width:7px;height:7px;border-radius:50%}
+
+.worker-row{display:flex;align-items:center;gap:10px;padding:11px 18px;border-top:0.5px solid var(--border)}
+.worker-row:first-child{border-top:none}
+.worker-av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+.worker-info{flex:1;min-width:0}
+.worker-name{font-size:13px;font-weight:600}
+.worker-meta{font-size:11.5px;color:var(--text-muted)}
+.worker-sal{font-size:14px;font-weight:700}
+
+.empty-note{padding:24px 18px;font-size:13px;color:var(--text-muted);text-align:center}
+.load-note{padding:24px 18px;font-size:13px;color:var(--text-muted);text-align:center}
+.err-banner{background:var(--red-tint);color:var(--red);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:16px;display:none}
+</style>
+<link rel="stylesheet" href="/static/site-theme.css?v=studioblue2">
 </head>
 <body>
-
 <div class="shell">
   <div class="sidebar" id="sidebarRoot"></div>
 
   <div class="main">
-
-    <div class="announcement-chip" id="topBanner">
-      <span class="chip-tag">NEW</span>
-      <span>Обновлён дизайн панели управления</span>
-      <button class="chip-close" id="bannerClose"><i class="fa-solid fa-xmark"></i></button>
-    </div>
+    <div class="err-banner" id="errBanner"></div>
 
     <div class="page-head">
       <div>
         <div class="page-title">Дашборд</div>
-        <div class="page-sub"><strong id="branchLabel">—</strong> · <span id="dateLabel">—</span></div>
+        <div class="page-sub" id="pageSub">—</div>
       </div>
       <div class="head-actions">
-        <button class="btn btn-ghost" id="exportBtn"><i class="fa-solid fa-file-arrow-down"></i>Экспорт PDF</button>
-        <button class="btn btn-primary" id="addCarBtn"><i class="fa-solid fa-plus"></i>Добавить машину</button>
+        <button class="btn secondary" id="exportBtn"><i class="ti ti-file-export"></i>Экспорт PDF</button>
+        <button class="btn primary" id="addCarBtn"><i class="ti ti-plus"></i>Добавить машину</button>
       </div>
     </div>
 
-    <div class="quick-actions">
-      <div class="feature-card" data-nav="cars.html">
-        <div class="feature-icon"><i class="fa-solid fa-car"></i></div>
-        <div class="feature-title">Машины</div>
-        <div class="feature-body">Записать заезд</div>
-      </div>
-      <div class="feature-card" data-nav="cash.html">
-        <div class="feature-icon" style="background:var(--color-sky)"><i class="fa-solid fa-wallet"></i></div>
-        <div class="feature-title">Касса</div>
-        <div class="feature-body">Смена сегодня</div>
-      </div>
-      <div class="feature-card" data-nav="workers.html">
-        <div class="feature-icon" style="background:var(--color-mint)"><i class="fa-solid fa-users"></i></div>
-        <div class="feature-title">Сотрудники</div>
-        <div class="feature-body">Зарплаты и смены</div>
-      </div>
-      <div class="feature-card" data-nav="reports.html">
-        <div class="feature-icon" style="background:var(--color-magenta)"><i class="fa-solid fa-chart-line"></i></div>
-        <div class="feature-title">Отчёты</div>
-        <div class="feature-body">Динамика по неделям</div>
-      </div>
+    <div class="hero-glass dash-hero" id="heroRevenue" style="margin-bottom:16px">
+      <div class="hero-label">Дневная выручка</div>
+      <div class="hero-value" id="heroValue">—</div>
+      <div class="hero-sub" id="heroSub">&nbsp;</div>
     </div>
 
-    <div class="tabbar" id="periodTabs">
-      <button class="tab active" data-period="today">Смена</button>
-      <button class="tab" data-period="week">Неделя</button>
-      <button class="tab" data-period="month">Месяц</button>
+    <div class="stat-row" id="statRow">
+      <div class="stat-card"><div class="sc-top"><span class="sq b1"><i class="ti ti-car"></i></span><div class="sc-label">Машин за смену</div></div><div class="sc-value">—</div></div>
+      <div class="stat-card"><div class="sc-top"><span class="sq b3"><i class="ti ti-users"></i></span><div class="sc-label">Зарплаты (всего)</div></div><div class="sc-value">—</div></div>
+      <div class="stat-card"><div class="sc-top"><span class="sq b2"><i class="ti ti-wallet"></i></span><div class="sc-label">Остаток в кассе</div></div><div class="sc-value">—</div></div>
     </div>
 
-    <div class="metrics-grid">
-      <div class="metric-card featured">
-        <div class="metric-top">
-          <span class="metric-label">Выручка</span>
-          <span class="metric-icon"><i class="fa-solid fa-ruble-sign"></i></span>
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">Машины за смену</div>
+          <div class="panel-link" id="carsLink">Смотреть все →</div>
         </div>
-        <div class="metric-value" id="metricRevenue">—</div>
-        <div class="metric-delta up" id="metricRevenueDelta">—</div>
-        <canvas class="metric-spark" id="sparkChart"></canvas>
+        <table class="data" id="carsTable">
+          <tr><th>Клиент</th><th>Сотрудник</th><th>Услуга</th><th>Оплата</th><th style="text-align:right">Сумма</th></tr>
+        </table>
+        <div id="carsEmpty" class="empty-note" style="display:none">Машин за сегодня ещё нет</div>
       </div>
-      <div class="metric-card">
-        <div class="metric-top">
-          <span class="metric-label">Машин за смену</span>
-          <span class="metric-icon" style="color:var(--color-sky);background:var(--color-sky-wash)"><i class="fa-solid fa-car"></i></span>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">Зарплаты сотрудников</div>
+          <div class="panel-link" id="workersLink">Все →</div>
         </div>
-        <div class="metric-value" id="metricCars">—</div>
-        <div class="metric-delta up" id="metricCarsDelta">—</div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-top">
-          <span class="metric-label">Зарплаты (всего)</span>
-          <span class="metric-icon" style="color:var(--color-magenta);background:var(--color-magenta-wash)"><i class="fa-solid fa-users"></i></span>
-        </div>
-        <div class="metric-value" id="metricSalaries">—</div>
-        <div class="metric-delta muted" id="metricSalariesDelta">—</div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-top">
-          <span class="metric-label">Остаток в кассе</span>
-          <span class="metric-icon" style="color:var(--color-mint);background:var(--color-mint-wash)"><i class="fa-solid fa-wallet"></i></span>
-        </div>
-        <div class="metric-value" id="metricCash">—</div>
-        <div class="metric-delta muted">после расходов</div>
+        <div id="workersList"></div>
+        <div id="workersEmpty" class="empty-note" style="display:none">Пока нет данных за смену</div>
       </div>
     </div>
-
-    <div class="panels-grid">
-      <div>
-        <div class="panel">
-          <div class="panel-head">
-            <div>
-              <div class="panel-title" id="chartTitle">Выручка за смену</div>
-              <div class="panel-caption">Динамика по часам работы мойки</div>
-            </div>
-            <div class="panel-link" id="reportsLink">Все отчёты →</div>
-          </div>
-          <div class="chart-wrap"><canvas id="revenueChart"></canvas></div>
-        </div>
-
-        <div class="panel">
-          <div class="panel-head">
-            <div>
-              <div class="panel-title">Машины за смену</div>
-              <div class="panel-caption" id="carsCaption">—</div>
-            </div>
-            <div class="panel-link" id="carsLink">Смотреть все →</div>
-          </div>
-          <div class="filter-chips" id="filterChips">
-            <button class="chip active" data-filter="all">Все</button>
-            <button class="chip" data-filter="cash">Наличные</button>
-            <button class="chip" data-filter="card">Visa/MIR</button>
-            <button class="chip" data-filter="transfer">Безнал</button>
-          </div>
-          <div class="table-scroll">
-            <table class="data" id="carsTable">
-              <tr><th>Клиент</th><th>Сотрудник</th><th>Услуга</th><th>Оплата</th><th style="text-align:right">Сумма</th></tr>
-            </table>
-          </div>
-          <div id="carsEmpty" class="empty-note" style="display:none">Ничего не найдено по выбранному фильтру</div>
-        </div>
-      </div>
-
-      <div>
-        <div class="panel">
-          <div class="panel-head">
-            <div>
-              <div class="panel-title">Сотрудники</div>
-              <div class="panel-caption">Зарплата за смену</div>
-            </div>
-            <div class="panel-link" id="workersLink">Все →</div>
-          </div>
-          <div id="workersList"></div>
-          <div id="workersEmpty" class="empty-note" style="display:none">Пока нет данных за смену</div>
-        </div>
-
-        <div class="panel">
-          <div class="panel-head">
-            <div>
-              <div class="panel-title">Топ услуга</div>
-              <div class="panel-caption">По количеству заказов</div>
-            </div>
-          </div>
-          <div class="chart-wrap" style="height:180px;"><canvas id="servicesChart"></canvas></div>
-        </div>
-      </div>
-    </div>
-
   </div>
 </div>
 
-<div class="modal-bg" id="modalBg">
-  <div class="modal">
-    <h3>Новая машина</h3>
-    <p class="modal-sub">Добавьте заезд в смену — данные появятся в таблице сразу.</p>
-    <form id="addCarForm">
-      <div class="field"><label>Клиент / авто</label><input type="text" id="fCar" placeholder="Toyota Camry, А123ВС" required></div>
-      <div class="field"><label>Сотрудник</label><select id="fEmployee"></select></div>
-      <div class="field"><label>Услуга</label>
-        <select id="fService">
-          <option>Комплекс</option><option>Экспресс-мойка</option><option>Химчистка салона</option><option>Полировка</option>
-        </select>
-      </div>
-      <div class="field"><label>Оплата</label>
-        <select id="fPayment">
-          <option value="cash">Наличные</option><option value="card">Visa / MIR</option><option value="transfer">Безнал</option>
-        </select>
-      </div>
-      <div class="field"><label>Сумма, ₽</label><input type="number" id="fPrice" placeholder="1200" min="0" required></div>
-      <div class="modal-actions">
-        <button type="button" class="btn btn-ghost" id="cancelModal">Отмена</button>
-        <button type="submit" class="btn btn-primary">Добавить</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<div class="toast" id="toast"><i class="fa-solid fa-circle-check"></i><span id="toastText"></span></div>
-
-<script src="site-common.js"></script>
+<script src="/static/site-common.js"></script>
 <script>
-/* Демо-данные страницы (в реальном проекте — ответ API). */
-const BRANCHES = {
-  "Северный": {
-    label:"СВ", employees:["Данияр Т.","Марат С.","Алина К."],
-    cars:{ today:[
-      {car:"Camry, А123ВС", employee:"Данияр Т.", service:"Комплекс", payment:"cash", price:1800},
-      {car:"Solaris, В456КМ", employee:"Марат С.", service:"Экспресс-мойка", payment:"card", price:700},
-      {car:"X5, Е777АА", employee:"Алина К.", service:"Полировка", payment:"transfer", price:4200},
-      {car:"Rio, К321ОР", employee:"Данияр Т.", service:"Комплекс", payment:"cash", price:1800},
-      {car:"Tiguan, М555ТТ", employee:"Марат С.", service:"Химчистка салона", payment:"card", price:3500},
-      {car:"Vesta, О222НН", employee:"Алина К.", service:"Экспресс-мойка", payment:"cash", price:700},
-      {car:"Creta, Р888СС", employee:"Данияр Т.", service:"Комплекс", payment:"transfer", price:1800},
-    ]},
-    revenueSeries:{ today:[0,1800,2500,6700,8500,12200,14000,16300], week:[42000,51000,38500,60200,71500,66000,74800], month:[210000,238000,256000,271500] },
-    revenueLabels:{ today:["9:00","11:00","13:00","15:00","17:00","19:00","21:00","23:00"], week:["Пн","Вт","Ср","Чт","Пт","Сб","Вс"], month:["Нед. 1","Нед. 2","Нед. 3","Нед. 4"] },
-    services:{ labels:["Комплекс","Экспресс","Химчистка","Полировка"], data:[4,3,1,1] },
-    admin:{ name:"Ирина А.", salary:2600 },
-    salaryDelta:"+320 ₽ к прошлой смене", carsDelta:"+2 к прошлой смене",
-  },
-  "Южный": {
-    label:"ЮЖ", employees:["Бекзат Н.","Салтанат Е."],
-    cars:{ today:[
-      {car:"Logan, У111ВВ", employee:"Бекзат Н.", service:"Экспресс-мойка", payment:"cash", price:650},
-      {car:"Sportage, Т999ЕЕ", employee:"Салтанат Е.", service:"Комплекс", payment:"card", price:1700},
-      {car:"Duster, Н444КК", employee:"Бекзат Н.", service:"Комплекс", payment:"transfer", price:1700},
-    ]},
-    revenueSeries:{ today:[0,650,650,2350,4050,4050,4050,4050], week:[21000,24500,19800,28900,31200,35400,33100], month:[98000,112400,120300,131900] },
-    revenueLabels:{ today:["9:00","11:00","13:00","15:00","17:00","19:00","21:00","23:00"], week:["Пн","Вт","Ср","Чт","Пт","Сб","Вс"], month:["Нед. 1","Нед. 2","Нед. 3","Нед. 4"] },
-    services:{ labels:["Комплекс","Экспресс","Химчистка","Полировка"], data:[2,1,0,0] },
-    admin:{ name:"", salary:0 },
-    salaryDelta:"без изменений", carsDelta:"−1 к прошлой смене",
-  },
-};
+if (CW.requireAuth()) {
+  CW.renderSidebar("dashboard");
 
-let state = { branch:"Северный", period:"today", filter:"all" };
-let revenueChart, sparkChart, servicesChart;
-
-function payTag(method){
-  if(method==="cash") return `<span class="pay-tag cash">Наличные</span>`;
-  if(method==="card") return `<span class="pay-tag card">Visa/MIR</span>`;
-  return `<span class="pay-tag transfer">Безнал</span>`;
-}
-
-function buildRevenueChart(labels, data){
-  const ctx = document.getElementById("revenueChart").getContext("2d");
-  const gradient = ctx.createLinearGradient(0,0,0,220);
-  gradient.addColorStop(0,"rgba(145,141,246,0.35)"); gradient.addColorStop(1,"rgba(145,141,246,0.02)");
-  if(revenueChart) revenueChart.destroy();
-  revenueChart = new Chart(ctx, { type:"line", data:{ labels, datasets:[{ data, borderColor:"#918df6", borderWidth:2.5, backgroundColor:gradient, fill:true, tension:.35, pointRadius:0, pointHoverRadius:5, pointHoverBackgroundColor:"#918df6", pointHoverBorderColor:"#fff", pointHoverBorderWidth:2 }]},
-    options:{ responsive:true, maintainAspectRatio:false, interaction:{intersect:false, mode:"index"},
-      plugins:{ legend:{display:false}, tooltip:{ backgroundColor:"#181925", bodyFont:{family:"Inter", size:13, weight:"600"}, padding:10, cornerRadius:8, displayColors:false, callbacks:{ label:(c)=> CW.money(c.parsed.y) } } },
-      scales:{ x:{ grid:{display:false}, ticks:{color:"#999999", font:{family:"Inter", size:11}} }, y:{ grid:{color:"#e8e8e8"}, border:{display:false}, ticks:{color:"#999999", font:{family:"Inter", size:11}, callback:(v)=>(v/1000)+"k"} } } } });
-}
-function buildSparkChart(data){
-  const ctx = document.getElementById("sparkChart").getContext("2d");
-  const gradient = ctx.createLinearGradient(0,0,0,52);
-  gradient.addColorStop(0,"rgba(145,141,246,0.28)"); gradient.addColorStop(1,"rgba(145,141,246,0)");
-  if(sparkChart) sparkChart.destroy();
-  sparkChart = new Chart(ctx,{ type:"line", data:{ labels:data.map((_,i)=>i), datasets:[{ data, borderColor:"#918df6", borderWidth:2, backgroundColor:gradient, fill:true, tension:.4, pointRadius:0 }]},
-    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{enabled:false}}, scales:{ x:{display:false}, y:{display:false} } } });
-}
-function buildServicesChart(labels, data){
-  const ctx = document.getElementById("servicesChart").getContext("2d");
-  if(servicesChart) servicesChart.destroy();
-  servicesChart = new Chart(ctx,{ type:"bar", data:{ labels, datasets:[{ data, backgroundColor:["#918df6","#2c78fc","#33c758","#ffa600"], borderRadius:6, maxBarThickness:28 }]},
-    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{backgroundColor:"#181925", padding:8, cornerRadius:8, displayColors:false}}, scales:{ x:{grid:{display:false}, ticks:{color:"#999999", font:{family:"Inter", size:11}}}, y:{display:false} } } });
-}
-
-document.getElementById("filterChips").addEventListener("click",(e)=>{
-  const chip = e.target.closest(".chip"); if(!chip) return;
-  document.querySelectorAll("#filterChips .chip").forEach(c=>c.classList.remove("active"));
-  chip.classList.add("active"); state.filter = chip.dataset.filter; renderCarsTable();
-});
-document.getElementById("periodTabs").addEventListener("click",(e)=>{
-  const tab = e.target.closest(".tab"); if(!tab) return;
-  document.querySelectorAll("#periodTabs .tab").forEach(t=>t.classList.remove("active"));
-  tab.classList.add("active"); state.period = tab.dataset.period; renderChart();
-});
-
-function renderCarsTable(){
-  const b = BRANCHES[state.branch]; const all = b.cars.today;
-  const filtered = state.filter==="all" ? all : all.filter(c=>c.payment===state.filter);
-  const table = document.getElementById("carsTable"); const empty = document.getElementById("carsEmpty");
-  document.getElementById("carsCaption").textContent = `${all.length} машин · ${CW.money(all.reduce((a,c)=>a+c.price,0))} за смену`;
-  if(!filtered.length){ table.style.display="none"; empty.style.display="block"; return; }
-  table.style.display="table"; empty.style.display="none";
-  const rows = filtered.slice().reverse().map(c=>`
-    <tr class="data-row">
-      <td class="strong">${c.car}</td>
-      <td><div class="emp-cell"><span class="emp-dot" style="background:${CW.empColor(c.employee)}">${CW.initials(c.employee)}</span>${c.employee}</div></td>
-      <td>${c.service}</td><td>${payTag(c.payment)}</td>
-      <td style="text-align:right" class="strong">${CW.money(c.price)}</td>
-    </tr>`).join("");
-  table.innerHTML = `<tr><th>Клиент</th><th>Сотрудник</th><th>Услуга</th><th>Оплата</th><th style="text-align:right">Сумма</th></tr>${rows}`;
-}
-
-function renderWorkers(){
-  const b = BRANCHES[state.branch]; const list = document.getElementById("workersList"); const empty = document.getElementById("workersEmpty");
-  const totals = {}; b.cars.today.forEach(c=>{ totals[c.employee] = (totals[c.employee]||0) + c.price; });
-  const names = Object.keys(totals);
-  if(!names.length && !b.admin.salary){ list.style.display="none"; empty.style.display="block"; return; }
-  list.style.display="block"; empty.style.display="none";
-  let html = names.map(name=>{
-    const color = CW.empColor(name); const salary = Math.round(totals[name]*0.35);
-    return `<div class="worker-row">
-      <div class="avatar-circle sm" style="background:${color}22;color:${color}">${CW.initials(name)}</div>
-      <div class="worker-info"><div class="worker-name">${name}</div><div class="worker-meta">Намыл ${CW.money(totals[name])}</div></div>
-      <div class="worker-sal">${CW.money(salary)}</div></div>`;
-  }).join("");
-  if(b.admin.salary){
-    html += `<div class="worker-row">
-      <div class="avatar-circle sm" style="background:var(--color-magenta-wash);color:var(--color-magenta)">${CW.initials(b.admin.name)}</div>
-      <div class="worker-info"><div class="worker-name">${b.admin.name}</div><div class="worker-meta">Дежурный админ · % от оборота</div></div>
-      <div class="worker-sal">${CW.money(b.admin.salary)}</div></div>`;
+  const empDotColors = ["#4E9BFF", "#3ED598", "#FFB648", "#A47CF3", "#FF6B8B", "#00C7BE"];
+  function empColor(name) {
+    let h = 0;
+    for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) % empDotColors.length;
+    return empDotColors[h];
   }
-  list.innerHTML = html;
+
+  function payTag(method) {
+    const m = (method || "").toLowerCase();
+    if (m.includes("виз") || m === "visa") return `<span class="pay-tag card">Visa</span>`;
+    if (m.includes("безнал") || m === "transfer") return `<span class="pay-tag transfer">Безнал</span>`;
+    if (m.includes("нал") || m === "cash") return `<span class="pay-tag cash">Нал</span>`;
+    return `<span class="pay-tag transfer">${method || "—"}</span>`;
+  }
+
+  async function load() {
+    const errEl = document.getElementById("errBanner");
+    errEl.style.display = "none";
+
+    const branch = CW.getActiveBranch();
+    if (!branch) {
+      errEl.textContent = "Филиал не выбран. Выберите филиал в сайдбаре.";
+      errEl.style.display = "block";
+      return;
+    }
+
+    document.getElementById("pageSub").textContent = `${branch} · ${CW.todayLabel()}`;
+    document.getElementById("exportBtn").onclick = () => {
+      CW.downloadFile(`/api/reports/pdf?branch=${encodeURIComponent(branch)}`, `Касса_${branch}.pdf`).catch(e => (typeof showErr === "function" ? showErr(e.message) : alert(e.message)));
+    };
+    document.getElementById("addCarBtn").onclick = () => { window.location.href = "/static/cars.html"; };
+    document.getElementById("carsLink").onclick = () => { window.location.href = "/static/cars.html"; };
+    document.getElementById("workersLink").onclick = () => { window.location.href = "/static/workers.html"; };
+
+    try {
+      const data = await CW.authFetch(`/api/session?branch=${encodeURIComponent(branch)}`);
+      const session = data.session || {};
+      const summary = data.summary || {};
+      const cars = session.cars || [];
+
+      const totalSalaries = Object.values(summary.washer_salaries || {}).reduce((a, b) => a + b, 0)
+        + (summary.admin_salary || 0);
+
+      document.getElementById("heroValue").textContent = CW.money(summary.grand_total);
+      document.getElementById("heroSub").textContent = `${cars.length} машин за смену`;
+
+      const statRow = document.getElementById("statRow");
+      statRow.innerHTML = `
+        <div class="stat-card">
+          <div class="sc-top"><span class="sq b1"><i class="ti ti-car"></i></span><div class="sc-label">Машин за смену</div></div>
+          <div class="sc-value">${cars.length}</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-top"><span class="sq b3"><i class="ti ti-users"></i></span><div class="sc-label">Зарплаты (всего)</div></div>
+          <div class="sc-value">${CW.money(totalSalaries)}</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-top"><span class="sq b2"><i class="ti ti-wallet"></i></span><div class="sc-label">Остаток в кассе</div></div>
+          <div class="sc-value">${CW.money(summary.remainder)}</div>
+          <div class="sc-delta muted">после расходов</div>
+        </div>
+      `;
+
+      const table = document.getElementById("carsTable");
+      const carsEmpty = document.getElementById("carsEmpty");
+      if (!cars.length) {
+        table.style.display = "none";
+        carsEmpty.style.display = "block";
+      } else {
+        table.style.display = "table";
+        carsEmpty.style.display = "none";
+        const rows = cars.slice().reverse().slice(0, 8).map(c => `
+          <tr>
+            <td>${c.car || "—"}</td>
+            <td><div class="emp-cell"><span class="emp-dot" style="background:${empColor(c.employee || "")}"></span>${c.employee || "—"}</div></td>
+            <td>${c.service || "—"}</td>
+            <td>${payTag(c.payment_split ? Object.keys(c.payment_split)[0] : c.payment)}</td>
+            <td style="text-align:right;font-weight:600">${CW.money(c.price)}</td>
+          </tr>
+        `).join("");
+        table.innerHTML = `<tr><th>Клиент</th><th>Сотрудник</th><th>Услуга</th><th>Оплата</th><th style="text-align:right">Сумма</th></tr>${rows}`;
+      }
+
+      const workersList = document.getElementById("workersList");
+      const workersEmpty = document.getElementById("workersEmpty");
+      const salaries = summary.washer_salaries || {};
+      const totals = summary.washer_totals || {};
+      const names = Object.keys(salaries);
+
+      let workersHtml = names.map(name => {
+        const color = empColor(name);
+        return `
+          <div class="worker-row">
+            <div class="worker-av" style="background:${color}26;color:${color}">${CW.initials(name)}</div>
+            <div class="worker-info">
+              <div class="worker-name">${name}</div>
+              <div class="worker-meta">Намыл ${CW.money(totals[name] || 0)}</div>
+            </div>
+            <div class="worker-sal">${CW.money(salaries[name])}</div>
+          </div>
+        `;
+      }).join("");
+
+      if (summary.admin_salary) {
+        const adminName = session.admin_name || "Администратор";
+        workersHtml += `
+          <div class="worker-row">
+            <div class="worker-av" style="background:var(--purple-tint);color:var(--purple)">${CW.initials(adminName)}</div>
+            <div class="worker-info">
+              <div class="worker-name">${adminName}</div>
+              <div class="worker-meta">${session.admin_name ? "Дежурный админ · % от оборота" : "Администратор не назначен · % от оборота"}</div>
+            </div>
+            <div class="worker-sal">${CW.money(summary.admin_salary)}</div>
+          </div>
+        `;
+      }
+
+      if (!names.length && !summary.admin_salary) {
+        workersList.style.display = "none";
+        workersEmpty.style.display = "block";
+      } else {
+        workersList.style.display = "block";
+        workersEmpty.style.display = "none";
+        workersList.innerHTML = workersHtml;
+      }
+    } catch (e) {
+      errEl.textContent = e.message || "Не удалось загрузить данные";
+      errEl.style.display = "block";
+    }
+  }
+
+  load();
 }
-
-function renderMetrics(){
-  const b = BRANCHES[state.branch]; const cars = b.cars.today;
-  const revenue = cars.reduce((a,c)=>a+c.price,0);
-  const totalSalaries = Math.round(revenue*0.35) + b.admin.salary;
-  const cash = revenue - totalSalaries;
-  CW.countUp(document.getElementById("metricRevenue"), revenue, true);
-  CW.countUp(document.getElementById("metricCars"), cars.length, false);
-  CW.countUp(document.getElementById("metricSalaries"), totalSalaries, true);
-  CW.countUp(document.getElementById("metricCash"), cash, true);
-  document.getElementById("metricRevenueDelta").innerHTML = `<i class="fa-solid fa-arrow-up" style="font-size:10px"></i> ${b.carsDelta}`;
-  document.getElementById("metricCarsDelta").textContent = b.carsDelta;
-  document.getElementById("metricSalariesDelta").textContent = b.salaryDelta;
-  buildSparkChart(b.revenueSeries.today);
-}
-
-function renderChart(){
-  const b = BRANCHES[state.branch];
-  const titleMap = { today:"Выручка за смену", week:"Выручка за неделю", month:"Выручка за месяц" };
-  document.getElementById("chartTitle").textContent = titleMap[state.period];
-  buildRevenueChart(b.revenueLabels[state.period], b.revenueSeries[state.period]);
-}
-
-function renderEmployeeSelect(){
-  document.getElementById("fEmployee").innerHTML = BRANCHES[state.branch].employees.map(e=>`<option>${e}</option>`).join("");
-}
-
-function render(){
-  document.getElementById("branchLabel").textContent = state.branch;
-  document.getElementById("dateLabel").textContent = CW.todayLabel();
-  renderMetrics(); renderChart(); renderCarsTable(); renderWorkers();
-  buildServicesChart(BRANCHES[state.branch].services.labels, BRANCHES[state.branch].services.data);
-  renderEmployeeSelect();
-}
-
-const modalBg = document.getElementById("modalBg");
-document.getElementById("addCarBtn").addEventListener("click", ()=> modalBg.classList.add("show"));
-document.getElementById("cancelModal").addEventListener("click", ()=> modalBg.classList.remove("show"));
-modalBg.addEventListener("click",(e)=>{ if(e.target===modalBg) modalBg.classList.remove("show"); });
-document.getElementById("addCarForm").addEventListener("submit",(e)=>{
-  e.preventDefault();
-  const b = BRANCHES[state.branch];
-  b.cars.today.push({
-    car: document.getElementById("fCar").value.trim() || "Без названия",
-    employee: document.getElementById("fEmployee").value,
-    service: document.getElementById("fService").value,
-    payment: document.getElementById("fPayment").value,
-    price: Number(document.getElementById("fPrice").value) || 0,
-  });
-  modalBg.classList.remove("show"); document.getElementById("addCarForm").reset();
-  render(); CW.showToast("Машина добавлена в смену");
-});
-
-document.getElementById("exportBtn").addEventListener("click", ()=> CW.showToast("PDF-отчёт сформирован (демо)"));
-document.querySelectorAll('[data-nav]').forEach(el=>{
-  el.addEventListener("click", ()=> CW.showToast(`Переход на «${el.querySelector(".feature-title").textContent}» (демо)`));
-});
-document.getElementById("carsLink").addEventListener("click", ()=> CW.showToast("Переход на страницу «Машины» (демо)"));
-document.getElementById("workersLink").addEventListener("click", ()=> CW.showToast("Переход на страницу «Сотрудники» (демо)"));
-document.getElementById("reportsLink").addEventListener("click", ()=> CW.showToast("Переход на страницу «Отчёты» (демо)"));
-document.getElementById("bannerClose").addEventListener("click",()=>{
-  const b = document.getElementById("topBanner"); b.style.opacity="0"; b.style.transform="translateY(-6px)";
-  setTimeout(()=> b.style.display="none", 200);
-});
-
-CW.renderSidebar("dashboard", {
-  branches: { "Северный":"СВ", "Южный":"ЮЖ" },
-  activeBranch: state.branch,
-  userName: "Ирина А.", userRole: "Владелец",
-  onBranchChange: (name)=>{ state.branch = name; render(); },
-  onLogout: ()=> CW.showToast("Демо-режим: выход не выполняется"),
-});
-render();
 </script>
 </body>
 </html>

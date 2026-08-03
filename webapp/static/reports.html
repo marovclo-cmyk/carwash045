@@ -3,19 +3,101 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CarWash Cloud — Отчёты</title>
+<title>CarWash Cloud — отчёты</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<style>
+:root{
+  --bg:#0A0A0B;
+  --surface-0:#141414;
+  --surface-1:#1C1C1E;
+  --surface-2:#232325;
+  --surface-3:#2C2C2E;
+  --text:#FFFFFF;
+  --text-secondary:#AEAEB2;
+  --text-muted:#6C6C70;
+  --border:rgba(255,255,255,0.08);
+  --border-strong:rgba(255,255,255,0.14);
+  --accent:#007AFF;
+  --accent-tint:rgba(0,122,255,0.14);
+  --green:#34C759;
+  --green-tint:rgba(52,199,89,0.14);
+  --red:#FF3B30;
+  --red-tint:rgba(255,59,48,0.12);
+  --orange:#FF9F0A;
+  --orange-tint:rgba(255,159,10,0.14);
+  --purple:#BF5AF2;
+  --purple-tint:rgba(191,90,242,0.14);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display",Segoe UI,Roboto,sans-serif;
+  background:var(--bg); color:var(--text);
+  -webkit-font-smoothing:antialiased;
+}
+.shell{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
+/* Сайдбар (иконочный рейл) целиком стилизуется в site-theme.css. */
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-<link rel="stylesheet" href="css/theme.css">
+.main{padding:24px 32px 48px;max-width:1160px}
+.page-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:16px}
+.page-title{font-size:24px;font-weight:700;letter-spacing:-0.02em}
+.page-sub{font-size:13px;color:var(--text-secondary);margin-top:3px}
+.head-actions{display:flex;gap:8px}
+.btn{height:38px;padding:0 16px;border-radius:10px;border:none;font-family:inherit;font-size:13.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px}
+.btn.primary{background:var(--accent);color:#fff}
+.btn.secondary{background:var(--surface-1);color:var(--text);border:0.5px solid var(--border)}
+.btn:disabled{opacity:.5;cursor:default}
+
+.err-banner{background:var(--red-tint);color:var(--red);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:16px;display:none}
+
+.tabs{display:flex;gap:6px;margin-bottom:16px;background:var(--surface-1);border:0.5px solid var(--border);border-radius:12px;padding:4px}
+.tab{flex:1;text-align:center;padding:8px 10px;border-radius:9px;font-size:13px;font-weight:600;color:var(--text-secondary);cursor:pointer}
+.tab.active{background:var(--accent);color:#fff}
+
+.stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.stat-card{background:var(--surface-1);border:0.5px solid var(--border);border-radius:14px;padding:16px 18px}
+.stat-card .sc-label{font-size:12px;color:var(--text-muted);font-weight:500;margin-bottom:8px}
+.stat-card .sc-value{font-size:22px;font-weight:700;letter-spacing:-0.01em}
+
+.panel{background:var(--surface-1);border:0.5px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:16px}
+.panel-head{display:flex;justify-content:space-between;align-items:center;padding:16px 18px 12px}
+.panel-title{font-size:14.5px;font-weight:700}
+.panel-sub{font-size:12px;color:var(--text-muted);margin-top:2px}
+
+table.data{width:100%;border-collapse:collapse}
+table.data th{text-align:left;font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.03em;padding:8px 18px;border-top:0.5px solid var(--border)}
+table.data td{padding:11px 18px;font-size:13.5px;border-top:0.5px solid var(--border)}
+table.data tr:hover td{background:var(--surface-2)}
+table.data td.num, table.data th.num{text-align:right}
+.row-link{cursor:pointer}
+.row-link:hover td{color:var(--accent)}
+.empty-note{padding:24px 18px;font-size:13px;color:var(--text-muted);text-align:center}
+
+.month-picker{display:flex;gap:8px;padding:12px 18px;border-top:0.5px solid var(--border)}
+.month-picker select, .month-picker input{height:36px;border-radius:9px;background:var(--surface-2);border:0.5px solid var(--border-strong);color:var(--text);font-size:13px;padding:0 10px;font-family:inherit}
+.month-picker button{height:36px;padding:0 14px;border-radius:9px;border:none;background:var(--accent);color:#fff;font-weight:600;cursor:pointer}
+
+.exp-row{display:flex;align-items:center;gap:10px;padding:11px 18px;border-top:0.5px solid var(--border)}
+.exp-row:first-child{border-top:none}
+.exp-name{flex:1;font-size:13.5px}
+.exp-amount{font-size:13.5px;font-weight:700}
+.exp-actions{display:flex;gap:6px}
+.icon-btn{width:28px;height:28px;border-radius:8px;border:0.5px solid var(--border);background:var(--surface-2);color:var(--text-secondary);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+.icon-btn:hover{color:var(--accent);border-color:var(--accent)}
+
+.branch-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;padding:16px 18px}
+.branch-card{background:var(--surface-2);border:0.5px solid var(--border);border-radius:12px;padding:14px}
+.branch-card .bc-name{font-size:13.5px;font-weight:700;margin-bottom:6px}
+.branch-card .bc-total{font-size:19px;font-weight:700}
+.branch-card .bc-meta{font-size:11.5px;color:var(--text-muted);margin-top:4px}
+</style>
+<link rel="stylesheet" href="/static/site-theme.css?v=studioblue2">
 </head>
 <body>
-
 <div class="shell">
   <div class="sidebar" id="sidebarRoot"></div>
 
   <div class="main">
-    <div class="err-banner" id="errBanner"><i class="fa-solid fa-triangle-exclamation"></i><span id="errText"></span></div>
+    <div class="err-banner" id="errBanner"></div>
 
     <div class="page-head">
       <div>
@@ -23,24 +105,29 @@
         <div class="page-sub" id="pageSub">—</div>
       </div>
       <div class="head-actions">
-        <button class="btn btn-ghost" id="pdfBtn"><i class="fa-solid fa-file-pdf"></i>PDF</button>
-        <button class="btn btn-ghost" id="xlsxBtn"><i class="fa-solid fa-file-excel"></i>XLSX</button>
+        <button class="btn secondary" id="pdfBtn"><i class="ti ti-file-type-pdf"></i>PDF</button>
+        <button class="btn secondary" id="xlsxBtn"><i class="ti ti-file-spreadsheet"></i>XLSX</button>
       </div>
     </div>
 
-    <div class="tabbar" id="tabs">
-      <button class="tab active" data-tab="today">Сегодня</button>
-      <button class="tab" data-tab="week">Неделя</button>
-      <button class="tab" data-tab="month">Месяц</button>
-      <button class="tab" data-tab="archive">Архив</button>
+    <div class="tabs" id="tabs">
+      <div class="tab active" data-tab="today">Сегодня</div>
+      <div class="tab" data-tab="week">Неделя</div>
+      <div class="tab" data-tab="month">Месяц</div>
+      <div class="tab" data-tab="archive">Архив</div>
     </div>
 
     <!-- СЕГОДНЯ -->
     <div id="viewToday">
-      <div class="metrics-grid" style="grid-template-columns:1.4fr 1fr 1fr;">
-        <div class="metric-card featured"><div class="metric-top"><span class="metric-label">Выручка (с учётом скидок)</span></div><div class="metric-value" id="heroValue">—</div></div>
-        <div class="metric-card"><div class="metric-top"><span class="metric-label">Машин</span><span class="metric-icon" style="color:var(--color-sky);background:var(--color-sky-wash)"><i class="fa-solid fa-car"></i></span></div><div class="metric-value" id="carsStat">—</div></div>
-        <div class="metric-card"><div class="metric-top"><span class="metric-label">Остаток в кассе</span><span class="metric-icon" style="color:var(--color-mint);background:var(--color-mint-wash)"><i class="fa-solid fa-wallet"></i></span></div><div class="metric-value" id="remainderStat">—</div></div>
+      <div class="hero-glass dash-hero" id="heroRevenue" style="margin-bottom:14px">
+        <div class="hero-label">Выручка (с учётом скидок)</div>
+        <div class="hero-value" id="heroValue">—</div>
+        <div class="hero-sub">&nbsp;</div>
+      </div>
+      <div class="stat-row" id="todayStats">
+        <div class="stat-card"><div class="sc-top"><span class="sq b1"><i class="ti ti-car"></i></span><div class="sc-label">Машин</div></div><div class="sc-value">—</div></div>
+        <div class="stat-card"><div class="sc-top"><span class="sq b3"><i class="ti ti-trending-down"></i></span><div class="sc-label">Расходы</div></div><div class="sc-value">—</div></div>
+        <div class="stat-card"><div class="sc-top"><span class="sq b2"><i class="ti ti-wallet"></i></span><div class="sc-label">Остаток в кассе</div></div><div class="sc-value">—</div></div>
       </div>
       <div class="panel">
         <div class="panel-head"><div class="panel-title">Топ услуг за сегодня</div></div>
@@ -53,10 +140,13 @@
     <div id="viewWeek" style="display:none">
       <div class="panel">
         <div class="panel-head">
-          <div><div class="panel-title">Итог за неделю</div><div class="panel-caption" id="weekRange">—</div></div>
-          <div class="text-heading-sm" id="weekGrand">—</div>
+          <div>
+            <div class="panel-title">Итог за неделю</div>
+            <div class="panel-sub" id="weekRange">—</div>
+          </div>
+          <div style="font-size:18px;font-weight:700" id="weekGrand">—</div>
         </div>
-        <div class="table-scroll"><table class="data" id="weekTable"></table></div>
+        <table class="data" id="weekTable"></table>
         <div id="weekEmpty" class="empty-note" style="display:none">Нет данных за эту неделю</div>
       </div>
     </div>
@@ -65,15 +155,18 @@
     <div id="viewMonth" style="display:none">
       <div class="panel">
         <div class="panel-head">
-          <div><div class="panel-title">Итог за месяц</div><div class="panel-caption" id="monthRange">—</div></div>
-          <div class="text-heading-sm" id="monthGrand">—</div>
+          <div>
+            <div class="panel-title">Итог за месяц</div>
+            <div class="panel-sub" id="monthRange">—</div>
+          </div>
+          <div style="font-size:18px;font-weight:700" id="monthGrand">—</div>
         </div>
         <div class="month-picker">
           <select id="monthSelect"></select>
           <input type="number" id="yearInput" style="width:90px">
-          <button class="btn btn-primary btn-sm" id="monthLoadBtn">Показать</button>
+          <button id="monthLoadBtn">Показать</button>
         </div>
-        <div class="table-scroll"><table class="data" id="monthTable"></table></div>
+        <table class="data" id="monthTable"></table>
         <div id="monthEmpty" class="empty-note" style="display:none">Нет данных за этот месяц</div>
       </div>
     </div>
@@ -82,155 +175,198 @@
     <div id="viewArchive" style="display:none">
       <div class="panel">
         <div class="panel-head">
-          <div><div class="panel-title">Архив закрытых смен</div><div class="panel-caption">Последние 30 дней · клик по строке — скачать PDF за день</div></div>
+          <div>
+            <div class="panel-title">Архив закрытых смен</div>
+            <div class="panel-sub">Последние 30 дней · клик по строке — скачать PDF за день</div>
+          </div>
         </div>
-        <div class="table-scroll"><table class="data" id="archiveTable"></table></div>
+        <table class="data" id="archiveTable"></table>
         <div id="archiveEmpty" class="empty-note" style="display:none">Архив пуст — ещё не закрывали смену</div>
       </div>
     </div>
 
     <!-- ВСЕ ФИЛИАЛЫ (только владелец) -->
-    <div class="panel" id="allBranchesPanel">
-      <div class="panel-head"><div><div class="panel-title">Сводка по всем филиалам · сегодня</div><div class="panel-caption">Только для владельца</div></div></div>
+    <div class="panel" id="allBranchesPanel" style="display:none">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title">Сводка по всем филиалам · сегодня</div>
+          <div class="panel-sub">Только для владельца</div>
+        </div>
+      </div>
       <div class="branch-grid" id="branchGrid"></div>
     </div>
   </div>
 </div>
 
-<div class="toast" id="toast"><i class="fa-solid fa-circle-check"></i><span id="toastText"></span></div>
-
-<script src="site-common.js"></script>
+<script src="/static/site-common.js"></script>
 <script>
-const MONTHS = ["январь","февраль","март","апрель","май","июнь","июль","август","сентябрь","октябрь","ноябрь","декабрь"];
-const BRANCHES = {
-  "Северный": {
-    today:{ grand_total:16300, cars:7, expenses:400, remainder:11900, topServices:[["Комплекс",4],["Экспресс-мойка",2],["Полировка",1]] },
-    week:{ from:"24.07", to:"30.07", grand_total:404000, days:[
-      {date:"24.07", cars:6, total:52000},{date:"25.07", cars:8, total:61000},{date:"26.07", cars:5, total:48500},
-      {date:"27.07", cars:9, total:70200},{date:"28.07", cars:10, total:81500},{date:"29.07", cars:8, total:74800},
-      {date:"30.07", cars:7, total:16300},
-    ]},
-    month:{ byWorker:{ "Данияр Т.":{1:32000,2:35500,3:31000,4:12000}, "Марат С.":{1:28000,2:30500,3:29000,4:9000}, "Алина К.":{1:15000,2:16200,3:14800,4:5200} } },
-    archive:[ {date:"29.07.2026", cars:8, raw:76500}, {date:"28.07.2026", cars:10, raw:83000}, {date:"27.07.2026", cars:9, raw:71800} ],
-    allBranchesToday:5200,
-  },
-  "Южный": {
-    today:{ grand_total:4050, cars:3, expenses:0, remainder:4050, topServices:[["Экспресс-мойка",1],["Комплекс",2]] },
-    week:{ from:"24.07", to:"30.07", grand_total:154000, days:[
-      {date:"24.07", cars:3, total:18000},{date:"25.07", cars:4, total:22500},{date:"26.07", cars:2, total:14000},
-      {date:"27.07", cars:5, total:26800},{date:"28.07", cars:4, total:24000},{date:"29.07", cars:3, total:19700},
-      {date:"30.07", cars:3, total:4050},
-    ]},
-    month:{ byWorker:{ "Бекзат Н.":{1:14000,2:15500,3:13200,4:4000}, "Салтанат Е.":{1:9000,2:9800,3:8600,4:2500} } },
-    archive:[ {date:"29.07.2026", cars:3, raw:19700}, {date:"28.07.2026", cars:4, raw:24000} ],
-    allBranchesToday:2100,
-  },
-};
-let state = { branch:"Северный", tab:"today" };
+if (CW.requireAuth()) {
+  CW.renderSidebar("reports");
 
-function showErr(msg){
-  const el = document.getElementById("errBanner");
-  if(!msg){ el.style.display="none"; return; }
-  document.getElementById("errText").textContent = msg; el.style.display="flex";
+  const branch = CW.getActiveBranch();
+  const role = CW.getRole();
+  const errEl = document.getElementById("errBanner");
+  function showErr(msg) { errEl.textContent = msg; errEl.style.display = "block"; }
+
+  const MONTHS = ["январь","февраль","март","апрель","май","июнь","июль","август","сентябрь","октябрь","ноябрь","декабрь"];
+  const monthSelect = document.getElementById("monthSelect");
+  monthSelect.innerHTML = MONTHS.map((m, i) => `<option value="${m}" ${i === new Date().getMonth() ? "selected" : ""}>${m[0].toUpperCase() + m.slice(1)}</option>`).join("");
+  document.getElementById("yearInput").value = new Date().getFullYear();
+
+  let activeTab = "today";
+
+  if (!branch) {
+    showErr("Филиал не выбран. Выберите филиал в сайдбаре.");
+  } else {
+    document.getElementById("pageSub").textContent = `${branch} · ${CW.todayLabel()}`;
+    document.getElementById("pdfBtn").onclick = () => {
+      CW.downloadFile(`/api/reports/pdf?branch=${encodeURIComponent(branch)}`, `Касса_${branch}.pdf`).catch(e => showErr(e.message));
+    };
+    document.getElementById("xlsxBtn").onclick = () => {
+      CW.downloadFile(`/api/reports/xlsx?branch=${encodeURIComponent(branch)}`, `Касса_${branch}.xlsx`).catch(e => showErr(e.message));
+    };
+    loadToday();
+  }
+
+  if (role === "владелец") {
+    document.getElementById("allBranchesPanel").style.display = "block";
+    loadAllBranches();
+  }
+
+  document.querySelectorAll(".tab").forEach(tabEl => {
+    tabEl.addEventListener("click", () => {
+      document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+      tabEl.classList.add("active");
+      activeTab = tabEl.dataset.tab;
+      ["Today", "Week", "Month", "Archive"].forEach(v => {
+        document.getElementById("view" + v).style.display = "none";
+      });
+      const map = { today: "viewToday", week: "viewWeek", month: "viewMonth", archive: "viewArchive" };
+      document.getElementById(map[activeTab]).style.display = "block";
+      if (!branch) return;
+      if (activeTab === "week") loadWeek();
+      if (activeTab === "month") loadMonth();
+      if (activeTab === "archive") loadArchive();
+    });
+  });
+
+  async function loadToday() {
+    errEl.style.display = "none";
+    try {
+      const data = await CW.authFetch(`/api/reports/today?branch=${encodeURIComponent(branch)}`);
+      const s = data.summary || {};
+      document.getElementById("heroValue").textContent = CW.money(s.grand_total);
+      document.getElementById("todayStats").innerHTML = `
+        <div class="stat-card"><div class="sc-top"><span class="sq b1"><i class="ti ti-car"></i></span><div class="sc-label">Машин</div></div><div class="sc-value">${(data.session && data.session.cars || []).length}</div></div>
+        <div class="stat-card"><div class="sc-top"><span class="sq b3"><i class="ti ti-trending-down"></i></span><div class="sc-label">Расходы</div></div><div class="sc-value">${CW.money(s.total_expenses)}</div></div>
+        <div class="stat-card"><div class="sc-top"><span class="sq b2"><i class="ti ti-wallet"></i></span><div class="sc-label">Остаток в кассе</div></div><div class="sc-value">${CW.money(s.remainder)}</div></div>
+      `;
+      const top = data.top_services || [];
+      const topList = document.getElementById("topServices");
+      const topEmpty = document.getElementById("topEmpty");
+      if (!top.length) {
+        topList.innerHTML = ""; topEmpty.style.display = "block";
+      } else {
+        topEmpty.style.display = "none";
+        topList.innerHTML = top.map(([name, count]) => `
+          <div class="exp-row"><div class="exp-name">${name}</div><div class="exp-amount">${count} шт.</div></div>
+        `).join("");
+      }
+    } catch (e) { showErr(e.message); }
+  }
+
+  async function loadWeek() {
+    try {
+      const data = await CW.authFetch(`/api/reports/week?branch=${encodeURIComponent(branch)}`);
+      document.getElementById("weekRange").textContent = `${data.from} — ${data.to}`;
+      document.getElementById("weekGrand").textContent = CW.money(data.grand_total);
+      const table = document.getElementById("weekTable");
+      const empty = document.getElementById("weekEmpty");
+      const days = data.days || [];
+      if (!days.length) { table.innerHTML = ""; empty.style.display = "block"; return; }
+      empty.style.display = "none";
+      table.innerHTML = `<tr><th>Дата</th><th class="num">Машин</th><th class="num">Итог</th></tr>` +
+        days.map(d => `<tr><td>${d.date}</td><td class="num">${d.cars}</td><td class="num">${CW.money(d.total)}</td></tr>`).join("");
+    } catch (e) { showErr(e.message); }
+  }
+
+  async function loadMonth() {
+    try {
+      const month = monthSelect.value;
+      const year = parseInt(document.getElementById("yearInput").value, 10) || new Date().getFullYear();
+      const data = await CW.authFetch(`/api/reports/month?branch=${encodeURIComponent(branch)}&month=${encodeURIComponent(month)}&year=${year}`);
+      document.getElementById("monthRange").textContent = `${month[0].toUpperCase() + month.slice(1)} ${year}`;
+      document.getElementById("monthGrand").textContent = CW.money(data.grand_total);
+      const table = document.getElementById("monthTable");
+      const empty = document.getElementById("monthEmpty");
+      const byWorker = data.by_worker || {};
+      const workers = Object.keys(byWorker);
+      if (!workers.length) { table.innerHTML = ""; empty.style.display = "block"; return; }
+      empty.style.display = "none";
+      const weeks = new Set();
+      workers.forEach(w => Object.keys(byWorker[w]).forEach(wk => weeks.add(parseInt(wk, 10))));
+      const weekNums = Array.from(weeks).sort((a, b) => a - b);
+      table.innerHTML = `<tr><th>Сотрудник</th>${weekNums.map(w => `<th class="num">Нед. ${w}</th>`).join("")}<th class="num">Итого</th></tr>` +
+        workers.map(w => {
+          let total = 0;
+          const cells = weekNums.map(wk => {
+            const v = byWorker[w][wk] || 0;
+            total += v;
+            return `<td class="num">${v ? CW.money(v) : "—"}</td>`;
+          }).join("");
+          return `<tr><td>${w}</td>${cells}<td class="num" style="font-weight:700">${CW.money(total)}</td></tr>`;
+        }).join("");
+    } catch (e) { showErr(e.message); }
+  }
+  document.getElementById("monthLoadBtn").addEventListener("click", loadMonth);
+
+  async function loadArchive() {
+    try {
+      const data = await CW.authFetch(`/api/archive?branch=${encodeURIComponent(branch)}&limit=30`);
+      const table = document.getElementById("archiveTable");
+      const empty = document.getElementById("archiveEmpty");
+      const days = data.days || [];
+      if (!days.length) { table.innerHTML = ""; empty.style.display = "block"; return; }
+      empty.style.display = "none";
+      table.innerHTML = `<tr><th>Дата</th><th class="num">Машин</th><th class="num">Выручка (до скидок)</th><th></th></tr>` +
+        days.map(d => {
+          const dateStr = d.date || "";
+          const cars = d.cars || [];
+          const rawTotal = cars.reduce((sum, c) => sum + (c.price || 0), 0);
+          return `
+            <tr>
+              <td>${dateStr}</td>
+              <td class="num">${cars.length}</td>
+              <td class="num">${CW.money(rawTotal)}</td>
+              <td class="num">
+                <span class="icon-btn" title="PDF" onclick="CW_archiveExport('${dateStr}','pdf')"><i class="ti ti-file-type-pdf"></i></span>
+                <span class="icon-btn" title="XLSX" onclick="CW_archiveExport('${dateStr}','xlsx')"><i class="ti ti-file-spreadsheet"></i></span>
+              </td>
+            </tr>`;
+        }).join("");
+    } catch (e) { showErr(e.message); }
+  }
+
+  window.CW_archiveExport = (date, kind) => {
+    const ext = kind === "xlsx" ? "xlsx" : "pdf";
+    CW.downloadFile(`/api/reports/${kind}?branch=${encodeURIComponent(branch)}&date=${encodeURIComponent(date)}`,
+      `Касса_${branch}_${date}.${ext}`).catch(e => showErr(e.message));
+  };
+
+  async function loadAllBranches() {
+    try {
+      const data = await CW.authFetch("/api/branches/summary");
+      const grid = document.getElementById("branchGrid");
+      grid.innerHTML = (data.branches || []).map(b => `
+        <div class="branch-card">
+          <div class="bc-name">${b.branch}</div>
+          <div class="bc-total">${CW.money(b.total)}</div>
+          <div class="bc-meta">${b.cars} машин сегодня</div>
+        </div>
+      `).join("");
+    } catch (e) { /* не критично */ }
+  }
 }
-
-function renderToday(){
-  const d = BRANCHES[state.branch].today;
-  document.getElementById("heroValue").textContent = CW.money(d.grand_total);
-  document.getElementById("carsStat").textContent = d.cars;
-  document.getElementById("remainderStat").textContent = CW.money(d.remainder);
-  const list = document.getElementById("topServices"), empty = document.getElementById("topEmpty");
-  if(!d.topServices.length){ list.innerHTML=""; empty.style.display="block"; return; }
-  empty.style.display="none";
-  list.innerHTML = d.topServices.map(([name,count])=>`<div class="exp-row"><div class="exp-name">${name}</div><div class="exp-amount">${count} шт.</div></div>`).join("");
-}
-
-function renderWeek(){
-  const d = BRANCHES[state.branch].week;
-  document.getElementById("weekRange").textContent = `${d.from} — ${d.to}`;
-  document.getElementById("weekGrand").textContent = CW.money(d.grand_total);
-  const table = document.getElementById("weekTable"), empty = document.getElementById("weekEmpty");
-  if(!d.days.length){ table.innerHTML=""; empty.style.display="block"; return; }
-  empty.style.display="none";
-  table.innerHTML = `<tr><th>Дата</th><th class="num">Машин</th><th class="num">Итог</th></tr>` +
-    d.days.map(x=>`<tr><td>${x.date}</td><td class="num">${x.cars}</td><td class="num">${CW.money(x.total)}</td></tr>`).join("");
-}
-
-function renderMonth(){
-  const byWorker = BRANCHES[state.branch].month.byWorker;
-  const month = document.getElementById("monthSelect").value;
-  const year = document.getElementById("yearInput").value;
-  document.getElementById("monthRange").textContent = `${month[0].toUpperCase()+month.slice(1)} ${year}`;
-  const workers = Object.keys(byWorker);
-  const table = document.getElementById("monthTable"), empty = document.getElementById("monthEmpty");
-  if(!workers.length){ table.innerHTML=""; empty.style.display="block"; return; }
-  empty.style.display="none";
-  const weeks = new Set(); workers.forEach(w=>Object.keys(byWorker[w]).forEach(wk=>weeks.add(parseInt(wk,10))));
-  const weekNums = Array.from(weeks).sort((a,b)=>a-b);
-  let grand = 0;
-  const rows = workers.map(w=>{
-    let total=0;
-    const cells = weekNums.map(wk=>{ const v = byWorker[w][wk]||0; total+=v; return `<td class="num">${v?CW.money(v):"—"}</td>`; }).join("");
-    grand += total;
-    return `<tr><td class="strong">${w}</td>${cells}<td class="num strong">${CW.money(total)}</td></tr>`;
-  }).join("");
-  document.getElementById("monthGrand").textContent = CW.money(grand);
-  table.innerHTML = `<tr><th>Сотрудник</th>${weekNums.map(w=>`<th class="num">Нед. ${w}</th>`).join("")}<th class="num">Итого</th></tr>${rows}`;
-}
-
-function renderArchive(){
-  const days = BRANCHES[state.branch].archive;
-  const table = document.getElementById("archiveTable"), empty = document.getElementById("archiveEmpty");
-  if(!days.length){ table.innerHTML=""; empty.style.display="block"; return; }
-  empty.style.display="none";
-  table.innerHTML = `<tr><th>Дата</th><th class="num">Машин</th><th class="num">Выручка (до скидок)</th><th></th></tr>` +
-    days.map(d=>`<tr>
-      <td>${d.date}</td><td class="num">${d.cars}</td><td class="num">${CW.money(d.raw)}</td>
-      <td class="num"><span class="icon-btn" style="display:inline-flex" title="PDF" onclick="archiveExport('${d.date}','pdf')"><i class="fa-solid fa-file-pdf"></i></span>
-      <span class="icon-btn" style="display:inline-flex" title="XLSX" onclick="archiveExport('${d.date}','xlsx')"><i class="fa-solid fa-file-excel"></i></span></td>
-    </tr>`).join("");
-}
-window.archiveExport = (date, kind)=> CW.showToast(`${kind.toUpperCase()} за ${date} сформирован (демо)`);
-
-function renderAllBranches(){
-  const grid = document.getElementById("branchGrid");
-  grid.innerHTML = Object.entries(BRANCHES).map(([name,b])=>`
-    <div class="branch-card"><div class="bc-name">${name}</div><div class="bc-total">${CW.money(b.allBranchesToday)}</div><div class="bc-meta">${b.today.cars} машин сегодня</div></div>
-  `).join("");
-}
-
-function switchTab(tab){
-  state.tab = tab;
-  document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active", t.dataset.tab===tab));
-  ["Today","Week","Month","Archive"].forEach(v=> document.getElementById("view"+v).style.display = "none");
-  const map = { today:"viewToday", week:"viewWeek", month:"viewMonth", archive:"viewArchive" };
-  document.getElementById(map[tab]).style.display = "block";
-  if(tab==="today") renderToday();
-  if(tab==="week") renderWeek();
-  if(tab==="month") renderMonth();
-  if(tab==="archive") renderArchive();
-}
-document.getElementById("tabs").addEventListener("click",(e)=>{
-  const tab = e.target.closest(".tab"); if(!tab) return; switchTab(tab.dataset.tab);
-});
-document.getElementById("monthLoadBtn").addEventListener("click", renderMonth);
-
-document.getElementById("monthSelect").innerHTML = MONTHS.map((m,i)=>`<option value="${m}" ${i===new Date().getMonth()?"selected":""}>${m[0].toUpperCase()+m.slice(1)}</option>`).join("");
-document.getElementById("yearInput").value = new Date().getFullYear();
-
-document.getElementById("pdfBtn").addEventListener("click", ()=> CW.showToast("PDF-отчёт сформирован (демо)"));
-document.getElementById("xlsxBtn").addEventListener("click", ()=> CW.showToast("XLSX-отчёт сформирован (демо)"));
-
-CW.renderSidebar("reports", {
-  branches: { "Северный":"СВ", "Южный":"ЮЖ" },
-  activeBranch: state.branch,
-  userName: "Ирина А.", userRole: "Владелец",
-  onBranchChange: (name)=>{ state.branch = name; switchTab(state.tab); renderAllBranches(); },
-  onLogout: ()=> CW.showToast("Демо-режим: выход не выполняется"),
-});
-document.getElementById("pageSub").textContent = `${state.branch} · ${CW.todayLabel()}`;
-switchTab("today");
-renderAllBranches();
 </script>
 </body>
 </html>

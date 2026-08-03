@@ -3,184 +3,673 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CarWash Cloud — Машины</title>
+<title>CarWash Cloud — машины</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<style>
+:root{
+  --bg:#0A0A0B;
+  --surface-0:#141414;
+  --surface-1:#1C1C1E;
+  --surface-2:#232325;
+  --surface-3:#2C2C2E;
+  --text:#FFFFFF;
+  --text-secondary:#AEAEB2;
+  --text-muted:#6C6C70;
+  --border:rgba(255,255,255,0.08);
+  --border-strong:rgba(255,255,255,0.14);
+  --accent:#007AFF;
+  --accent-tint:rgba(0,122,255,0.14);
+  --green:#34C759;
+  --green-tint:rgba(52,199,89,0.14);
+  --red:#FF3B30;
+  --red-tint:rgba(255,59,48,0.12);
+  --orange:#FF9F0A;
+  --orange-tint:rgba(255,159,10,0.14);
+  --purple:#BF5AF2;
+  --purple-tint:rgba(191,90,242,0.14);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display",Segoe UI,Roboto,sans-serif;
+  background:var(--bg); color:var(--text);
+  -webkit-font-smoothing:antialiased;
+}
+.shell{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
+/* Сайдбар (иконочный рейл) целиком стилизуется в site-theme.css. */
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-<link rel="stylesheet" href="css/theme.css">
+.main{padding:24px 32px 48px;max-width:1160px}
+.page-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px}
+.page-title{font-size:24px;font-weight:700;letter-spacing:-0.02em}
+.page-sub{font-size:13px;color:var(--text-secondary);margin-top:3px}
+.head-actions{display:flex;gap:8px}
+.btn{height:38px;padding:0 16px;border-radius:10px;border:none;font-family:inherit;font-size:13.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px}
+.btn.primary{background:var(--accent);color:#fff}
+.btn.secondary{background:var(--surface-1);color:var(--text);border:0.5px solid var(--border)}
+.btn.danger{background:var(--red-tint);color:var(--red)}
+.btn:disabled{opacity:.5;cursor:default}
+
+.panel{background:var(--surface-1);border:0.5px solid var(--border);border-radius:14px;overflow:hidden}
+.panel-head{display:flex;justify-content:space-between;align-items:center;padding:16px 18px 12px}
+.panel-title{font-size:14.5px;font-weight:700}
+
+table.data{width:100%;border-collapse:collapse}
+table.data th{text-align:left;font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.03em;padding:8px 18px;border-top:0.5px solid var(--border)}
+table.data td{padding:11px 18px;font-size:13.5px;border-top:0.5px solid var(--border);vertical-align:middle}
+table.data tr:hover td{background:var(--surface-2)}
+.pay-tag{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:600}
+.pay-tag.cash{background:var(--green-tint);color:var(--green)}
+.pay-tag.card{background:var(--accent-tint);color:var(--accent)}
+.pay-tag.transfer{background:var(--orange-tint);color:var(--orange)}
+.status-tag{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:7px;font-size:11.5px;font-weight:600;cursor:pointer;border:none;font-family:inherit}
+.status-tag.done{background:var(--green-tint);color:var(--green)}
+.status-tag.progress{background:var(--orange-tint);color:var(--orange)}
+.emp-cell{display:flex;align-items:center;gap:8px}
+.emp-dot{width:7px;height:7px;border-radius:50%}
+.row-actions{display:flex;gap:6px;justify-content:flex-end}
+.icon-btn{width:28px;height:28px;border-radius:8px;border:0.5px solid var(--border);background:var(--surface-2);color:var(--text-secondary);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.icon-btn:hover{color:var(--text);border-color:var(--border-strong)}
+.icon-btn.danger:hover{color:var(--red);border-color:var(--red)}
+
+.empty-note{padding:32px 18px;font-size:13px;color:var(--text-muted);text-align:center}
+.err-banner{background:var(--red-tint);color:var(--red);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:16px;display:none}
+
+/* modal */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
+.modal-bg.open{display:flex}
+.modal{width:500px;max-width:100%;max-height:90vh;overflow-y:auto;background:var(--surface-1);border:0.5px solid var(--border-strong);border-radius:18px;padding:24px}
+.modal::-webkit-scrollbar{width:6px}
+.modal::-webkit-scrollbar-thumb{background:var(--surface-3);border-radius:3px}
+.modal h2{font-size:18px;font-weight:700;margin-bottom:18px;letter-spacing:-0.01em}
+.field{margin-bottom:2px}
+.field label{font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;display:block;margin:14px 0 7px}
+.field input, .field select{width:100%;height:42px;border-radius:11px;background:var(--surface-2);border:0.5px solid var(--border-strong);color:var(--text);font-size:13.5px;padding:0 13px;font-family:inherit;transition:border-color .12s}
+.field input:focus, .field select:focus{outline:none;border-color:var(--accent)}
+.svc-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:7px;max-height:190px;overflow-y:auto;padding-right:2px}
+.svc-item{display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:10px;background:var(--surface-2);border:0.5px solid var(--border);font-size:12.5px;cursor:pointer;transition:.12s}
+.svc-item input{width:auto;height:auto;accent-color:var(--accent)}
+.svc-item.checked{border-color:var(--accent);background:var(--accent-tint);color:var(--accent)}
+.custom-svc-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.custom-svc-chip{display:flex;align-items:center;gap:7px;padding:6px 6px 6px 11px;border-radius:20px;background:var(--purple-tint);color:var(--purple);font-size:12px;font-weight:600}
+.custom-svc-chip .cc-x{width:17px;height:17px;border-radius:50%;background:rgba(139,92,246,.22);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:11px;flex-shrink:0}
+.custom-add-btn{width:100%;margin-top:8px;height:38px;border-radius:10px;background:var(--surface-2);border:1px dashed var(--border-strong);color:var(--text-secondary);font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px}
+.custom-add-btn:hover{border-color:var(--purple);color:var(--purple)}
+.custom-svc-form{display:none;margin-top:9px;padding:12px;border-radius:12px;background:var(--surface-2);border:0.5px solid var(--border-strong)}
+.custom-svc-form.open{display:block}
+.csf-row{margin-top:8px}
+.csf-row:first-child{margin-top:0}
+.csf-row-2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.custom-svc-form input{width:100%;height:38px;border-radius:9px;background:var(--surface-1);border:0.5px solid var(--border-strong);color:var(--text);font-size:12.5px;padding:0 10px;font-family:inherit}
+.custom-svc-form input:focus{outline:none;border-color:var(--accent)}
+.csf-actions{display:flex;gap:8px;margin-top:9px}
+.csf-actions .btn{flex:1;height:34px;justify-content:center;font-size:12px}
+.custom-svc-list{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.custom-svc-row{display:flex;align-items:center;gap:8px;padding:8px 11px;border-radius:10px;background:var(--purple-tint);border:0.5px solid rgba(139,92,246,.3);font-size:12.5px}
+.custom-svc-row .csr-name{flex:1;font-weight:600;color:var(--purple)}
+.custom-svc-row .csr-meta{font-size:11px;color:var(--text-secondary)}
+.custom-svc-row .csr-del{width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);cursor:pointer;flex-shrink:0}
+.custom-svc-row .csr-del:hover{color:var(--red)}
+.custom-add-btn{display:flex;align-items:center;gap:6px;margin-top:8px;padding:9px 11px;border-radius:10px;background:var(--surface-2);border:0.5px dashed var(--border-strong);font-size:12.5px;font-weight:600;color:var(--text-secondary);cursor:pointer;justify-content:center}
+.custom-add-btn:hover{color:var(--accent);border-color:var(--accent)}
+.custom-svc-form{display:none;margin-top:10px;padding:12px;border-radius:12px;background:var(--surface-2);border:0.5px solid var(--border-strong)}
+.custom-svc-form.open{display:block}
+.csf-row{margin-bottom:8px}
+.csf-row:last-child{margin-bottom:0}
+.csf-row input{width:100%;height:38px;border-radius:9px;background:var(--surface-1);border:0.5px solid var(--border-strong);color:var(--text);font-size:13px;padding:0 11px;font-family:inherit}
+.csf-row input:focus{outline:none;border-color:var(--accent)}
+.csf-row-2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.csf-actions{display:flex;gap:8px;margin-top:4px}
+.csf-actions .btn{flex:1;justify-content:center;height:36px;font-size:12.5px}
+.pay-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:7px}
+.pay-btn{height:40px;border-radius:11px;background:var(--surface-2);border:0.5px solid var(--border-strong);color:var(--text-secondary);font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit;transition:.12s}
+.pay-btn.active{background:var(--accent-tint);color:var(--accent);border-color:var(--accent)}
+.pay-btn:disabled{opacity:.4;cursor:default}
+.split-toggle-row{display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding:10px 12px;border-radius:11px;background:var(--surface-2);border:0.5px solid var(--border)}
+.split-toggle-row span{font-size:12.5px;color:var(--text-secondary);font-weight:600}
+.switch{position:relative;width:38px;height:22px;flex-shrink:0}
+.switch input{opacity:0;width:0;height:0}
+.switch .track{position:absolute;inset:0;background:var(--surface-3);border-radius:22px;cursor:pointer;transition:.15s}
+.switch .track:before{content:"";position:absolute;width:18px;height:18px;left:2px;top:2px;background:#fff;border-radius:50%;transition:.15s}
+.switch input:checked + .track{background:var(--accent)}
+.switch input:checked + .track:before{transform:translateX(16px)}
+.split-grid{display:none;margin-top:10px;gap:8px;flex-direction:column}
+.split-grid.open{display:flex}
+.split-row{display:flex;align-items:center;gap:10px}
+.split-row .split-label{width:70px;font-size:12.5px;font-weight:600;color:var(--text-secondary);flex-shrink:0}
+.split-row input{flex:1;height:38px;border-radius:10px;background:var(--surface-2);border:0.5px solid var(--border-strong);color:var(--text);font-size:13px;padding:0 11px;font-family:inherit}
+.split-row input:focus{outline:none;border-color:var(--accent)}
+.split-hint{font-size:11.5px;margin-top:6px;color:var(--text-muted)}
+.split-hint.bad{color:var(--red)}
+.split-hint.ok{color:var(--green)}
+.total-line{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:18px;padding-top:16px;border-top:0.5px solid var(--border)}
+.total-line > span:first-child{font-size:13.5px;font-weight:600;color:var(--text-secondary);flex-shrink:0}
+.total-input-wrap{display:flex;align-items:center;gap:8px;flex:1;justify-content:flex-end}
+.total-input-wrap input{width:140px;height:40px;border-radius:11px;background:var(--surface-2);border:0.5px solid var(--border-strong);color:var(--text);font-size:16px;font-weight:700;text-align:right;padding:0 12px;font-family:inherit}
+.total-input-wrap input:focus{outline:none;border-color:var(--accent)}
+.total-reset{font-size:11px;color:var(--accent);cursor:pointer;font-weight:600;white-space:nowrap;display:none}
+.total-reset.show{display:inline}
+.modal-actions{display:flex;gap:8px;margin-top:20px}
+.modal-actions .btn{flex:1;justify-content:center;height:42px}
+.modal-err{background:var(--red-tint);color:var(--red);font-size:12.5px;padding:10px 13px;border-radius:10px;margin-top:12px;display:none}
+</style>
+<link rel="stylesheet" href="/static/site-theme.css?v=studioblue2">
 </head>
 <body>
-
 <div class="shell">
   <div class="sidebar" id="sidebarRoot"></div>
 
   <div class="main">
+    <div class="err-banner" id="errBanner"></div>
+
     <div class="page-head">
       <div>
         <div class="page-title">Машины</div>
-        <div class="page-sub"><strong id="branchLabel">—</strong> · <span id="countLabel">—</span></div>
+        <div class="page-sub" id="pageSub">—</div>
       </div>
       <div class="head-actions">
-        <button class="btn btn-ghost" id="exportBtn"><i class="fa-solid fa-file-arrow-down"></i>Экспорт PDF</button>
-        <button class="btn btn-primary" id="addCarBtn"><i class="fa-solid fa-plus"></i>Добавить машину</button>
+        <button class="btn secondary" id="refreshBtn"><i class="ti ti-refresh"></i>Обновить</button>
+        <button class="btn primary" id="addCarBtn"><i class="ti ti-plus"></i>Добавить машину</button>
       </div>
     </div>
 
     <div class="panel">
       <div class="panel-head">
-        <div>
-          <div class="panel-title">Все машины</div>
-          <div class="panel-caption" id="tableCaption">—</div>
-        </div>
-        <div class="field" style="width:240px; margin:0;">
-          <input type="text" id="searchInput" placeholder="Поиск: клиент, авто, сотрудник...">
-        </div>
+        <div class="panel-title">Машины за смену</div>
       </div>
-
-      <div class="filter-chips" id="filterChips">
-        <button class="chip active" data-filter="all">Все</button>
-        <button class="chip" data-filter="cash">Наличные</button>
-        <button class="chip" data-filter="card">Visa/MIR</button>
-        <button class="chip" data-filter="transfer">Безнал</button>
-      </div>
-
-      <div class="table-scroll">
-        <table class="data" id="carsTable">
-          <tr><th>Клиент</th><th>Сотрудник</th><th>Услуга</th><th>Оплата</th><th style="text-align:right">Сумма</th></tr>
-        </table>
-      </div>
-      <div id="carsEmpty" class="empty-note" style="display:none">Ничего не найдено</div>
+      <table class="data" id="carsTable">
+        <tr><th>#</th><th>Клиент</th><th>Сотрудник</th><th>Услуга</th><th>Оплата</th><th>Статус</th><th style="text-align:right">Сумма</th><th></th></tr>
+      </table>
+      <div id="carsEmpty" class="empty-note" style="display:none">Машин за сегодня ещё нет</div>
     </div>
   </div>
 </div>
 
+<!-- Модалка добавления машины -->
 <div class="modal-bg" id="modalBg">
   <div class="modal">
-    <h3>Новая машина</h3>
-    <p class="modal-sub">Добавьте заезд — появится в таблице сразу.</p>
-    <form id="addCarForm">
-      <div class="field"><label>Клиент / авто</label><input type="text" id="fCar" placeholder="Toyota Camry, А123ВС" required></div>
-      <div class="field"><label>Сотрудник</label><select id="fEmployee"></select></div>
-      <div class="field"><label>Услуга</label>
-        <select id="fService">
-          <option>Комплекс</option><option>Экспресс-мойка</option><option>Химчистка салона</option><option>Полировка</option>
-        </select>
+    <h2 id="modalTitle">Добавить машину</h2>
+
+    <div class="field">
+      <label>Клиент / машина</label>
+      <input type="text" id="fCar" placeholder="Например, Lexus Дарья">
+    </div>
+
+    <div class="field">
+      <label>Тип кузова</label>
+      <select id="fBodyType"></select>
+    </div>
+
+    <div class="field">
+      <label>Сотрудник</label>
+      <select id="fEmployee"></select>
+    </div>
+
+    <div class="field">
+      <label>Услуги</label>
+      <div class="svc-grid" id="svcGrid"></div>
+      <div class="custom-svc-list" id="customSvcList"></div>
+      <div class="custom-add-btn" id="customAddBtn"><i class="ti ti-plus"></i>Другое (своя услуга)</div>
+      <div class="custom-svc-form" id="customSvcForm">
+        <div class="csf-row">
+          <input type="text" id="csName" placeholder="Название услуги">
+        </div>
+        <div class="csf-row csf-row-2">
+          <input type="number" id="csPrice" min="0" step="50" placeholder="Цена, ₽">
+          <input type="number" id="csPercent" min="0" max="100" step="1" placeholder="% мойщику">
+        </div>
+        <div class="csf-actions">
+          <button type="button" class="btn secondary" id="csCancel">Отмена</button>
+          <button type="button" class="btn primary" id="csAdd">Добавить</button>
+        </div>
       </div>
-      <div class="field"><label>Оплата</label>
-        <select id="fPayment">
-          <option value="cash">Наличные</option><option value="card">Visa / MIR</option><option value="transfer">Безнал</option>
-        </select>
+    </div>
+
+    <div class="field">
+      <label>Оплата</label>
+      <div class="pay-grid" id="payGrid"></div>
+      <div class="split-toggle-row">
+        <span>Раздельная оплата</span>
+        <label class="switch">
+          <input type="checkbox" id="fSplitToggle">
+          <span class="track"></span>
+        </label>
       </div>
-      <div class="field"><label>Сумма, ₽</label><input type="number" id="fPrice" placeholder="1200" min="0" required></div>
-      <div class="modal-actions">
-        <button type="button" class="btn btn-ghost" id="cancelModal">Отмена</button>
-        <button type="submit" class="btn btn-primary">Добавить</button>
+      <div class="split-grid" id="splitGrid"></div>
+      <div class="split-hint" id="splitHint"></div>
+    </div>
+
+    <div class="field">
+      <label>Комментарий (необязательно)</label>
+      <input type="text" id="fComment" placeholder="Например, скидка постоянному клиенту">
+    </div>
+
+    <div class="total-line">
+      <span>Итого</span>
+      <div class="total-input-wrap">
+        <span class="total-reset" id="totalReset">Сбросить</span>
+        <input type="number" id="fTotal" min="0" step="50">
       </div>
-    </form>
+    </div>
+
+    <div class="modal-err" id="modalErr"></div>
+
+    <div class="modal-actions">
+      <button class="btn secondary" id="cancelBtn">Отмена</button>
+      <button class="btn primary" id="saveBtn">Добавить</button>
+    </div>
   </div>
 </div>
 
-<div class="toast" id="toast"><i class="fa-solid fa-circle-check"></i><span id="toastText"></span></div>
-
-<script src="site-common.js"></script>
+<script src="/static/site-common.js"></script>
 <script>
-/* Демо-данные (в реальном проекте — ответ API, тот же массив что и в dashboard.html). */
-const BRANCHES = {
-  "Северный": {
-    label:"СВ", employees:["Данияр Т.","Марат С.","Алина К."],
-    cars:[
-      {car:"Camry, А123ВС", employee:"Данияр Т.", service:"Комплекс", payment:"cash", price:1800},
-      {car:"Solaris, В456КМ", employee:"Марат С.", service:"Экспресс-мойка", payment:"card", price:700},
-      {car:"X5, Е777АА", employee:"Алина К.", service:"Полировка", payment:"transfer", price:4200},
-      {car:"Rio, К321ОР", employee:"Данияр Т.", service:"Комплекс", payment:"cash", price:1800},
-      {car:"Tiguan, М555ТТ", employee:"Марат С.", service:"Химчистка салона", payment:"card", price:3500},
-      {car:"Vesta, О222НН", employee:"Алина К.", service:"Экспресс-мойка", payment:"cash", price:700},
-      {car:"Creta, Р888СС", employee:"Данияр Т.", service:"Комплекс", payment:"transfer", price:1800},
-    ],
-  },
-  "Южный": {
-    label:"ЮЖ", employees:["Бекзат Н.","Салтанат Е."],
-    cars:[
-      {car:"Logan, У111ВВ", employee:"Бекзат Н.", service:"Экспресс-мойка", payment:"cash", price:650},
-      {car:"Sportage, Т999ЕЕ", employee:"Салтанат Е.", service:"Комплекс", payment:"card", price:1700},
-      {car:"Duster, Н444КК", employee:"Бекзат Н.", service:"Комплекс", payment:"transfer", price:1700},
-    ],
-  },
-};
+if (CW.requireAuth()) {
+  CW.renderSidebar("cars");
 
-let state = { branch:"Северный", filter:"all", query:"" };
-
-function payTag(method){
-  if(method==="cash") return `<span class="pay-tag cash">Наличные</span>`;
-  if(method==="card") return `<span class="pay-tag card">Visa/MIR</span>`;
-  return `<span class="pay-tag transfer">Безнал</span>`;
-}
-
-function renderTable(){
-  const all = BRANCHES[state.branch].cars;
-  let filtered = state.filter==="all" ? all : all.filter(c=>c.payment===state.filter);
-  if(state.query){
-    const q = state.query.toLowerCase();
-    filtered = filtered.filter(c => (c.car+c.employee+c.service).toLowerCase().includes(q));
+  const empDotColors = ["#4E9BFF", "#3ED598", "#FFB648", "#A47CF3", "#FF6B8B", "#00C7BE"];
+  function empColor(name) {
+    let h = 0;
+    for (let i = 0; i < (name || "").length; i++) h = (h * 31 + name.charCodeAt(i)) % empDotColors.length;
+    return empDotColors[h];
   }
-  const table = document.getElementById("carsTable");
-  const empty = document.getElementById("carsEmpty");
-  document.getElementById("countLabel").textContent = `${all.length} машин всего`;
-  document.getElementById("tableCaption").textContent = `Показано ${filtered.length} из ${all.length}`;
+  function payTag(method) {
+    const m = (method || "").toLowerCase();
+    if (m.includes("виз") || m === "visa") return `<span class="pay-tag card">Visa</span>`;
+    if (m.includes("безнал") || m === "transfer") return `<span class="pay-tag transfer">Безнал</span>`;
+    if (m.includes("нал") || m === "cash") return `<span class="pay-tag cash">Нал</span>`;
+    return `<span class="pay-tag transfer">${method || "—"}</span>`;
+  }
 
-  if(!filtered.length){ table.style.display="none"; empty.style.display="block"; return; }
-  table.style.display="table"; empty.style.display="none";
-  const rows = filtered.slice().reverse().map(c=>`
-    <tr class="data-row">
-      <td class="strong">${c.car}</td>
-      <td><div class="emp-cell"><span class="emp-dot" style="background:${CW.empColor(c.employee)}">${CW.initials(c.employee)}</span>${c.employee}</div></td>
-      <td>${c.service}</td><td>${payTag(c.payment)}</td>
-      <td style="text-align:right" class="strong">${CW.money(c.price)}</td>
-    </tr>`).join("");
-  table.innerHTML = `<tr><th>Клиент</th><th>Сотрудник</th><th>Услуга</th><th>Оплата</th><th style="text-align:right">Сумма</th></tr>${rows}`;
-}
+  let cfg = null;
+  let workers = [];
+  let currentCars = [];
+  let editingNum = null;
+  const branch = CW.getActiveBranch();
 
-document.getElementById("filterChips").addEventListener("click",(e)=>{
-  const chip = e.target.closest(".chip"); if(!chip) return;
-  document.querySelectorAll("#filterChips .chip").forEach(c=>c.classList.remove("active"));
-  chip.classList.add("active"); state.filter = chip.dataset.filter; renderTable();
-});
-document.getElementById("searchInput").addEventListener("input",(e)=>{
-  state.query = e.target.value.trim(); renderTable();
-});
+  const errEl = document.getElementById("errBanner");
+  function showErr(msg) { errEl.textContent = msg; errEl.style.display = "block"; }
 
-function renderEmployeeSelect(){
-  document.getElementById("fEmployee").innerHTML = BRANCHES[state.branch].employees.map(e=>`<option>${e}</option>`).join("");
-}
+  if (!branch) {
+    showErr("Филиал не выбран. Выберите филиал в сайдбаре.");
+  } else {
+    document.getElementById("pageSub").textContent = `${branch} · ${CW.todayLabel()}`;
+    init();
+  }
 
-const modalBg = document.getElementById("modalBg");
-document.getElementById("addCarBtn").addEventListener("click", ()=> modalBg.classList.add("show"));
-document.getElementById("cancelModal").addEventListener("click", ()=> modalBg.classList.remove("show"));
-modalBg.addEventListener("click",(e)=>{ if(e.target===modalBg) modalBg.classList.remove("show"); });
-document.getElementById("addCarForm").addEventListener("submit",(e)=>{
-  e.preventDefault();
-  BRANCHES[state.branch].cars.push({
-    car: document.getElementById("fCar").value.trim() || "Без названия",
-    employee: document.getElementById("fEmployee").value,
-    service: document.getElementById("fService").value,
-    payment: document.getElementById("fPayment").value,
-    price: Number(document.getElementById("fPrice").value) || 0,
+  async function init() {
+    try {
+      cfg = await CW.authFetch("/api/config");
+      const w = await CW.authFetch(`/api/workers?branch=${encodeURIComponent(branch)}`);
+      workers = w.workers || [];
+    } catch (e) { showErr(e.message); return; }
+    buildForm();
+    await loadCars();
+  }
+
+  function buildForm() {
+    const bodyTypeSel = document.getElementById("fBodyType");
+    bodyTypeSel.innerHTML = cfg.body_types.map(b => `<option value="${b.key}">${b.name}</option>`).join("");
+    bodyTypeSel.addEventListener("change", updateTotal);
+
+    const empSel = document.getElementById("fEmployee");
+    empSel.innerHTML = workers.length
+      ? workers.map(w => `<option value="${w}">${w}</option>`).join("")
+      : `<option value="">Нет сотрудников — добавьте на странице «Сотрудники»</option>`;
+
+    const svcGrid = document.getElementById("svcGrid");
+    svcGrid.innerHTML = cfg.services.map(s => `
+      <label class="svc-item" data-key="${s.key}">
+        <input type="checkbox" value="${s.key}"> ${s.name}
+      </label>
+    `).join("");
+    svcGrid.querySelectorAll(".svc-item").forEach(el => {
+      el.addEventListener("click", (e) => {
+        if (e.target.tagName !== "INPUT") {
+          const cb = el.querySelector("input");
+          cb.checked = !cb.checked;
+        }
+        el.classList.toggle("checked", el.querySelector("input").checked);
+        updateTotal();
+      });
+    });
+
+    const payGrid = document.getElementById("payGrid");
+    payGrid.innerHTML = cfg.payment_types.map(p => `<button type="button" class="pay-btn" data-pay="${p}">${p[0].toUpperCase() + p.slice(1)}</button>`).join("");
+    payGrid.querySelectorAll(".pay-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        payGrid.querySelectorAll(".pay-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+      });
+    });
+    if (payGrid.firstElementChild) payGrid.firstElementChild.classList.add("active");
+
+    const splitGrid = document.getElementById("splitGrid");
+    splitGrid.innerHTML = cfg.payment_types.map(p => `
+      <div class="split-row">
+        <div class="split-label">${p[0].toUpperCase() + p.slice(1)}</div>
+        <input type="number" min="0" step="50" data-split="${p}" placeholder="0">
+      </div>
+    `).join("");
+    splitGrid.querySelectorAll("input").forEach(i => i.addEventListener("input", updateSplitHint));
+
+    document.getElementById("fSplitToggle").addEventListener("change", (e) => {
+      const on = e.target.checked;
+      splitGrid.classList.toggle("open", on);
+      payGrid.querySelectorAll(".pay-btn").forEach(b => b.disabled = on);
+      if (on) {
+        // по умолчанию кладём всю сумму в первый способ оплаты
+        splitGrid.querySelectorAll("input").forEach(i => i.value = "");
+        const first = splitGrid.querySelector("input");
+        if (first) first.value = parseInt(document.getElementById("fTotal").value) || 0;
+      }
+      updateSplitHint();
+    });
+  }
+
+  function updateSplitHint() {
+    const hint = document.getElementById("splitHint");
+    if (!document.getElementById("fSplitToggle").checked) { hint.textContent = ""; return; }
+    const total = parseInt(document.getElementById("fTotal").value) || 0;
+    const sum = Array.from(document.querySelectorAll("#splitGrid input")).reduce((s, i) => s + (parseInt(i.value) || 0), 0);
+    if (sum === total) {
+      hint.textContent = `Сумма сходится: ${CW.money(sum)}`;
+      hint.className = "split-hint ok";
+    } else {
+      hint.textContent = `Введено ${CW.money(sum)} из ${CW.money(total)} — суммы должны совпадать`;
+      hint.className = "split-hint bad";
+    }
+  }
+
+  function getSplitPayload() {
+    if (!document.getElementById("fSplitToggle").checked) return null;
+    const out = {};
+    document.querySelectorAll("#splitGrid input").forEach(i => {
+      const v = parseInt(i.value) || 0;
+      if (v > 0) out[i.dataset.split] = v;
+    });
+    return out;
+  }
+
+  function selectedServiceKeys() {
+    return Array.from(document.querySelectorAll("#svcGrid input:checked")).map(i => i.value);
+  }
+
+  function servicePrice(svcKey, bodyType) {
+    const svc = cfg.services.find(s => s.key === svcKey);
+    if (!svc) return 0;
+    return svc.prices[bodyType] ?? Object.values(svc.prices)[0] ?? 0;
+  }
+
+  let manualPriceEdited = false;
+  let customServices = []; // [{name, price, percent}] percent 0-100
+
+  function renderCustomChips() {
+    const list = document.getElementById("customSvcList");
+    list.innerHTML = customServices.map((c, i) => `
+      <div class="custom-svc-chip">
+        ${c.name} · ${c.price}₽ · ${c.percent}%
+        <span class="cc-x" data-idx="${i}">✕</span>
+      </div>
+    `).join("");
+    list.querySelectorAll(".cc-x").forEach(x => {
+      x.addEventListener("click", () => {
+        customServices.splice(parseInt(x.dataset.idx), 1);
+        renderCustomChips();
+        updateTotal();
+      });
+    });
+  }
+
+  document.getElementById("customAddBtn").addEventListener("click", () => {
+    document.getElementById("csName").value = "";
+    document.getElementById("csPrice").value = "";
+    document.getElementById("csPercent").value = "";
+    document.getElementById("customSvcForm").classList.add("open");
   });
-  modalBg.classList.remove("show"); document.getElementById("addCarForm").reset();
-  renderTable(); CW.showToast("Машина добавлена");
-});
-document.getElementById("exportBtn").addEventListener("click", ()=> CW.showToast("PDF-отчёт сформирован (демо)"));
+  document.getElementById("csCancel").addEventListener("click", () => {
+    document.getElementById("customSvcForm").classList.remove("open");
+  });
+  document.getElementById("csAdd").addEventListener("click", () => {
+    const name = document.getElementById("csName").value.trim();
+    const price = parseInt(document.getElementById("csPrice").value);
+    const percent = parseInt(document.getElementById("csPercent").value);
+    if (!name) { alert("Укажите название услуги"); return; }
+    if (isNaN(price) || price < 0) { alert("Укажите корректную цену"); return; }
+    if (isNaN(percent) || percent < 0 || percent > 100) { alert("Процент сотруднику — от 0 до 100"); return; }
+    customServices.push({ name, price, percent });
+    renderCustomChips();
+    document.getElementById("customSvcForm").classList.remove("open");
+    updateTotal();
+  });
 
-document.getElementById("branchLabel").textContent = state.branch;
-CW.renderSidebar("cars", {
-  branches: { "Северный":"СВ", "Южный":"ЮЖ" },
-  activeBranch: state.branch,
-  userName: "Ирина А.", userRole: "Владелец",
-  onBranchChange: (name)=>{ state.branch = name; document.getElementById("branchLabel").textContent = name; renderEmployeeSelect(); renderTable(); },
-  onLogout: ()=> CW.showToast("Демо-режим: выход не выполняется"),
-});
-renderEmployeeSelect();
-renderTable();
+  function calcPrice() {
+    const bodyType = document.getElementById("fBodyType").value;
+    const svcSum = selectedServiceKeys().reduce((sum, k) => sum + servicePrice(k, bodyType), 0);
+    const customSum = customServices.reduce((sum, c) => sum + c.price, 0);
+    return svcSum + customSum;
+  }
+
+  function updateTotal() {
+    const totalInput = document.getElementById("fTotal");
+    if (!manualPriceEdited) {
+      totalInput.value = calcPrice();
+    }
+    document.getElementById("totalReset").classList.toggle("show", manualPriceEdited && parseInt(totalInput.value) !== calcPrice());
+    updateSplitHint();
+  }
+
+  const fTotalInput = document.getElementById("fTotal");
+  fTotalInput.addEventListener("input", () => {
+    manualPriceEdited = true;
+    document.getElementById("totalReset").classList.toggle("show", parseInt(fTotalInput.value) !== calcPrice());
+    updateSplitHint();
+  });
+  document.getElementById("totalReset").addEventListener("click", () => {
+    manualPriceEdited = false;
+    updateTotal();
+  });
+
+  function openModal(car) {
+    editingNum = car ? car.num : null;
+    document.getElementById("modalTitle").textContent = car ? `Редактировать машину #${car.num}` : "Добавить машину";
+    document.getElementById("saveBtn").textContent = car ? "Сохранить" : "Добавить";
+    document.getElementById("modalErr").style.display = "none";
+    document.getElementById("fCar").value = car ? (car.car || "") : "";
+    document.getElementById("fComment").value = car ? (car.comment || "") : "";
+
+    document.getElementById("fBodyType").value = car ? car.body_type : document.getElementById("fBodyType").value;
+    document.getElementById("fEmployee").value = car ? car.employee : document.getElementById("fEmployee").value;
+
+    const carServiceKeys = car ? (car.service_keys || []) : [];
+    document.querySelectorAll("#svcGrid input").forEach(i => {
+      const checked = carServiceKeys.includes(i.value);
+      i.checked = checked;
+      i.closest(".svc-item").classList.toggle("checked", checked);
+    });
+
+    customServices = car && car.custom_services
+      ? car.custom_services.map(c => ({ name: c.name, price: c.price, percent: Math.round(c.percent <= 1 ? c.percent * 100 : c.percent) }))
+      : [];
+    document.getElementById("customSvcForm").classList.remove("open");
+    renderCustomChips();
+
+    const payGrid = document.getElementById("payGrid");
+    payGrid.querySelectorAll(".pay-btn").forEach(b => { b.classList.remove("active"); b.disabled = false; });
+    const payToMatch = car ? (car.payment_split ? Object.keys(car.payment_split)[0] : car.payment) : null;
+    const matchBtn = payToMatch && Array.from(payGrid.children).find(b => b.dataset.pay === payToMatch);
+    (matchBtn || payGrid.firstElementChild)?.classList.add("active");
+
+    // раздельная оплата
+    const splitToggle = document.getElementById("fSplitToggle");
+    const splitGrid = document.getElementById("splitGrid");
+    document.querySelectorAll("#splitGrid input").forEach(i => i.value = "");
+    if (car && car.payment_split) {
+      splitToggle.checked = true;
+      splitGrid.classList.add("open");
+      payGrid.querySelectorAll(".pay-btn").forEach(b => b.disabled = true);
+      Object.entries(car.payment_split).forEach(([method, amount]) => {
+        const input = splitGrid.querySelector(`input[data-split="${method}"]`);
+        if (input) input.value = amount;
+      });
+    } else {
+      splitToggle.checked = false;
+      splitGrid.classList.remove("open");
+    }
+
+    // ручная цена
+    manualPriceEdited = !!(car && car.price_override != null);
+    if (car) {
+      document.getElementById("fTotal").value = car.price;
+    }
+    updateTotal();
+    if (car) document.getElementById("fTotal").value = car.price; // updateTotal мог перезаписать при manualPriceEdited=false
+
+    document.getElementById("modalBg").classList.add("open");
+  }
+
+  function closeModal() {
+    document.getElementById("modalBg").classList.remove("open");
+    editingNum = null;
+    manualPriceEdited = false;
+  }
+
+  window.CW_editCar = (num) => {
+    const car = currentCars.find(c => c.num === num);
+    if (car) openModal(car);
+  };
+
+  document.getElementById("addCarBtn").addEventListener("click", () => {
+    if (!branch) { showErr("Сначала выберите филиал"); return; }
+    if (!workers.length) { showErr("Сначала добавьте сотрудников на странице «Сотрудники»"); return; }
+    openModal();
+  });
+  document.getElementById("cancelBtn").addEventListener("click", closeModal);
+  document.getElementById("refreshBtn").addEventListener("click", loadCars);
+
+  document.getElementById("saveBtn").addEventListener("click", async () => {
+    const modalErr = document.getElementById("modalErr");
+    modalErr.style.display = "none";
+
+    const employee = document.getElementById("fEmployee").value;
+    const bodyType = document.getElementById("fBodyType").value;
+    const serviceKeys = selectedServiceKeys();
+    const payBtn = document.querySelector("#payGrid .pay-btn.active");
+    const payment = payBtn ? payBtn.dataset.pay : "";
+    const total = parseInt(document.getElementById("fTotal").value) || 0;
+    const split = getSplitPayload();
+
+    if (!employee) { modalErr.textContent = "Выберите сотрудника"; modalErr.style.display = "block"; return; }
+    if (!serviceKeys.length && !customServices.length) { modalErr.textContent = "Выберите хотя бы одну услугу"; modalErr.style.display = "block"; return; }
+    if (!payment) { modalErr.textContent = "Выберите способ оплаты"; modalErr.style.display = "block"; return; }
+    if (total < 0) { modalErr.textContent = "Итоговая сумма не может быть отрицательной"; modalErr.style.display = "block"; return; }
+    if (split) {
+      const sum = Object.values(split).reduce((a, b) => a + b, 0);
+      if (sum !== total) {
+        modalErr.textContent = `Сумма раздельной оплаты (${sum}₽) не совпадает с итогом (${total}₽)`;
+        modalErr.style.display = "block";
+        return;
+      }
+      if (!Object.keys(split).length) {
+        modalErr.textContent = "Укажите суммы для раздельной оплаты хотя бы в одном способе";
+        modalErr.style.display = "block";
+        return;
+      }
+    }
+
+    const saveBtn = document.getElementById("saveBtn");
+    saveBtn.disabled = true;
+    try {
+      const payload = {
+        employee, body_type: bodyType,
+        service_keys: serviceKeys, custom_services: customServices,
+        car: document.getElementById("fCar").value.trim(),
+        payment, payment_split: split,
+        comment: document.getElementById("fComment").value.trim(),
+      };
+      if (manualPriceEdited && total !== calcPrice()) {
+        payload.price_override = total;
+      }
+      if (editingNum) {
+        if (!manualPriceEdited) payload.clear_price_override = true;
+        await CW.authFetch(`/api/car/${encodeURIComponent(branch)}/${editingNum}`, {
+          method: "PUT", body: JSON.stringify(payload),
+        });
+      } else {
+        await CW.authFetch("/api/car", {
+          method: "POST", body: JSON.stringify({ branch, ...payload }),
+        });
+      }
+      closeModal();
+      await loadCars();
+    } catch (e) {
+      modalErr.textContent = e.message;
+      modalErr.style.display = "block";
+    } finally {
+      saveBtn.disabled = false;
+    }
+  });
+
+  async function toggleStatus(num, current) {
+    const next = current === "done" ? "in_progress" : "done";
+    try {
+      await CW.authFetch(`/api/car/${encodeURIComponent(branch)}/${num}/status`, {
+        method: "PATCH", body: JSON.stringify({ status: next }),
+      });
+      await loadCars();
+    } catch (e) { showErr(e.message); }
+  }
+
+  async function deleteCar(num) {
+    if (!confirm("Удалить машину из смены?")) return;
+    try {
+      await CW.authFetch(`/api/car/${encodeURIComponent(branch)}/${num}`, { method: "DELETE" });
+      await loadCars();
+    } catch (e) { showErr(e.message); }
+  }
+  window.CW_toggleStatus = toggleStatus;
+  window.CW_deleteCar = deleteCar;
+
+  async function loadCars() {
+    if (!branch) return;
+    errEl.style.display = "none";
+    try {
+      const data = await CW.authFetch(`/api/session?branch=${encodeURIComponent(branch)}`);
+      const cars = (data.session && data.session.cars) || [];
+      currentCars = cars;
+      const table = document.getElementById("carsTable");
+      const empty = document.getElementById("carsEmpty");
+      if (!cars.length) {
+        table.style.display = "none";
+        empty.style.display = "block";
+        return;
+      }
+      table.style.display = "table";
+      empty.style.display = "none";
+      const rows = cars.slice().reverse().map(c => `
+        <tr>
+          <td>${c.num}</td>
+          <td>${c.car || "—"}</td>
+          <td><div class="emp-cell"><span class="emp-dot" style="background:${empColor(c.employee || "")}"></span>${c.employee || "—"}</div></td>
+          <td>${c.service || "—"}</td>
+          <td>${payTag(c.payment_split ? Object.keys(c.payment_split)[0] : c.payment)}</td>
+          <td>
+            <button class="status-tag ${c.status === "done" ? "done" : "progress"}" onclick="CW_toggleStatus(${c.num}, '${c.status}')">
+              <i class="ti ${c.status === "done" ? "ti-check" : "ti-clock"}"></i>${c.status === "done" ? "Оплачено" : "В работе"}
+            </button>
+          </td>
+          <td style="text-align:right;font-weight:600">${CW.money(c.price)}</td>
+          <td>
+            <div class="row-actions">
+              <div class="icon-btn" title="Редактировать" onclick="CW_editCar(${c.num})"><i class="ti ti-pencil"></i></div>
+              <div class="icon-btn danger" onclick="CW_deleteCar(${c.num})"><i class="ti ti-trash"></i></div>
+            </div>
+          </td>
+        </tr>
+      `).join("");
+      table.innerHTML = `<tr><th>#</th><th>Клиент</th><th>Сотрудник</th><th>Услуга</th><th>Оплата</th><th>Статус</th><th style="text-align:right">Сумма</th><th></th></tr>${rows}`;
+    } catch (e) {
+      showErr(e.message);
+    }
+  }
+}
 </script>
 </body>
 </html>
