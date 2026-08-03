@@ -4,7 +4,7 @@ load_dotenv()
 
 TOKEN     = os.getenv("BOT_TOKEN")
 OWNER_ID  = int(os.getenv("OWNER_ID", "485678784"))
-PROXY_URL = os.getenv("PROXY_URL", "http://127.0.0.1:10809").strip()
+PROXY_URL = os.getenv("PROXY_URL", "").strip()
 
 # ── ФИЛИАЛЫ ────────────────────────────────────────────────────────────────
 # Реальные админы филиалов и список сотрудников хранятся в branches_config.json
