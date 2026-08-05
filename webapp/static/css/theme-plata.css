@@ -229,6 +229,8 @@ table.data tr:hover td{background:var(--paper-2)}
 .list-row{display:flex;align-items:center;gap:10px;padding:12px 20px;border-top:1px solid var(--line)}
 .list-row:first-child{border-top:none}
 .list-name{flex:1;font-size:13.5px}
+.list-info .list-name{flex:none;font-weight:600}
+.list-meta{font-size:11.5px;color:var(--muted);margin-top:1px}
 .list-pay{margin-right:2px}
 .list-amount{font-size:14px;font-weight:700;font-family:var(--font-display)}
 .list-amount.neg{color:var(--red)}
@@ -476,3 +478,19 @@ table.data td.num,table.data th.num{text-align:right}
   .stat-row{grid-template-columns:1fr 1fr}
   .main{padding:22px 18px 48px}
 }
+
+/* ============================================================
+   Merge-доп: элементы, которых не было в визуальном макете
+   «Plata», но нужны для реального функционала сайта — выбор
+   активного филиала (для владельца) и разделители групп пунктов
+   меню. Стилистика продолжает язык .rail/.rail-item выше.
+   ============================================================ */
+.rail-branch{
+  width:40px;height:40px;border-radius:12px;background:rgba(255,255,255,.08);
+  color:#fff;display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:700;letter-spacing:.02em;margin-bottom:14px;
+  flex-shrink:0;cursor:pointer;position:relative;font-family:var(--font-display);
+  transition:background .15s;
+}
+.rail-branch:hover{background:rgba(255,255,255,.14)}
+.rail-div{width:26px;height:1px;background:rgba(255,255,255,.14);margin:6px 0;flex-shrink:0}
