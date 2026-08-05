@@ -3,121 +3,22 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CarWash Cloud — сотрудники</title>
+<title>CarWash Cloud — Сотрудники</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
-<style>
-:root{
-  --bg:#0A0A0B;
-  --surface-0:#141414;
-  --surface-1:#1C1C1E;
-  --surface-2:#232325;
-  --surface-3:#2C2C2E;
-  --text:#FFFFFF;
-  --text-secondary:#AEAEB2;
-  --text-muted:#6C6C70;
-  --border:rgba(255,255,255,0.08);
-  --border-strong:rgba(255,255,255,0.14);
-  --accent:#007AFF;
-  --accent-tint:rgba(0,122,255,0.14);
-  --green:#34C759;
-  --green-tint:rgba(52,199,89,0.14);
-  --red:#FF3B30;
-  --red-tint:rgba(255,59,48,0.12);
-  --orange:#FF9F0A;
-  --orange-tint:rgba(255,159,10,0.14);
-  --purple:#BF5AF2;
-  --purple-tint:rgba(191,90,242,0.14);
-}
-*{box-sizing:border-box;margin:0;padding:0}
-body{
-  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display",Segoe UI,Roboto,sans-serif;
-  background:var(--bg); color:var(--text);
-  -webkit-font-smoothing:antialiased;
-}
-.shell{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
-/* Сайдбар (иконочный рейл) целиком стилизуется в site-theme.css. */
-
-.main{padding:24px 32px 48px;max-width:1160px}
-.page-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px}
-.page-title{font-size:24px;font-weight:700;letter-spacing:-0.02em}
-.page-sub{font-size:13px;color:var(--text-secondary);margin-top:3px}
-.head-actions{display:flex;gap:8px}
-.btn{height:38px;padding:0 16px;border-radius:10px;border:none;font-family:inherit;font-size:13.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px}
-.btn.primary{background:var(--accent);color:#fff}
-.btn.secondary{background:var(--surface-1);color:var(--text);border:0.5px solid var(--border)}
-.btn.danger{background:var(--red);color:#fff}
-.btn:disabled{opacity:.5;cursor:default}
-
-.err-banner{background:var(--red-tint);color:var(--red);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:16px;display:none}
-
-.panel{background:var(--surface-1);border:0.5px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:16px}
-.panel-head{display:flex;justify-content:space-between;align-items:center;padding:16px 18px 12px}
-.panel-title{font-size:14.5px;font-weight:700}
-.panel-sub{font-size:12px;color:var(--text-muted);margin-top:2px}
-
-.worker-row{display:flex;align-items:center;gap:12px;padding:13px 18px;border-top:0.5px solid var(--border)}
-.worker-row:first-child{border-top:none}
-.worker-av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:700;flex-shrink:0;background:var(--accent-tint);color:var(--accent)}
-.worker-info{flex:1;min-width:0}
-.worker-name{font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:8px}
-.worker-meta{font-size:11.5px;color:var(--text-muted);margin-top:2px}
-.tag{display:inline-block;padding:2px 8px;border-radius:6px;font-size:10.5px;font-weight:700;letter-spacing:.02em}
-.tag.working{background:var(--green-tint);color:var(--green)}
-.tag.resting{background:var(--red-tint);color:var(--red)}
-.tag.noschedule{background:var(--surface-2);color:var(--text-muted)}
-.tag.rate{background:var(--orange-tint);color:var(--orange)}
-.icon-btn.rate-active{background:var(--orange-tint);color:var(--orange);border-color:var(--orange)}
-.tag.admin{background:var(--purple-tint);color:var(--purple)}
-.worker-actions{display:flex;gap:6px;flex-shrink:0}
-.icon-btn{width:30px;height:30px;border-radius:9px;border:0.5px solid var(--border);background:var(--surface-2);color:var(--text-secondary);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
-.icon-btn:hover{color:var(--accent);border-color:var(--accent)}
-.icon-btn.del:hover{color:var(--red);border-color:var(--red)}
-.empty-note{padding:24px 18px;font-size:13px;color:var(--text-muted);text-align:center}
-
-.add-row{display:flex;gap:8px;padding:12px 18px;border-top:0.5px solid var(--border)}
-.add-row input, .add-row select{height:36px;border-radius:9px;background:var(--surface-2);border:0.5px solid var(--border-strong);color:var(--text);font-size:13px;padding:0 10px;font-family:inherit}
-.add-row .f-name{flex:1}
-.add-row button{width:36px;border-radius:9px;border:none;background:var(--accent);color:#fff;cursor:pointer;flex-shrink:0}
-
-/* Week schedule table */
-table.week{width:100%;border-collapse:collapse}
-table.week th{text-align:center;font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.03em;padding:8px 6px;border-top:0.5px solid var(--border)}
-table.week th:first-child{text-align:left;padding-left:18px}
-table.week td{padding:9px 6px;font-size:12.5px;border-top:0.5px solid var(--border);text-align:center}
-table.week td:first-child{text-align:left;padding-left:18px;font-weight:600}
-.wk-cell{display:inline-flex;width:24px;height:24px;border-radius:7px;align-items:center;justify-content:center;font-size:11px}
-.wk-cell.on{background:var(--green-tint);color:var(--green)}
-.wk-cell.off{background:var(--surface-2);color:var(--text-muted)}
-
-/* Modal */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;z-index:50}
-.modal-overlay.show{display:flex}
-.modal{background:var(--surface-1);border:0.5px solid var(--border-strong);border-radius:16px;padding:22px;width:360px;max-width:92vw}
-.modal h3{font-size:15px;font-weight:700;margin-bottom:14px}
-.modal .f-group{margin-bottom:12px}
-.modal label{font-size:11.5px;color:var(--text-muted);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.03em}
-.modal input, .modal select{width:100%;height:38px;border-radius:9px;background:var(--surface-2);border:0.5px solid var(--border-strong);color:var(--text);font-size:13.5px;padding:0 10px;font-family:inherit}
-.modal .row2{display:flex;gap:10px}
-.modal .row2 > div{flex:1}
-.modal-actions{display:flex;gap:8px;margin-top:16px}
-.modal-actions .btn{flex:1;justify-content:center}
-</style>
-<link rel="stylesheet" href="/static/site-theme.css?v=studioblue2">
+<link rel="stylesheet" href="css/theme-plata.css">
 </head>
 <body>
 <div class="shell">
-  <div class="sidebar" id="sidebarRoot"></div>
+  <div class="rail" id="railRoot"></div>
 
   <div class="main">
-    <div class="err-banner" id="errBanner"></div>
-
     <div class="page-head">
       <div>
         <div class="page-title">Сотрудники</div>
-        <div class="page-sub" id="pageSub">—</div>
+        <div class="page-sub">Мойка на Ленина, 12 · сегодня, 5 августа</div>
       </div>
       <div class="head-actions">
-        <button class="btn secondary" id="refreshBtn"><i class="ti ti-refresh"></i>Обновить</button>
+        <button class="btn secondary"><i class="ti ti-refresh"></i>Обновить</button>
       </div>
     </div>
 
@@ -128,11 +29,63 @@ table.week td:first-child{text-align:left;padding-left:18px;font-weight:600}
           <div class="panel-sub">Список сотрудников филиала и их график работы</div>
         </div>
       </div>
-      <div id="workerList"></div>
-      <div id="workerEmpty" class="empty-note" style="display:none">Сотрудников пока нет — добавьте первого ниже</div>
-      <div class="add-row" id="addWorkerRow">
-        <input class="f-name" id="wName" type="text" placeholder="Имя сотрудника">
-        <button id="wAddBtn"><i class="ti ti-plus"></i></button>
+      <div>
+        <div class="worker-row">
+          <div class="worker-av" style="background:#FF500026;color:#FF5000">ДН</div>
+          <div class="worker-info">
+            <div class="worker-name">Даниил <span class="tag working">на смене</span> <span class="tag rate">40% ставка</span></div>
+            <div class="worker-meta">Работает 3 дня / отдыхает 1 · цикл с 3 августа</div>
+          </div>
+          <div class="worker-actions">
+            <div class="icon-btn" title="Ставка"><i class="ti ti-percentage"></i></div>
+            <div class="icon-btn" title="График" onclick="openModal('schedModal')"><i class="ti ti-calendar"></i></div>
+            <div class="icon-btn" title="Зарплата" onclick="openSalary('Даниил')"><i class="ti ti-wallet"></i></div>
+            <div class="icon-btn danger" title="Удалить"><i class="ti ti-trash"></i></div>
+          </div>
+        </div>
+        <div class="worker-row">
+          <div class="worker-av" style="background:#1B8A5726;color:#1B8A57">МР</div>
+          <div class="worker-info">
+            <div class="worker-name">Марат <span class="tag working">на смене</span> <span class="tag rate">35% ставка</span></div>
+            <div class="worker-meta">Работает 2 дня / отдыхает 2 · цикл с 4 августа</div>
+          </div>
+          <div class="worker-actions">
+            <div class="icon-btn" title="Ставка"><i class="ti ti-percentage"></i></div>
+            <div class="icon-btn" title="График" onclick="openModal('schedModal')"><i class="ti ti-calendar"></i></div>
+            <div class="icon-btn" title="Зарплата" onclick="openSalary('Марат')"><i class="ti ti-wallet"></i></div>
+            <div class="icon-btn danger" title="Удалить"><i class="ti ti-trash"></i></div>
+          </div>
+        </div>
+        <div class="worker-row">
+          <div class="worker-av" style="background:#7A5CFF26;color:#7A5CFF">ИР</div>
+          <div class="worker-info">
+            <div class="worker-name">Ирина <span class="tag resting">выходной</span> <span class="tag rate">30% ставка</span></div>
+            <div class="worker-meta">Работает 5 дней / отдыхает 2 · цикл с 1 августа</div>
+          </div>
+          <div class="worker-actions">
+            <div class="icon-btn" title="Ставка"><i class="ti ti-percentage"></i></div>
+            <div class="icon-btn" title="График" onclick="openModal('schedModal')"><i class="ti ti-calendar"></i></div>
+            <div class="icon-btn" title="Зарплата" onclick="openSalary('Ирина')"><i class="ti ti-wallet"></i></div>
+            <div class="icon-btn danger" title="Удалить"><i class="ti ti-trash"></i></div>
+          </div>
+        </div>
+        <div class="worker-row">
+          <div class="worker-av" style="background:#0D0D0D14;color:#0D0D0D">ПВ</div>
+          <div class="worker-info">
+            <div class="worker-name">Павел <span class="tag noschedule">график не задан</span></div>
+            <div class="worker-meta">Ставка не задана</div>
+          </div>
+          <div class="worker-actions">
+            <div class="icon-btn" title="Ставка"><i class="ti ti-percentage"></i></div>
+            <div class="icon-btn" title="График" onclick="openModal('schedModal')"><i class="ti ti-calendar"></i></div>
+            <div class="icon-btn" title="Зарплата" onclick="openSalary('Павел')"><i class="ti ti-wallet"></i></div>
+            <div class="icon-btn danger" title="Удалить"><i class="ti ti-trash"></i></div>
+          </div>
+        </div>
+      </div>
+      <div class="add-row">
+        <input class="f-name" type="text" placeholder="Имя сотрудника">
+        <button><i class="ti ti-plus"></i></button>
       </div>
     </div>
 
@@ -140,28 +93,44 @@ table.week td:first-child{text-align:left;padding-left:18px;font-weight:600}
       <div class="panel-head">
         <div>
           <div class="panel-title">Администраторы</div>
-          <div class="panel-sub" id="adminsSub">—</div>
+          <div class="panel-sub">Дежурят по очереди, получают % от оборота смены</div>
         </div>
-        <button class="btn secondary" id="adminHistBtn" style="height:32px;padding:0 12px;font-size:12px"><i class="ti ti-history"></i>История зарплаты</button>
+        <button class="btn secondary" style="height:34px;padding:0 14px;font-size:12px" onclick="openModal('adminHistModal')"><i class="ti ti-history"></i>История зарплаты</button>
       </div>
-      <div id="adminsList"></div>
-      <div id="adminsEmpty" class="empty-note" style="display:none">Администраторов пока нет — добавьте первого ниже</div>
-      <div class="add-row" id="addAdminRow">
-        <input class="f-name" id="aName" type="text" placeholder="Имя администратора">
-        <button id="aAddBtn"><i class="ti ti-plus"></i></button>
+      <div>
+        <div class="worker-row">
+          <div class="worker-av" style="background:#0D0D0D14;color:#0D0D0D">АД</div>
+          <div class="worker-info">
+            <div class="worker-name">Администратор <span class="tag admin">2% от оборота</span></div>
+            <div class="worker-meta">Дежурит сегодня</div>
+          </div>
+          <div class="worker-actions">
+            <div class="icon-btn" title="Зарплата" onclick="openSalary('Администратор')"><i class="ti ti-wallet"></i></div>
+            <div class="icon-btn danger" title="Удалить"><i class="ti ti-trash"></i></div>
+          </div>
+        </div>
+      </div>
+      <div class="add-row">
+        <input class="f-name" type="text" placeholder="Имя администратора">
+        <button><i class="ti ti-plus"></i></button>
       </div>
     </div>
 
-    <div class="panel" id="adminPanel" style="display:none">
+    <div class="panel">
       <div class="panel-head">
         <div>
           <div class="panel-title">Доступ в Telegram-боте</div>
-          <div class="panel-sub" id="adminSub">—</div>
+          <div class="panel-sub">Кто сейчас может отмечать машины в боте от имени филиала</div>
         </div>
       </div>
       <div class="add-row" style="border-top:none">
-        <select id="adminSelect" style="flex:1"></select>
-        <button id="adminSetBtn"><i class="ti ti-check"></i></button>
+        <select style="flex:1">
+          <option>Даниил</option>
+          <option>Марат</option>
+          <option>Ирина</option>
+          <option>Администратор</option>
+        </select>
+        <button><i class="ti ti-check"></i></button>
       </div>
     </div>
 
@@ -169,528 +138,99 @@ table.week td:first-child{text-align:left;padding-left:18px;font-weight:600}
       <div class="panel-head">
         <div>
           <div class="panel-title">График на неделю</div>
-          <div class="panel-sub" id="weekSub">—</div>
+          <div class="panel-sub">4 — 10 августа</div>
         </div>
       </div>
       <div style="overflow-x:auto">
-        <table class="week" id="weekTable"></table>
+        <table class="week">
+          <tr><th>Сотрудник</th><th>Пн<br>4</th><th>Вт<br>5</th><th>Ср<br>6</th><th>Чт<br>7</th><th>Пт<br>8</th><th>Сб<br>9</th><th>Вс<br>10</th></tr>
+          <tr><td>Даниил</td><td><span class="wk-cell on">✓</span></td><td><span class="wk-cell on">✓</span></td><td><span class="wk-cell on">✓</span></td><td><span class="wk-cell off">—</span></td><td><span class="wk-cell on">✓</span></td><td><span class="wk-cell on">✓</span></td><td><span class="wk-cell on">✓</span></td></tr>
+          <tr><td>Марат</td><td><span class="wk-cell on">✓</span></td><td><span class="wk-cell on">✓</span></td><td><span class="wk-cell off">—</span></td><td><span class="wk-cell off">—</span></td><td><span class="wk-cell on">✓</span></td><td><span class="wk-cell on">✓</span></td><td><span class="wk-cell off">—</span></td></tr>
+          <tr><td>Ирина</td><td><span class="wk-cell off">—</span></td><td><span class="wk-cell off">—</span></td><td><span class="wk-cell on">✓</span></td><td><span class="wk-cell on">✓</span></td><td><span class="wk-cell on">✓</span></td><td><span class="wk-cell on">✓</span></td><td><span class="wk-cell on">✓</span></td></tr>
+          <tr><td>Павел</td><td><span class="wk-cell off">—</span></td><td><span class="wk-cell off">—</span></td><td><span class="wk-cell off">—</span></td><td><span class="wk-cell off">—</span></td><td><span class="wk-cell off">—</span></td><td><span class="wk-cell off">—</span></td><td><span class="wk-cell off">—</span></td></tr>
+        </table>
       </div>
     </div>
   </div>
 </div>
 
 <!-- Модалка графика -->
-<div class="modal-overlay" id="schedModal">
-  <div class="modal">
-    <h3>График — <span id="schedWorkerName"></span></h3>
-    <div class="f-group row2">
-      <div>
-        <label>Работает дней</label>
-        <input type="number" id="schedWork" min="1" value="3">
-      </div>
-      <div>
-        <label>Отдыхает дней</label>
-        <input type="number" id="schedRest" min="0" value="1">
-      </div>
-    </div>
-    <div class="f-group">
-      <label>Дата начала цикла</label>
-      <input type="date" id="schedStart">
-    </div>
+<div class="modal-bg" id="schedModal">
+  <div class="modal" style="width:380px">
+    <h2>График — Даниил</h2>
+    <div class="field"><label>Работает дней</label><input type="number" min="1" value="3"></div>
+    <div class="field"><label>Отдыхает дней</label><input type="number" min="0" value="1"></div>
+    <div class="field"><label>Дата начала цикла</label><input type="date" value="2026-08-03"></div>
     <div class="modal-actions">
-      <button class="btn secondary" id="schedClearBtn"><i class="ti ti-x"></i>Убрать график</button>
-      <button class="btn primary" id="schedSaveBtn"><i class="ti ti-check"></i>Сохранить</button>
+      <button class="btn secondary" onclick="closeModal('schedModal')"><i class="ti ti-x"></i>Убрать график</button>
+      <button class="btn accent" onclick="closeModal('schedModal')"><i class="ti ti-check"></i>Сохранить</button>
     </div>
   </div>
 </div>
 
-<!-- Модалка истории зарплаты -->
-<div class="modal-overlay" id="salModal">
+<!-- Модалка зарплаты -->
+<div class="modal-bg" id="salModal">
   <div class="modal" style="width:460px">
-    <h3>Зарплата — <span id="salWorkerName"></span></h3>
-    <div style="display:flex;gap:6px;margin-bottom:14px" id="salTabs">
-      <button class="btn secondary sal-tab active" data-period="today" style="flex:1;justify-content:center">Сегодня</button>
-      <button class="btn secondary sal-tab" data-period="week" style="flex:1;justify-content:center">Неделя</button>
-      <button class="btn secondary sal-tab" data-period="month" style="flex:1;justify-content:center">Месяц</button>
+    <h2>Зарплата — <span id="salWorkerName">Даниил</span></h2>
+    <div style="display:flex;gap:6px;margin-bottom:16px">
+      <button class="btn secondary sal-tab active" onclick="selectSalTab(this)">Сегодня</button>
+      <button class="btn secondary sal-tab" onclick="selectSalTab(this)">Неделя</button>
+      <button class="btn secondary sal-tab" onclick="selectSalTab(this)">Месяц</button>
     </div>
-    <div id="salSummary" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px"></div>
-    <div style="max-height:260px;overflow-y:auto;border:0.5px solid var(--border);border-radius:10px" id="salDays"></div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">
+      <div class="mini-stat"><div class="ms-label">Смен</div><div class="ms-value">1</div></div>
+      <div class="mini-stat"><div class="ms-label">Машин</div><div class="ms-value">6</div></div>
+      <div class="mini-stat"><div class="ms-label">Заработок</div><div class="ms-value" style="color:var(--green)">5 670 ₽</div></div>
+    </div>
+    <div style="max-height:220px;overflow-y:auto;border:1.5px solid var(--line);border-radius:var(--r-sm)">
+      <div class="worker-row" style="padding:10px 14px">
+        <div style="flex:1"><div style="font-size:13px;font-weight:600">5 августа</div><div class="worker-meta">мойщик: 5 670 ₽</div></div>
+        <div style="font-size:13px;font-weight:700;color:var(--green)">5 670 ₽</div>
+      </div>
+    </div>
     <div class="modal-actions">
-      <button class="btn secondary" id="salCloseBtn" style="flex:1;justify-content:center">Закрыть</button>
+      <button class="btn secondary" onclick="closeModal('salModal')" style="flex:1;justify-content:center">Закрыть</button>
     </div>
   </div>
 </div>
 
-<!-- Модалка заполнения истории администраторов задним числом -->
-<div class="modal-overlay" id="adminHistModal">
+<!-- Модалка истории дежурств администраторов -->
+<div class="modal-bg" id="adminHistModal">
   <div class="modal" style="width:520px">
-    <h3>История дежурств — кто был администратором</h3>
-    <div class="panel-sub" style="margin-bottom:14px">
-      Отметь для каждой прошедшей смены, кто дежурил — тогда «Зарплата» у этого
-      администратора за неделю/месяц начнёт учитывать эти дни.
+    <h2>История дежурств</h2>
+    <div class="panel-sub" style="margin-bottom:14px">Отметь для каждой прошедшей смены, кто дежурил — тогда «Зарплата» у этого администратора за неделю/месяц начнёт учитывать эти дни.</div>
+    <div style="max-height:320px;overflow-y:auto;border:1.5px solid var(--line);border-radius:var(--r-sm)">
+      <div class="worker-row" style="padding:10px 14px">
+        <div style="flex:1"><div style="font-size:13px;font-weight:600">4 августа</div><div class="worker-meta">12 машин · выручка 31 200 ₽ · зарплата админа 624 ₽</div></div>
+        <select style="width:150px;height:36px"><option>Администратор</option><option>— не указан —</option></select>
+      </div>
+      <div class="worker-row" style="padding:10px 14px">
+        <div style="flex:1"><div style="font-size:13px;font-weight:600">3 августа</div><div class="worker-meta">9 машин · выручка 22 400 ₽ · зарплата админа 448 ₽</div></div>
+        <select style="width:150px;height:36px"><option>Администратор</option><option>— не указан —</option></select>
+      </div>
     </div>
-    <div style="max-height:360px;overflow-y:auto;border:0.5px solid var(--border);border-radius:10px" id="adminHistList"></div>
     <div class="modal-actions">
-      <button class="btn secondary" id="adminHistCloseBtn" style="flex:1;justify-content:center">Отмена</button>
-      <button class="btn primary" id="adminHistSaveBtn" style="flex:1;justify-content:center"><i class="ti ti-check"></i>Сохранить</button>
+      <button class="btn secondary" onclick="closeModal('adminHistModal')" style="flex:1;justify-content:center">Отмена</button>
+      <button class="btn accent" onclick="closeModal('adminHistModal')" style="flex:1;justify-content:center"><i class="ti ti-check"></i>Сохранить</button>
     </div>
   </div>
 </div>
 
-<script src="/static/site-common.js"></script>
+<script src="js/common-plata.js"></script>
 <script>
-if (CW.requireAuth()) {
-  CW.renderSidebar("workers");
+PLATA.renderSidebar("workers");
 
-  const branch = CW.getActiveBranch();
-  const role = CW.getRole();
-  const errEl = document.getElementById("errBanner");
-  function showErr(msg) { errEl.textContent = msg; errEl.style.display = "block"; }
+function openModal(id){ document.getElementById(id).classList.add("open"); }
+function closeModal(id){ document.getElementById(id).classList.remove("open"); }
+document.querySelectorAll(".modal-bg").forEach(m => m.addEventListener("click", (e) => { if (e.target === m) m.classList.remove("open"); }));
 
-  const canManage = role === "админ" || role === "владелец";
-  if (!canManage) {
-    document.getElementById("addWorkerRow").style.display = "none";
-    document.getElementById("addAdminRow").style.display = "none";
-    document.getElementById("adminHistBtn").style.display = "none";
-  }
-
-  if (!branch) {
-    showErr("Филиал не выбран. Выберите филиал в сайдбаре.");
-  } else {
-    document.getElementById("pageSub").textContent = `${branch} · ${CW.todayLabel()}`;
-
-    if (role === "владелец") {
-      document.getElementById("adminPanel").style.display = "block";
-      loadUsersForAdmin();
-    }
-
-    load();
-    loadWeek();
-    loadAdmins();
-  }
-
-  document.getElementById("refreshBtn").addEventListener("click", () => { load(); loadWeek(); loadAdmins(); });
-
-  let workersCache = [];
-  let scheduleCache = {};
-  let carsCache = [];
-  let fixedRatesCache = {};
-  let adminFixedRate = 0;
-
-  async function load() {
-    errEl.style.display = "none";
-    try {
-      const data = await CW.authFetch(`/api/workers?branch=${encodeURIComponent(branch)}`);
-      workersCache = data.workers || [];
-      scheduleCache = data.schedule || {};
-      const sessData = await CW.authFetch(`/api/session?branch=${encodeURIComponent(branch)}`);
-      carsCache = (sessData.session && sessData.session.cars) || [];
-      fixedRatesCache = (sessData.summary && sessData.summary.fixed_rates) || {};
-      adminFixedRate = (sessData.summary && sessData.summary.admin_fixed_rate) || 0;
-      renderWorkers();
-      renderAdmins();
-      if (role === "владелец") renderAdminSub(data.admin_id);
-    } catch (e) { showErr(e.message); }
-  }
-
-  function renderAdminSub(adminId) {
-    const sub = document.getElementById("adminSub");
-    sub.textContent = adminId ? `Текущий: ID ${adminId}` : "Администратор не назначен";
-  }
-
-  let usersCache = [];
-  async function loadUsersForAdmin() {
-    try {
-      const data = await CW.authFetch("/api/users");
-      usersCache = data.users || [];
-      const sel = document.getElementById("adminSelect");
-      sel.innerHTML = usersCache.map(u => `<option value="${u.user_id}">${u.name} (ID ${u.user_id})</option>`).join("")
-        || `<option value="">Нет пользователей в белом списке</option>`;
-    } catch (e) { /* тихо, панель не критична */ }
-  }
-
-  document.getElementById("adminSetBtn").addEventListener("click", async () => {
-    const userId = parseInt(document.getElementById("adminSelect").value, 10);
-    if (!userId) { showErr("Выберите пользователя из списка"); return; }
-    try {
-      await CW.authFetch("/api/branch-admin", { method: "POST", body: JSON.stringify({ branch, user_id: userId }) });
-      await load();
-    } catch (e) { showErr(e.message); }
-  });
-
-  function renderWorkers() {
-    const list = document.getElementById("workerList");
-    const empty = document.getElementById("workerEmpty");
-    if (!workersCache.length) {
-      list.innerHTML = ""; empty.style.display = "block"; return;
-    }
-    empty.style.display = "none";
-    list.innerHTML = workersCache.map(name => {
-      const st = scheduleCache[name] || { working: true, schedule: null };
-      let tag;
-      if (!st.schedule) tag = `<span class="tag noschedule">без графика</span>`;
-      else tag = st.working ? `<span class="tag working">работает сегодня</span>` : `<span class="tag resting">отдыхает</span>`;
-      const schedMeta = st.schedule ? `${st.schedule.work}/${st.schedule.rest} · с ${st.schedule.start}` : "график не задан";
-      const carsToday = carsCache.filter(c => c.employee === name).length;
-      const rate = fixedRatesCache[name];
-      const rateTag = rate ? `<span class="tag rate">ставка ${rate}₽</span>` : "";
-      return `
-        <div class="worker-row">
-          <div class="worker-av">${CW.initials(name)}</div>
-          <div class="worker-info">
-            <div class="worker-name">${name} ${tag} ${rateTag}</div>
-            <div class="worker-meta">${schedMeta} · машин сегодня: ${carsToday}</div>
-          </div>
-          ${canManage ? `
-          <div class="worker-actions">
-            <div class="icon-btn" title="Зарплата за период" onclick="CW_openSalary('${name.replace(/'/g, "\\'")}')"><i class="ti ti-report-money"></i></div>
-            <div class="icon-btn ${rate ? "rate-active" : ""}" title="${rate ? "Изменить/убрать ставку" : "Поставить ставку (если 0 машин за день)"}" onclick="CW_toggleRate('${name.replace(/'/g, "\\'")}', ${rate || 0})"><i class="ti ti-cash-banknote"></i></div>
-            <div class="icon-btn" title="Настроить график" onclick="CW_openSched('${name.replace(/'/g, "\\'")}')"><i class="ti ti-calendar-time"></i></div>
-            <div class="icon-btn del" title="Удалить сотрудника" onclick="CW_delWorker('${name.replace(/'/g, "\\'")}')"><i class="ti ti-trash"></i></div>
-          </div>` : ""}
-        </div>
-      `;
-    }).join("");
-  }
-
-  document.getElementById("wAddBtn").addEventListener("click", async () => {
-    const name = document.getElementById("wName").value.trim();
-    if (!name) { showErr("Укажите имя сотрудника"); return; }
-    try {
-      await CW.authFetch("/api/workers", { method: "POST", body: JSON.stringify({ branch, name }) });
-      document.getElementById("wName").value = "";
-      await load();
-      await loadWeek();
-    } catch (e) { showErr(e.message); }
-  });
-
-  window.CW_delWorker = async (name) => {
-    if (!confirm(`Удалить сотрудника «${name}» из филиала?`)) return;
-    try {
-      await CW.authFetch(`/api/workers/${encodeURIComponent(branch)}/${encodeURIComponent(name)}`, { method: "DELETE" });
-      await load();
-      await loadWeek();
-    } catch (e) { showErr(e.message); }
-  };
-
-  // ── Администраторы (ростер имён + дежурный на сегодня) ─────────────
-  let adminsCache = [];
-  let adminOnDuty = "";
-
-  async function loadAdmins() {
-    try {
-      const data = await CW.authFetch(`/api/admins?branch=${encodeURIComponent(branch)}`);
-      adminsCache = data.admins || [];
-      adminOnDuty = data.admin_on_duty || "";
-      renderAdmins();
-    } catch (e) { /* не критично для остальной страницы */ }
-  }
-
-  function renderAdmins() {
-    const list = document.getElementById("adminsList");
-    const empty = document.getElementById("adminsEmpty");
-    const sub = document.getElementById("adminsSub");
-    sub.textContent = adminOnDuty ? `Дежурит сегодня: ${adminOnDuty}` : "Дежурный администратор не назначен";
-
-    if (!adminsCache.length) {
-      list.innerHTML = ""; empty.style.display = "block"; return;
-    }
-    empty.style.display = "none";
-    list.innerHTML = adminsCache.map(name => {
-      const isDuty = name === adminOnDuty;
-      const tag = isDuty ? `<span class="tag admin">дежурит сегодня</span>` : "";
-      const rate = isDuty ? adminFixedRate : 0;
-      const rateTag = rate ? `<span class="tag rate">ставка ${rate}₽</span>` : "";
-      return `
-        <div class="worker-row">
-          <div class="worker-av" style="background:var(--purple-tint);color:var(--purple)">${CW.initials(name)}</div>
-          <div class="worker-info">
-            <div class="worker-name">${name} ${tag} ${rateTag}</div>
-            <div class="worker-meta">${isDuty ? "Получает % администратора за сегодняшнюю смену" : "Не дежурит сегодня"}</div>
-          </div>
-          ${canManage ? `
-          <div class="worker-actions">
-            <div class="icon-btn" title="Зарплата за период" onclick="CW_openAdminSalary('${name.replace(/'/g, "\\'")}')"><i class="ti ti-report-money"></i></div>
-            <div class="icon-btn ${isDuty ? "rate-active" : ""}" title="${isDuty ? "Снять дежурство" : "Назначить дежурным сегодня"}" onclick="CW_toggleDuty('${name.replace(/'/g, "\\'")}', ${isDuty})"><i class="ti ti-shield-check"></i></div>
-            ${isDuty ? `<div class="icon-btn ${rate ? "rate-active" : ""}" title="${rate ? "Изменить/убрать ставку" : "Поставить ставку (если 0 машин за день)"}" onclick="CW_toggleAdminRate(${rate})"><i class="ti ti-cash-banknote"></i></div>` : ""}
-            <div class="icon-btn del" title="Удалить администратора" onclick="CW_delAdmin('${name.replace(/'/g, "\\'")}')"><i class="ti ti-trash"></i></div>
-          </div>` : ""}
-        </div>
-      `;
-    }).join("");
-  }
-
-  document.getElementById("aAddBtn").addEventListener("click", async () => {
-    const name = document.getElementById("aName").value.trim();
-    if (!name) { showErr("Укажите имя администратора"); return; }
-    try {
-      await CW.authFetch("/api/admins", { method: "POST", body: JSON.stringify({ branch, name }) });
-      document.getElementById("aName").value = "";
-      await loadAdmins();
-    } catch (e) { showErr(e.message); }
-  });
-
-  window.CW_delAdmin = async (name) => {
-    if (!confirm(`Убрать «${name}» из администраторов филиала?`)) return;
-    try {
-      await CW.authFetch(`/api/admins/${encodeURIComponent(branch)}/${encodeURIComponent(name)}`, { method: "DELETE" });
-      await loadAdmins();
-    } catch (e) { showErr(e.message); }
-  };
-
-  window.CW_toggleDuty = async (name, isDuty) => {
-    try {
-      await CW.authFetch("/api/admin-on-duty", {
-        method: "POST", body: JSON.stringify({ branch, name: isDuty ? "" : name }),
-      });
-      await loadAdmins();
-    } catch (e) { showErr(e.message); }
-  };
-
-  // ── Ставка (фикс. зарплата за день, например при 0 машин) ──────────
-  // ── Ставка администратора (фикс. зарплата за день, например при 0 машин) ──
-  window.CW_toggleAdminRate = async (currentRate) => {
-    const input = prompt(
-      currentRate
-        ? `Ставка администратора на сегодня: ${currentRate}₽.\n\nВведи новую сумму, или 0 — чтобы убрать ставку.`
-        : `Ставка администратора на сегодня (например, если 0 машин).\n\nВведи сумму (₽):`,
-      currentRate || "1000"
-    );
-    if (input === null) return;
-    const amount = parseInt(input.replace(/[^\d]/g, ""), 10) || 0;
-    try {
-      if (amount <= 0) {
-        if (!currentRate) return; // нечего убирать
-        await CW.authFetch(`/api/admin-fixed-rate/${encodeURIComponent(branch)}`, { method: "DELETE" });
-      } else {
-        await CW.authFetch("/api/admin-fixed-rate", { method: "POST", body: JSON.stringify({ branch, amount }) });
-      }
-      await load();
-    } catch (e) { showErr(e.message); }
-  };
-
-  window.CW_toggleRate = async (name, currentRate) => {
-    const input = prompt(
-      currentRate
-        ? `Ставка для ${name} на сегодня: ${currentRate}₽.\n\nВведи новую сумму, или 0 — чтобы убрать ставку.`
-        : `Ставка для ${name} на сегодня (например, если 0 машин).\n\nВведи сумму (₽):`,
-      currentRate || "1000"
-    );
-    if (input === null) return;
-    const amount = parseInt(input.replace(/[^\d]/g, ""), 10) || 0;
-    try {
-      if (amount <= 0) {
-        if (!currentRate) return; // нечего убирать
-        await CW.authFetch(`/api/fixed-rate/${encodeURIComponent(branch)}/${encodeURIComponent(name)}`, { method: "DELETE" });
-      } else {
-        await CW.authFetch("/api/fixed-rate", { method: "POST", body: JSON.stringify({ branch, worker: name, amount }) });
-      }
-      await load();
-    } catch (e) { showErr(e.message); }
-  };
-
-  // ── График (модалка) ──────────────────────────────────────────────
-  const schedModal = document.getElementById("schedModal");
-  let schedWorker = null;
-
-  window.CW_openSched = (name) => {
-    schedWorker = name;
-    document.getElementById("schedWorkerName").textContent = name;
-    const st = scheduleCache[name];
-    if (st && st.schedule) {
-      document.getElementById("schedWork").value = st.schedule.work;
-      document.getElementById("schedRest").value = st.schedule.rest;
-      document.getElementById("schedStart").value = st.schedule.start;
-    } else {
-      document.getElementById("schedWork").value = 3;
-      document.getElementById("schedRest").value = 1;
-      document.getElementById("schedStart").value = new Date().toISOString().slice(0, 10);
-    }
-    schedModal.classList.add("show");
-  };
-
-  schedModal.addEventListener("click", (e) => { if (e.target === schedModal) schedModal.classList.remove("show"); });
-
-  document.getElementById("schedSaveBtn").addEventListener("click", async () => {
-    const work_days = parseInt(document.getElementById("schedWork").value, 10);
-    const rest_days = parseInt(document.getElementById("schedRest").value, 10);
-    const start_date = document.getElementById("schedStart").value;
-    if (!work_days || work_days <= 0 || rest_days < 0 || !start_date) { showErr("Проверьте данные графика"); return; }
-    try {
-      await CW.authFetch("/api/schedule", { method: "POST", body: JSON.stringify({ branch, name: schedWorker, work_days, rest_days, start_date }) });
-      schedModal.classList.remove("show");
-      await load();
-      await loadWeek();
-    } catch (e) { showErr(e.message); }
-  });
-
-  document.getElementById("schedClearBtn").addEventListener("click", async () => {
-    try {
-      await CW.authFetch(`/api/schedule/${encodeURIComponent(branch)}/${encodeURIComponent(schedWorker)}`, { method: "DELETE" });
-      schedModal.classList.remove("show");
-      await load();
-      await loadWeek();
-    } catch (e) { showErr(e.message); }
-  });
-
-  // ── Зарплата за период ───────────────────────────────────────────────
-  const salModal = document.getElementById("salModal");
-  let salWorker = null;
-  let salPeriod = "today";
-  let salIsAdmin = false;
-
-  window.CW_openSalary = (name) => {
-    salWorker = name;
-    salIsAdmin = false;
-    salPeriod = "today";
-    document.getElementById("salWorkerName").textContent = name;
-    document.querySelectorAll(".sal-tab").forEach(t => t.classList.toggle("active", t.dataset.period === "today"));
-    salModal.classList.add("show");
-    loadSalary();
-  };
-
-  window.CW_openAdminSalary = (name) => {
-    salWorker = name;
-    salIsAdmin = true;
-    salPeriod = "today";
-    document.getElementById("salWorkerName").textContent = `${name} (админ)`;
-    document.querySelectorAll(".sal-tab").forEach(t => t.classList.toggle("active", t.dataset.period === "today"));
-    salModal.classList.add("show");
-    loadSalary();
-  };
-
-  document.querySelectorAll(".sal-tab").forEach(tab => {
-    tab.addEventListener("click", () => {
-      salPeriod = tab.dataset.period;
-      document.querySelectorAll(".sal-tab").forEach(t => t.classList.toggle("active", t === tab));
-      loadSalary();
-    });
-  });
-
-  salModal.addEventListener("click", (e) => { if (e.target === salModal) salModal.classList.remove("show"); });
-  document.getElementById("salCloseBtn").addEventListener("click", () => salModal.classList.remove("show"));
-
-  async function loadSalary() {
-    const summaryEl = document.getElementById("salSummary");
-    const daysEl = document.getElementById("salDays");
-    summaryEl.innerHTML = `<div class="empty-note" style="padding:10px 0">Загрузка…</div>`;
-    daysEl.innerHTML = "";
-    try {
-      // Единая карточка сотрудника: объединяет заработок по ВСЕМ его ролям
-      // (мойщик + администратор + любые будущие роли) под одним именем.
-      const data = await CW.authFetch(`/api/employee-stats?branch=${encodeURIComponent(branch)}&name=${encodeURIComponent(salWorker)}&period=${salPeriod}`);
-
-      const roleRows = Object.entries(data.by_role || {}).map(([role, amount]) => `
-        <div class="worker-row" style="padding:8px 14px">
-          <div style="flex:1;font-size:13px;font-weight:600">${role[0].toUpperCase() + role.slice(1)}</div>
-          <div style="font-size:13px;font-weight:700;color:var(--green)">${CW.money(amount)}</div>
-        </div>`).join("") || `<div class="empty-note">За этот период данных нет</div>`;
-
-      summaryEl.innerHTML = `
-        <div class="panel" style="margin:0;padding:10px;text-align:center"><div style="font-size:11px;color:var(--text-muted)">Смен</div><div style="font-size:18px;font-weight:700">${data.shifts}</div></div>
-        <div class="panel" style="margin:0;padding:10px;text-align:center"><div style="font-size:11px;color:var(--text-muted)">Машин</div><div style="font-size:18px;font-weight:700">${data.cars}</div></div>
-        <div class="panel" style="margin:0;padding:10px;text-align:center"><div style="font-size:11px;color:var(--text-muted)">Общий заработок</div><div style="font-size:18px;font-weight:700;color:var(--green)">${CW.money(data.total)}</div></div>
-      `;
-
-      const dayRows = (data.days || []).slice().reverse().map(d => `
-        <div class="worker-row" style="padding:10px 14px">
-          <div style="flex:1">
-            <div style="font-size:13px;font-weight:600">${d.date}</div>
-            <div class="worker-meta">${Object.entries(d.roles).map(([r, a]) => `${r}: ${CW.money(a)}`).join(" · ")}</div>
-          </div>
-          <div style="font-size:13px;font-weight:700;color:var(--green)">${CW.money(d.total)}</div>
-        </div>`).join("");
-
-      daysEl.innerHTML = `
-        <div style="padding:8px 14px 2px;font-size:11px;color:var(--text-muted)">Разбивка по ролям (${data.roles.join(", ")})</div>
-        ${roleRows}
-        ${data.avg_per_shift ? `<div style="padding:8px 14px;font-size:12px;color:var(--text-muted)">Средний заработок за смену: ${CW.money(data.avg_per_shift)} · за автомобиль: ${CW.money(data.avg_per_car)}</div>` : ""}
-        <div style="padding:8px 14px 2px;font-size:11px;color:var(--text-muted)">По дням</div>
-        ${dayRows || `<div class="empty-note">За этот период данных нет</div>`}
-      `;
-    } catch (e) {
-      summaryEl.innerHTML = "";
-      daysEl.innerHTML = `<div class="empty-note">${e.message}</div>`;
-    }
-  }
-
-  // ── История дежурств администраторов (заполнение задним числом) ────
-  const adminHistModal = document.getElementById("adminHistModal");
-
-  document.getElementById("adminHistBtn").addEventListener("click", openAdminHistory);
-  document.getElementById("adminHistCloseBtn").addEventListener("click", () => adminHistModal.classList.remove("show"));
-  adminHistModal.addEventListener("click", (e) => { if (e.target === adminHistModal) adminHistModal.classList.remove("show"); });
-
-  async function openAdminHistory() {
-    const list = document.getElementById("adminHistList");
-    list.innerHTML = `<div class="empty-note">Загрузка…</div>`;
-    adminHistModal.classList.add("show");
-    try {
-      const data = await CW.authFetch(`/api/admin-history?branch=${encodeURIComponent(branch)}`);
-      const admins = data.admins || [];
-      if (!data.days.length) {
-        list.innerHTML = `<div class="empty-note">Архив смен для этого филиала пока пуст</div>`;
-        return;
-      }
-      if (!admins.length) {
-        list.innerHTML = `<div class="empty-note">Сначала добавьте администраторов в список выше</div>`;
-        return;
-      }
-      list.innerHTML = data.days.map(d => `
-        <div class="worker-row" style="padding:10px 14px" data-date="${d.date}">
-          <div style="flex:1">
-            <div style="font-size:13px;font-weight:600">${d.date}</div>
-            <div class="worker-meta">${d.cars} машин · выручка ${CW.money(d.revenue)} · зарплата админа ${CW.money(d.admin_salary)}</div>
-          </div>
-          <select class="hist-admin-select" style="width:150px;height:36px">
-            <option value="">— не указан —</option>
-            ${admins.map(a => `<option value="${a}" ${a === d.admin_name ? "selected" : ""}>${a}</option>`).join("")}
-          </select>
-        </div>
-      `).join("");
-    } catch (e) {
-      list.innerHTML = `<div class="empty-note">${e.message}</div>`;
-    }
-  }
-
-  document.getElementById("adminHistSaveBtn").addEventListener("click", async () => {
-    const rows = document.querySelectorAll("#adminHistList [data-date]");
-    const assignments = {};
-    rows.forEach(row => {
-      const date = row.dataset.date;
-      const val = row.querySelector(".hist-admin-select").value;
-      assignments[date] = val;
-    });
-    if (!Object.keys(assignments).length) { adminHistModal.classList.remove("show"); return; }
-    try {
-      await CW.authFetch("/api/admin-history", { method: "POST", body: JSON.stringify({ branch, assignments }) });
-      adminHistModal.classList.remove("show");
-    } catch (e) { showErr(e.message); }
-  });
-
-  // ── Неделя ─────────────────────────────────────────────────────────
-  async function loadWeek() {
-    if (!branch) return;
-    try {
-      const data = await CW.authFetch(`/api/schedule/week?branch=${encodeURIComponent(branch)}`);
-      const weekSub = document.getElementById("weekSub");
-      const from = data.day_labels[0], to = data.day_labels[6];
-      weekSub.textContent = `${from} — ${to}`;
-
-      const table = document.getElementById("weekTable");
-      const workers = Object.keys(data.workers || {});
-      if (!workers.length) {
-        table.innerHTML = `<tr><td style="padding:20px 18px;color:var(--text-muted)">Нет сотрудников для отображения графика</td></tr>`;
-        return;
-      }
-      const head = `<tr><th>Сотрудник</th>${data.weekday_labels.map((wd, i) => `<th>${wd}<br>${data.day_labels[i]}</th>`).join("")}</tr>`;
-      const rows = workers.map(w => {
-        const cells = data.workers[w].map(on => `<td><span class="wk-cell ${on ? "on" : "off"}">${on ? "✓" : "—"}</span></td>`).join("");
-        return `<tr><td>${w}</td>${cells}</tr>`;
-      }).join("");
-      table.innerHTML = head + rows;
-    } catch (e) { /* не критично для страницы */ }
-  }
+function openSalary(name){
+  document.getElementById("salWorkerName").textContent = name;
+  openModal("salModal");
+}
+function selectSalTab(btn){
+  btn.parentElement.querySelectorAll(".sal-tab").forEach(t => t.classList.remove("active"));
+  btn.classList.add("active");
 }
 </script>
 </body>

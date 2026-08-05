@@ -3,136 +3,81 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CarWash Cloud — отчёты</title>
+<title>CarWash Cloud — Отчёты</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
-<style>
-:root{
-  --bg:#0A0A0B;
-  --surface-0:#141414;
-  --surface-1:#1C1C1E;
-  --surface-2:#232325;
-  --surface-3:#2C2C2E;
-  --text:#FFFFFF;
-  --text-secondary:#AEAEB2;
-  --text-muted:#6C6C70;
-  --border:rgba(255,255,255,0.08);
-  --border-strong:rgba(255,255,255,0.14);
-  --accent:#007AFF;
-  --accent-tint:rgba(0,122,255,0.14);
-  --green:#34C759;
-  --green-tint:rgba(52,199,89,0.14);
-  --red:#FF3B30;
-  --red-tint:rgba(255,59,48,0.12);
-  --orange:#FF9F0A;
-  --orange-tint:rgba(255,159,10,0.14);
-  --purple:#BF5AF2;
-  --purple-tint:rgba(191,90,242,0.14);
-}
-*{box-sizing:border-box;margin:0;padding:0}
-body{
-  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display",Segoe UI,Roboto,sans-serif;
-  background:var(--bg); color:var(--text);
-  -webkit-font-smoothing:antialiased;
-}
-.shell{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
-/* Сайдбар (иконочный рейл) целиком стилизуется в site-theme.css. */
-
-.main{padding:24px 32px 48px;max-width:1160px}
-.page-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:16px}
-.page-title{font-size:24px;font-weight:700;letter-spacing:-0.02em}
-.page-sub{font-size:13px;color:var(--text-secondary);margin-top:3px}
-.head-actions{display:flex;gap:8px}
-.btn{height:38px;padding:0 16px;border-radius:10px;border:none;font-family:inherit;font-size:13.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px}
-.btn.primary{background:var(--accent);color:#fff}
-.btn.secondary{background:var(--surface-1);color:var(--text);border:0.5px solid var(--border)}
-.btn:disabled{opacity:.5;cursor:default}
-
-.err-banner{background:var(--red-tint);color:var(--red);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:16px;display:none}
-
-.tabs{display:flex;gap:6px;margin-bottom:16px;background:var(--surface-1);border:0.5px solid var(--border);border-radius:12px;padding:4px}
-.tab{flex:1;text-align:center;padding:8px 10px;border-radius:9px;font-size:13px;font-weight:600;color:var(--text-secondary);cursor:pointer}
-.tab.active{background:var(--accent);color:#fff}
-
-.stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
-.stat-card{background:var(--surface-1);border:0.5px solid var(--border);border-radius:14px;padding:16px 18px}
-.stat-card .sc-label{font-size:12px;color:var(--text-muted);font-weight:500;margin-bottom:8px}
-.stat-card .sc-value{font-size:22px;font-weight:700;letter-spacing:-0.01em}
-
-.panel{background:var(--surface-1);border:0.5px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:16px}
-.panel-head{display:flex;justify-content:space-between;align-items:center;padding:16px 18px 12px}
-.panel-title{font-size:14.5px;font-weight:700}
-.panel-sub{font-size:12px;color:var(--text-muted);margin-top:2px}
-
-table.data{width:100%;border-collapse:collapse}
-table.data th{text-align:left;font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.03em;padding:8px 18px;border-top:0.5px solid var(--border)}
-table.data td{padding:11px 18px;font-size:13.5px;border-top:0.5px solid var(--border)}
-table.data tr:hover td{background:var(--surface-2)}
-table.data td.num, table.data th.num{text-align:right}
-.row-link{cursor:pointer}
-.row-link:hover td{color:var(--accent)}
-.empty-note{padding:24px 18px;font-size:13px;color:var(--text-muted);text-align:center}
-
-.month-picker{display:flex;gap:8px;padding:12px 18px;border-top:0.5px solid var(--border)}
-.month-picker select, .month-picker input{height:36px;border-radius:9px;background:var(--surface-2);border:0.5px solid var(--border-strong);color:var(--text);font-size:13px;padding:0 10px;font-family:inherit}
-.month-picker button{height:36px;padding:0 14px;border-radius:9px;border:none;background:var(--accent);color:#fff;font-weight:600;cursor:pointer}
-
-.exp-row{display:flex;align-items:center;gap:10px;padding:11px 18px;border-top:0.5px solid var(--border)}
-.exp-row:first-child{border-top:none}
-.exp-name{flex:1;font-size:13.5px}
-.exp-amount{font-size:13.5px;font-weight:700}
-.exp-actions{display:flex;gap:6px}
-.icon-btn{width:28px;height:28px;border-radius:8px;border:0.5px solid var(--border);background:var(--surface-2);color:var(--text-secondary);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
-.icon-btn:hover{color:var(--accent);border-color:var(--accent)}
-
-.branch-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;padding:16px 18px}
-.branch-card{background:var(--surface-2);border:0.5px solid var(--border);border-radius:12px;padding:14px}
-.branch-card .bc-name{font-size:13.5px;font-weight:700;margin-bottom:6px}
-.branch-card .bc-total{font-size:19px;font-weight:700}
-.branch-card .bc-meta{font-size:11.5px;color:var(--text-muted);margin-top:4px}
-</style>
-<link rel="stylesheet" href="/static/site-theme.css?v=studioblue2">
+<link rel="stylesheet" href="css/theme-plata.css">
 </head>
 <body>
 <div class="shell">
-  <div class="sidebar" id="sidebarRoot"></div>
+  <div class="rail" id="railRoot"></div>
 
   <div class="main">
-    <div class="err-banner" id="errBanner"></div>
-
     <div class="page-head">
       <div>
         <div class="page-title">Отчёты</div>
-        <div class="page-sub" id="pageSub">—</div>
+        <div class="page-sub">Мойка на Ленина, 12 · сегодня, 5 августа</div>
       </div>
       <div class="head-actions">
-        <button class="btn secondary" id="pdfBtn"><i class="ti ti-file-type-pdf"></i>PDF</button>
-        <button class="btn secondary" id="xlsxBtn"><i class="ti ti-file-spreadsheet"></i>XLSX</button>
+        <button class="btn secondary"><i class="ti ti-file-type-pdf"></i>PDF</button>
+        <button class="btn secondary"><i class="ti ti-file-spreadsheet"></i>XLSX</button>
       </div>
     </div>
 
     <div class="tabs" id="tabs">
-      <div class="tab active" data-tab="today">Сегодня</div>
-      <div class="tab" data-tab="week">Неделя</div>
-      <div class="tab" data-tab="month">Месяц</div>
-      <div class="tab" data-tab="archive">Архив</div>
+      <div class="tab active" data-tab="today" onclick="selectTab(this)">Сегодня</div>
+      <div class="tab" data-tab="week" onclick="selectTab(this)">Неделя</div>
+      <div class="tab" data-tab="month" onclick="selectTab(this)">Месяц</div>
+      <div class="tab" data-tab="archive" onclick="selectTab(this)">Архив</div>
     </div>
 
     <!-- СЕГОДНЯ -->
     <div id="viewToday">
-      <div class="hero-glass dash-hero" id="heroRevenue" style="margin-bottom:14px">
-        <div class="hero-label">Выручка (с учётом скидок)</div>
-        <div class="hero-value" id="heroValue">—</div>
-        <div class="hero-sub">&nbsp;</div>
+      <div class="card-hero" style="margin-bottom:16px">
+        <div class="card-top">
+          <div>
+            <div class="card-label">Выручка (с учётом скидок)</div>
+            <div class="card-value">36 550 ₽</div>
+          </div>
+          <div class="card-chip"></div>
+        </div>
+        <div class="card-bottom">
+          <div class="card-mask">•••• &nbsp; 14 машин за смену</div>
+          <div class="card-goal">
+            <div class="goal-text">До цели<br><b>91%</b></div>
+            <svg class="goal-ring" viewBox="0 0 44 44">
+              <circle class="track" cx="22" cy="22" r="18"></circle>
+              <circle class="prog" cx="22" cy="22" r="18" stroke-dasharray="113" stroke-dashoffset="10"></circle>
+            </svg>
+          </div>
+        </div>
       </div>
-      <div class="stat-row" id="todayStats">
-        <div class="stat-card"><div class="sc-top"><span class="sq b1"><i class="ti ti-car"></i></span><div class="sc-label">Машин</div></div><div class="sc-value">—</div></div>
-        <div class="stat-card"><div class="sc-top"><span class="sq b3"><i class="ti ti-trending-down"></i></span><div class="sc-label">Расходы</div></div><div class="sc-value">—</div></div>
-        <div class="stat-card"><div class="sc-top"><span class="sq b2"><i class="ti ti-wallet"></i></span><div class="sc-label">Остаток в кассе</div></div><div class="sc-value">—</div></div>
+
+      <div class="stat-row">
+        <div class="stat-card">
+          <div class="stat-top"><span class="sq b1"><i class="ti ti-car"></i></span></div>
+          <div class="stat-label">Машин</div>
+          <div class="stat-value">14</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-top"><span class="sq" style="background:var(--red-tint);color:var(--red)"><i class="ti ti-trending-down"></i></span></div>
+          <div class="stat-label">Расходы</div>
+          <div class="stat-value" style="color:var(--red)">2 400 ₽</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-top"><span class="sq b2"><i class="ti ti-wallet"></i></span></div>
+          <div class="stat-label">Остаток в кассе</div>
+          <div class="stat-value">24 190 ₽</div>
+        </div>
       </div>
+
       <div class="panel">
         <div class="panel-head"><div class="panel-title">Топ услуг за сегодня</div></div>
-        <div id="topServices"></div>
-        <div id="topEmpty" class="empty-note" style="display:none">Пока нет машин за сегодня</div>
+        <div>
+          <div class="list-row"><div class="list-name">Комплекс</div><div class="list-amount">6 шт.</div></div>
+          <div class="list-row"><div class="list-name">Экспресс-мойка</div><div class="list-amount">4 шт.</div></div>
+          <div class="list-row"><div class="list-name">Химчистка салона</div><div class="list-amount">2 шт.</div></div>
+          <div class="list-row"><div class="list-name">Полировка кузова</div><div class="list-amount">2 шт.</div></div>
+        </div>
       </div>
     </div>
 
@@ -142,12 +87,20 @@ table.data td.num, table.data th.num{text-align:right}
         <div class="panel-head">
           <div>
             <div class="panel-title">Итог за неделю</div>
-            <div class="panel-sub" id="weekRange">—</div>
+            <div class="panel-sub">30 июля — 5 августа</div>
           </div>
-          <div style="font-size:18px;font-weight:700" id="weekGrand">—</div>
+          <div style="font-family:var(--font-display);font-size:19px;font-weight:600">218 400 ₽</div>
         </div>
-        <table class="data" id="weekTable"></table>
-        <div id="weekEmpty" class="empty-note" style="display:none">Нет данных за эту неделю</div>
+        <table class="data">
+          <tr><th>Дата</th><th class="num">Машин</th><th class="num">Итог</th></tr>
+          <tr><td>30 июля, ср</td><td class="num">11</td><td class="num">27 300 ₽</td></tr>
+          <tr><td>31 июля, чт</td><td class="num">13</td><td class="num">31 900 ₽</td></tr>
+          <tr><td>1 августа, пт</td><td class="num">16</td><td class="num">39 600 ₽</td></tr>
+          <tr><td>2 августа, сб</td><td class="num">22</td><td class="num">52 800 ₽</td></tr>
+          <tr><td>3 августа, вс</td><td class="num">19</td><td class="num">44 650 ₽</td></tr>
+          <tr><td>4 августа, пн</td><td class="num">9</td><td class="num">21 150 ₽</td></tr>
+          <tr><td>5 августа, вт</td><td class="num">14</td><td class="num">36 550 ₽</td></tr>
+        </table>
       </div>
     </div>
 
@@ -157,17 +110,22 @@ table.data td.num, table.data th.num{text-align:right}
         <div class="panel-head">
           <div>
             <div class="panel-title">Итог за месяц</div>
-            <div class="panel-sub" id="monthRange">—</div>
+            <div class="panel-sub">Август 2026</div>
           </div>
-          <div style="font-size:18px;font-weight:700" id="monthGrand">—</div>
+          <div style="font-family:var(--font-display);font-size:19px;font-weight:600">218 400 ₽</div>
         </div>
         <div class="month-picker">
           <select id="monthSelect"></select>
-          <input type="number" id="yearInput" style="width:90px">
+          <input type="number" id="yearInput" style="width:90px" value="2026">
           <button id="monthLoadBtn">Показать</button>
         </div>
-        <table class="data" id="monthTable"></table>
-        <div id="monthEmpty" class="empty-note" style="display:none">Нет данных за этот месяц</div>
+        <table class="data">
+          <tr><th>Сотрудник</th><th class="num">Нед. 1</th><th class="num">Нед. 2</th><th class="num">Итого</th></tr>
+          <tr><td>Даниил</td><td class="num">18 900 ₽</td><td class="num">21 400 ₽</td><td class="num" style="font-weight:700">40 300 ₽</td></tr>
+          <tr><td>Марат</td><td class="num">9 200 ₽</td><td class="num">12 100 ₽</td><td class="num" style="font-weight:700">21 300 ₽</td></tr>
+          <tr><td>Ирина</td><td class="num">6 800 ₽</td><td class="num">—</td><td class="num" style="font-weight:700">6 800 ₽</td></tr>
+          <tr><td>Администратор</td><td class="num">2 370 ₽</td><td class="num">2 630 ₽</td><td class="num" style="font-weight:700">5 000 ₽</td></tr>
+        </table>
       </div>
     </div>
 
@@ -180,192 +138,61 @@ table.data td.num, table.data th.num{text-align:right}
             <div class="panel-sub">Последние 30 дней · клик по строке — скачать PDF за день</div>
           </div>
         </div>
-        <table class="data" id="archiveTable"></table>
-        <div id="archiveEmpty" class="empty-note" style="display:none">Архив пуст — ещё не закрывали смену</div>
+        <table class="data">
+          <tr><th>Дата</th><th class="num">Машин</th><th class="num">Выручка (до скидок)</th><th></th></tr>
+          <tr class="row-link"><td>4 августа, пн</td><td class="num">9</td><td class="num">22 400 ₽</td><td class="num"><span class="icon-btn" title="PDF"><i class="ti ti-file-type-pdf"></i></span><span class="icon-btn" title="XLSX"><i class="ti ti-file-spreadsheet"></i></span></td></tr>
+          <tr class="row-link"><td>3 августа, вс</td><td class="num">19</td><td class="num">47 100 ₽</td><td class="num"><span class="icon-btn" title="PDF"><i class="ti ti-file-type-pdf"></i></span><span class="icon-btn" title="XLSX"><i class="ti ti-file-spreadsheet"></i></span></td></tr>
+          <tr class="row-link"><td>2 августа, сб</td><td class="num">22</td><td class="num">55 300 ₽</td><td class="num"><span class="icon-btn" title="PDF"><i class="ti ti-file-type-pdf"></i></span><span class="icon-btn" title="XLSX"><i class="ti ti-file-spreadsheet"></i></span></td></tr>
+          <tr class="row-link"><td>1 августа, пт</td><td class="num">16</td><td class="num">41 800 ₽</td><td class="num"><span class="icon-btn" title="PDF"><i class="ti ti-file-type-pdf"></i></span><span class="icon-btn" title="XLSX"><i class="ti ti-file-spreadsheet"></i></span></td></tr>
+        </table>
       </div>
     </div>
 
     <!-- ВСЕ ФИЛИАЛЫ (только владелец) -->
-    <div class="panel" id="allBranchesPanel" style="display:none">
+    <div class="panel" id="allBranchesPanel" style="margin-top:16px">
       <div class="panel-head">
         <div>
           <div class="panel-title">Сводка по всем филиалам · сегодня</div>
           <div class="panel-sub">Только для владельца</div>
         </div>
       </div>
-      <div class="branch-grid" id="branchGrid"></div>
+      <div class="branch-grid">
+        <div class="branch-card">
+          <div class="bc-name">Мойка на Ленина, 12</div>
+          <div class="bc-total">36 550 ₽</div>
+          <div class="bc-meta">14 машин сегодня</div>
+        </div>
+        <div class="branch-card">
+          <div class="bc-name">Мойка на Гагарина, 4</div>
+          <div class="bc-total">28 900 ₽</div>
+          <div class="bc-meta">11 машин сегодня</div>
+        </div>
+        <div class="branch-card">
+          <div class="bc-name">Мойка на Кирова, 55</div>
+          <div class="bc-total">19 200 ₽</div>
+          <div class="bc-meta">8 машин сегодня</div>
+        </div>
+      </div>
     </div>
+
   </div>
 </div>
 
-<script src="/static/site-common.js"></script>
+<script src="js/common-plata.js"></script>
 <script>
-if (CW.requireAuth()) {
-  CW.renderSidebar("reports");
+PLATA.renderSidebar("reports");
 
-  const branch = CW.getActiveBranch();
-  const role = CW.getRole();
-  const errEl = document.getElementById("errBanner");
-  function showErr(msg) { errEl.textContent = msg; errEl.style.display = "block"; }
+const MONTHS = ["январь","февраль","март","апрель","май","июнь","июль","август","сентябрь","октябрь","ноябрь","декабрь"];
+document.getElementById("monthSelect").innerHTML = MONTHS.map((m, i) =>
+  `<option value="${m}" ${i === 7 ? "selected" : ""}>${m[0].toUpperCase() + m.slice(1)}</option>`
+).join("");
 
-  const MONTHS = ["январь","февраль","март","апрель","май","июнь","июль","август","сентябрь","октябрь","ноябрь","декабрь"];
-  const monthSelect = document.getElementById("monthSelect");
-  monthSelect.innerHTML = MONTHS.map((m, i) => `<option value="${m}" ${i === new Date().getMonth() ? "selected" : ""}>${m[0].toUpperCase() + m.slice(1)}</option>`).join("");
-  document.getElementById("yearInput").value = new Date().getFullYear();
-
-  let activeTab = "today";
-
-  if (!branch) {
-    showErr("Филиал не выбран. Выберите филиал в сайдбаре.");
-  } else {
-    document.getElementById("pageSub").textContent = `${branch} · ${CW.todayLabel()}`;
-    document.getElementById("pdfBtn").onclick = () => {
-      CW.downloadFile(`/api/reports/pdf?branch=${encodeURIComponent(branch)}`, `Касса_${branch}.pdf`).catch(e => showErr(e.message));
-    };
-    document.getElementById("xlsxBtn").onclick = () => {
-      CW.downloadFile(`/api/reports/xlsx?branch=${encodeURIComponent(branch)}`, `Касса_${branch}.xlsx`).catch(e => showErr(e.message));
-    };
-    loadToday();
-  }
-
-  if (role === "владелец") {
-    document.getElementById("allBranchesPanel").style.display = "block";
-    loadAllBranches();
-  }
-
-  document.querySelectorAll(".tab").forEach(tabEl => {
-    tabEl.addEventListener("click", () => {
-      document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-      tabEl.classList.add("active");
-      activeTab = tabEl.dataset.tab;
-      ["Today", "Week", "Month", "Archive"].forEach(v => {
-        document.getElementById("view" + v).style.display = "none";
-      });
-      const map = { today: "viewToday", week: "viewWeek", month: "viewMonth", archive: "viewArchive" };
-      document.getElementById(map[activeTab]).style.display = "block";
-      if (!branch) return;
-      if (activeTab === "week") loadWeek();
-      if (activeTab === "month") loadMonth();
-      if (activeTab === "archive") loadArchive();
-    });
-  });
-
-  async function loadToday() {
-    errEl.style.display = "none";
-    try {
-      const data = await CW.authFetch(`/api/reports/today?branch=${encodeURIComponent(branch)}`);
-      const s = data.summary || {};
-      document.getElementById("heroValue").textContent = CW.money(s.grand_total);
-      document.getElementById("todayStats").innerHTML = `
-        <div class="stat-card"><div class="sc-top"><span class="sq b1"><i class="ti ti-car"></i></span><div class="sc-label">Машин</div></div><div class="sc-value">${(data.session && data.session.cars || []).length}</div></div>
-        <div class="stat-card"><div class="sc-top"><span class="sq b3"><i class="ti ti-trending-down"></i></span><div class="sc-label">Расходы</div></div><div class="sc-value">${CW.money(s.total_expenses)}</div></div>
-        <div class="stat-card"><div class="sc-top"><span class="sq b2"><i class="ti ti-wallet"></i></span><div class="sc-label">Остаток в кассе</div></div><div class="sc-value">${CW.money(s.remainder)}</div></div>
-      `;
-      const top = data.top_services || [];
-      const topList = document.getElementById("topServices");
-      const topEmpty = document.getElementById("topEmpty");
-      if (!top.length) {
-        topList.innerHTML = ""; topEmpty.style.display = "block";
-      } else {
-        topEmpty.style.display = "none";
-        topList.innerHTML = top.map(([name, count]) => `
-          <div class="exp-row"><div class="exp-name">${name}</div><div class="exp-amount">${count} шт.</div></div>
-        `).join("");
-      }
-    } catch (e) { showErr(e.message); }
-  }
-
-  async function loadWeek() {
-    try {
-      const data = await CW.authFetch(`/api/reports/week?branch=${encodeURIComponent(branch)}`);
-      document.getElementById("weekRange").textContent = `${data.from} — ${data.to}`;
-      document.getElementById("weekGrand").textContent = CW.money(data.grand_total);
-      const table = document.getElementById("weekTable");
-      const empty = document.getElementById("weekEmpty");
-      const days = data.days || [];
-      if (!days.length) { table.innerHTML = ""; empty.style.display = "block"; return; }
-      empty.style.display = "none";
-      table.innerHTML = `<tr><th>Дата</th><th class="num">Машин</th><th class="num">Итог</th></tr>` +
-        days.map(d => `<tr><td>${d.date}</td><td class="num">${d.cars}</td><td class="num">${CW.money(d.total)}</td></tr>`).join("");
-    } catch (e) { showErr(e.message); }
-  }
-
-  async function loadMonth() {
-    try {
-      const month = monthSelect.value;
-      const year = parseInt(document.getElementById("yearInput").value, 10) || new Date().getFullYear();
-      const data = await CW.authFetch(`/api/reports/month?branch=${encodeURIComponent(branch)}&month=${encodeURIComponent(month)}&year=${year}`);
-      document.getElementById("monthRange").textContent = `${month[0].toUpperCase() + month.slice(1)} ${year}`;
-      document.getElementById("monthGrand").textContent = CW.money(data.grand_total);
-      const table = document.getElementById("monthTable");
-      const empty = document.getElementById("monthEmpty");
-      const byWorker = data.by_worker || {};
-      const workers = Object.keys(byWorker);
-      if (!workers.length) { table.innerHTML = ""; empty.style.display = "block"; return; }
-      empty.style.display = "none";
-      const weeks = new Set();
-      workers.forEach(w => Object.keys(byWorker[w]).forEach(wk => weeks.add(parseInt(wk, 10))));
-      const weekNums = Array.from(weeks).sort((a, b) => a - b);
-      table.innerHTML = `<tr><th>Сотрудник</th>${weekNums.map(w => `<th class="num">Нед. ${w}</th>`).join("")}<th class="num">Итого</th></tr>` +
-        workers.map(w => {
-          let total = 0;
-          const cells = weekNums.map(wk => {
-            const v = byWorker[w][wk] || 0;
-            total += v;
-            return `<td class="num">${v ? CW.money(v) : "—"}</td>`;
-          }).join("");
-          return `<tr><td>${w}</td>${cells}<td class="num" style="font-weight:700">${CW.money(total)}</td></tr>`;
-        }).join("");
-    } catch (e) { showErr(e.message); }
-  }
-  document.getElementById("monthLoadBtn").addEventListener("click", loadMonth);
-
-  async function loadArchive() {
-    try {
-      const data = await CW.authFetch(`/api/archive?branch=${encodeURIComponent(branch)}&limit=30`);
-      const table = document.getElementById("archiveTable");
-      const empty = document.getElementById("archiveEmpty");
-      const days = data.days || [];
-      if (!days.length) { table.innerHTML = ""; empty.style.display = "block"; return; }
-      empty.style.display = "none";
-      table.innerHTML = `<tr><th>Дата</th><th class="num">Машин</th><th class="num">Выручка (до скидок)</th><th></th></tr>` +
-        days.map(d => {
-          const dateStr = d.date || "";
-          const cars = d.cars || [];
-          const rawTotal = cars.reduce((sum, c) => sum + (c.price || 0), 0);
-          return `
-            <tr>
-              <td>${dateStr}</td>
-              <td class="num">${cars.length}</td>
-              <td class="num">${CW.money(rawTotal)}</td>
-              <td class="num">
-                <span class="icon-btn" title="PDF" onclick="CW_archiveExport('${dateStr}','pdf')"><i class="ti ti-file-type-pdf"></i></span>
-                <span class="icon-btn" title="XLSX" onclick="CW_archiveExport('${dateStr}','xlsx')"><i class="ti ti-file-spreadsheet"></i></span>
-              </td>
-            </tr>`;
-        }).join("");
-    } catch (e) { showErr(e.message); }
-  }
-
-  window.CW_archiveExport = (date, kind) => {
-    const ext = kind === "xlsx" ? "xlsx" : "pdf";
-    CW.downloadFile(`/api/reports/${kind}?branch=${encodeURIComponent(branch)}&date=${encodeURIComponent(date)}`,
-      `Касса_${branch}_${date}.${ext}`).catch(e => showErr(e.message));
-  };
-
-  async function loadAllBranches() {
-    try {
-      const data = await CW.authFetch("/api/branches/summary");
-      const grid = document.getElementById("branchGrid");
-      grid.innerHTML = (data.branches || []).map(b => `
-        <div class="branch-card">
-          <div class="bc-name">${b.branch}</div>
-          <div class="bc-total">${CW.money(b.total)}</div>
-          <div class="bc-meta">${b.cars} машин сегодня</div>
-        </div>
-      `).join("");
-    } catch (e) { /* не критично */ }
-  }
+function selectTab(el) {
+  document.querySelectorAll("#tabs .tab").forEach(t => t.classList.remove("active"));
+  el.classList.add("active");
+  const map = { today: "viewToday", week: "viewWeek", month: "viewMonth", archive: "viewArchive" };
+  Object.values(map).forEach(id => document.getElementById(id).style.display = "none");
+  document.getElementById(map[el.dataset.tab]).style.display = "block";
 }
 </script>
 </body>

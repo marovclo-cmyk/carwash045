@@ -3,211 +3,88 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CarWash Cloud — лояльность</title>
+<title>CarWash Cloud — Лояльность</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
-<style>
-:root{
-  --bg:#0A0A0B;
-  --surface-0:#141414;
-  --surface-1:#1C1C1E;
-  --surface-2:#232325;
-  --surface-3:#2C2C2E;
-  --text:#FFFFFF;
-  --text-secondary:#AEAEB2;
-  --text-muted:#6C6C70;
-  --border:rgba(255,255,255,0.08);
-  --border-strong:rgba(255,255,255,0.14);
-  --accent:#007AFF;
-  --accent-tint:rgba(0,122,255,0.14);
-  --green:#34C759;
-  --green-tint:rgba(52,199,89,0.14);
-  --red:#FF3B30;
-  --red-tint:rgba(255,59,48,0.12);
-  --orange:#FF9F0A;
-  --orange-tint:rgba(255,159,10,0.14);
-  --purple:#BF5AF2;
-  --purple-tint:rgba(191,90,242,0.14);
-}
-*{box-sizing:border-box;margin:0;padding:0}
-body{
-  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display",Segoe UI,Roboto,sans-serif;
-  background:var(--bg); color:var(--text);
-  -webkit-font-smoothing:antialiased;
-}
-.shell{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
-
-/* Сайдбар (иконочный рейл) целиком стилизуется в site-theme.css —
-   см. .sidebar/.rail-* там; здесь ничего дублировать не нужно. */
-
-.main{padding:24px 32px 48px;max-width:1160px}
-.page-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px}
-.page-title{font-size:24px;font-weight:700;letter-spacing:-0.02em}
-.page-sub{font-size:13px;color:var(--text-secondary);margin-top:3px}
-.head-actions{display:flex;gap:8px}
-.btn{height:38px;padding:0 16px;border-radius:10px;border:none;font-family:inherit;font-size:13.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px}
-.btn.secondary{background:var(--surface-1);color:var(--text);border:0.5px solid var(--border)}
-
-.stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}
-.stat-card{background:var(--surface-1);border:0.5px solid var(--border);border-radius:14px;padding:16px 18px}
-.stat-card .sc-label{font-size:12px;color:var(--text-muted);font-weight:500;margin-bottom:8px}
-.stat-card .sc-value{font-size:22px;font-weight:700;letter-spacing:-0.01em}
-.stat-card.accent-purple .sc-value{color:var(--purple)}
-
-.panel{background:var(--surface-1);border:0.5px solid var(--border);border-radius:14px;overflow:hidden;margin-top:14px}
-.panel-head{display:flex;justify-content:space-between;align-items:center;padding:16px 18px 12px}
-.panel-title{font-size:14.5px;font-weight:700}
-
-.list-row{display:flex;align-items:center;gap:10px;padding:11px 18px;border-top:0.5px solid var(--border)}
-.list-row:first-child{border-top:none}
-.list-car{width:34px;height:34px;border-radius:9px;background:var(--purple-tint);color:var(--purple);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
-.list-info{flex:1;min-width:0}
-.list-name{font-size:13.5px;font-weight:600}
-.list-meta{font-size:11.5px;color:var(--text-muted);margin-top:1px}
-.list-amount{font-size:14px;font-weight:700;color:var(--purple)}
-.icon-btn{width:26px;height:26px;border-radius:8px;border:0.5px solid var(--border);background:var(--surface-2);color:var(--text-secondary);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
-.icon-btn:hover{color:var(--red);border-color:var(--red)}
-.empty-note{padding:20px 18px;font-size:13px;color:var(--text-muted);text-align:center}
-
-.add-row{display:flex;gap:8px;padding:12px 18px;border-top:0.5px solid var(--border)}
-.add-row input, .add-row select{height:36px;border-radius:9px;background:var(--surface-2);border:0.5px solid var(--border-strong);color:var(--text);font-size:13px;padding:0 10px;font-family:inherit}
-.add-row .f-car{width:140px}
-.add-row .f-amount{flex:1}
-.add-row button{width:36px;border-radius:9px;border:none;background:var(--accent);color:#fff;cursor:pointer;flex-shrink:0}
-
-.err-banner{background:var(--red-tint);color:var(--red);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:16px;display:none}
-.note{padding:12px 18px;font-size:12px;color:var(--text-muted);border-top:0.5px solid var(--border)}
-</style>
-<link rel="stylesheet" href="/static/site-theme.css?v=studioblue2">
+<link rel="stylesheet" href="css/theme-plata.css">
 </head>
-<body class="v2-page">
+<body>
 <div class="shell">
-  <div class="sidebar" id="sidebarRoot"></div>
+  <div class="rail" id="railRoot"></div>
 
   <div class="main">
-    <div class="err-banner" id="errBanner"></div>
-
     <div class="page-head">
       <div>
         <div class="page-title">Лояльность</div>
-        <div class="page-sub" id="pageSub">—</div>
+        <div class="page-sub">Мойка на Ленина, 12 · сегодня, 5 августа</div>
       </div>
       <div class="head-actions">
-        <button class="btn secondary" id="refreshBtn"><i class="ti ti-refresh"></i>Обновить</button>
+        <button class="btn secondary"><i class="ti ti-refresh"></i>Обновить</button>
       </div>
     </div>
 
-    <div class="stat-row" id="statRow">
-      <div class="stat-card accent-purple"><div class="sc-top"><span class="sq b5"><i class="ti ti-discount-2"></i></span><div class="sc-label">Скидок за смену</div></div><div class="sc-value">—</div></div>
-      <div class="stat-card accent-purple"><div class="sc-top"><span class="sq b5"><i class="ti ti-percentage"></i></span><div class="sc-label">Сумма скидок</div></div><div class="sc-value">—</div></div>
-      <div class="stat-card"><div class="sc-top"><span class="sq b1"><i class="ti ti-car"></i></span><div class="sc-label">Машин за смену</div></div><div class="sc-value">—</div></div>
+    <div class="stat-row">
+      <div class="stat-card">
+        <div class="stat-top"><span class="sq b4"><i class="ti ti-discount-2"></i></span></div>
+        <div class="stat-label">Скидок за смену</div>
+        <div class="stat-value">3</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-top"><span class="sq b4"><i class="ti ti-percentage"></i></span></div>
+        <div class="stat-label">Сумма скидок</div>
+        <div class="stat-value">750 ₽</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-top"><span class="sq b1"><i class="ti ti-car"></i></span></div>
+        <div class="stat-label">Машин за смену</div>
+        <div class="stat-value">14</div>
+      </div>
     </div>
 
     <div class="panel">
       <div class="panel-head">
         <div class="panel-title">Скидки по машинам за текущую смену</div>
-        <div style="font-size:13px;color:var(--purple);font-weight:700" id="loyTotal">0 ₽</div>
+        <div style="font-size:13px;color:var(--purple);font-weight:700">−750 ₽</div>
       </div>
-      <div id="loyList"></div>
-      <div id="loyEmpty" class="empty-note" style="display:none">Скидок лояльности пока нет</div>
+      <div>
+        <div class="list-row">
+          <div class="list-car">№6</div>
+          <div class="list-info">
+            <div class="list-name">Toyota Camry, А123ВС · Комплекс + химчистка</div>
+            <div class="list-meta">Машина №6</div>
+          </div>
+          <div class="list-amount purple">−300 ₽</div>
+          <div class="icon-btn danger"><i class="ti ti-trash"></i></div>
+        </div>
+        <div class="list-row">
+          <div class="list-car">№4</div>
+          <div class="list-info">
+            <div class="list-name">Kia Rio, О222РА · Комплекс</div>
+            <div class="list-meta">Машина №4</div>
+          </div>
+          <div class="list-amount purple">−200 ₽</div>
+          <div class="icon-btn danger"><i class="ti ti-trash"></i></div>
+        </div>
+        <div class="list-row">
+          <div class="list-car">№2</div>
+          <div class="list-info">
+            <div class="list-name">Lada Vesta, У456ХВ · Мойка кузова</div>
+            <div class="list-meta">Машина №2</div>
+          </div>
+          <div class="list-amount purple">−250 ₽</div>
+          <div class="icon-btn danger"><i class="ti ti-trash"></i></div>
+        </div>
+      </div>
       <div class="add-row">
-        <input class="f-car" id="loyCar" type="number" placeholder="№ машины">
-        <input class="f-amount" id="loyAmount" type="number" placeholder="Сумма скидки, ₽">
-        <button id="loyAddBtn"><i class="ti ti-plus"></i></button>
+        <input class="f-car" type="number" placeholder="№ машины" style="width:140px">
+        <input class="f-amount" type="number" placeholder="Сумма скидки, ₽" style="flex:1">
+        <button><i class="ti ti-plus"></i></button>
       </div>
       <div class="note">Скидка привязывается к номеру машины в текущей смене (см. страницу «Машины») и автоматически вычитается из итога кассы по способу оплаты этой машины.</div>
     </div>
   </div>
 </div>
 
-<script src="/static/site-common.js"></script>
-<script>
-if (CW.requireAuth()) {
-  CW.renderSidebar("loyalty");
-
-  const branch = CW.getActiveBranch();
-  const errEl = document.getElementById("errBanner");
-  function showErr(msg) { errEl.textContent = msg; errEl.style.display = "block"; }
-
-  let carsByNum = {};
-
-  if (!branch) {
-    showErr("Филиал не выбран. Выберите филиал в сайдбаре.");
-  } else {
-    document.getElementById("pageSub").textContent = `${branch} · ${CW.todayLabel()}`;
-    load();
-  }
-
-  function carLabel(num) {
-    const c = carsByNum[num];
-    if (!c) return `Машина №${num} (не найдена в смене)`;
-    return `${c.car || "Без клиента"} · ${c.service || ""}`.trim();
-  }
-
-  async function load() {
-    errEl.style.display = "none";
-    try {
-      const data = await CW.authFetch(`/api/session?branch=${encodeURIComponent(branch)}`);
-      const session = data.session || {};
-      const summary = data.summary || {};
-      const cars = session.cars || [];
-      carsByNum = {};
-      cars.forEach(c => { carsByNum[c.num] = c; });
-
-      const loyalty = session.loyalty || [];
-      const totalLoyalty = summary.total_loyalty || 0;
-
-      document.getElementById("statRow").innerHTML = `
-        <div class="stat-card accent-purple"><div class="sc-top"><span class="sq b5"><i class="ti ti-discount-2"></i></span><div class="sc-label">Скидок за смену</div></div><div class="sc-value">${loyalty.length}</div></div>
-        <div class="stat-card accent-purple"><div class="sc-top"><span class="sq b5"><i class="ti ti-percentage"></i></span><div class="sc-label">Сумма скидок</div></div><div class="sc-value">${CW.money(totalLoyalty)}</div></div>
-        <div class="stat-card"><div class="sc-top"><span class="sq b1"><i class="ti ti-car"></i></span><div class="sc-label">Машин за смену</div></div><div class="sc-value">${cars.length}</div></div>
-      `;
-      document.getElementById("loyTotal").textContent = CW.money(totalLoyalty);
-
-      const loyList = document.getElementById("loyList");
-      const loyEmpty = document.getElementById("loyEmpty");
-      if (!loyalty.length) {
-        loyList.innerHTML = ""; loyEmpty.style.display = "block";
-      } else {
-        loyEmpty.style.display = "none";
-        loyList.innerHTML = loyalty.map((l, i) => `
-          <div class="list-row">
-            <div class="list-car">№${l.car_num}</div>
-            <div class="list-info">
-              <div class="list-name">${carLabel(l.car_num)}</div>
-              <div class="list-meta">Машина №${l.car_num}</div>
-            </div>
-            <div class="list-amount">−${CW.money(l.discount)}</div>
-            <div class="icon-btn" onclick="CW_delLoyalty(${i})"><i class="ti ti-trash"></i></div>
-          </div>
-        `).join("");
-      }
-    } catch (e) {
-      showErr(e.message);
-    }
-  }
-
-  document.getElementById("refreshBtn").addEventListener("click", load);
-
-  document.getElementById("loyAddBtn").addEventListener("click", async () => {
-    const car_num = parseInt(document.getElementById("loyCar").value, 10);
-    const discount = parseInt(document.getElementById("loyAmount").value, 10);
-    if (!car_num || !discount) { showErr("Укажите номер машины и сумму скидки"); return; }
-    if (!carsByNum[car_num]) { showErr(`Машина №${car_num} не найдена в текущей смене. Проверьте номер на странице «Машины».`); return; }
-    try {
-      await CW.authFetch("/api/loyalty", { method: "POST", body: JSON.stringify({ branch, car_num, discount }) });
-      document.getElementById("loyCar").value = "";
-      document.getElementById("loyAmount").value = "";
-      await load();
-    } catch (e) { showErr(e.message); }
-  });
-
-  window.CW_delLoyalty = async (idx) => {
-    try {
-      await CW.authFetch(`/api/loyalty/${encodeURIComponent(branch)}/${idx}`, { method: "DELETE" });
-      await load();
-    } catch (e) { showErr(e.message); }
-  };
-}
-</script>
+<script src="js/common-plata.js"></script>
+<script>PLATA.renderSidebar("loyalty");</script>
 </body>
 </html>
