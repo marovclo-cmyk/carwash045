@@ -3,18 +3,20 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CarWash Cloud — Настройки</title>
+<title>CarWash Cloud — настройки</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
-<link rel="stylesheet" href="css/theme-plata.css">
+<link rel="stylesheet" href="/static/css/theme-plata.css">
 </head>
 <body>
 <div class="shell">
-  <div class="rail" id="railRoot"></div>
+  <div class="rail" id="sidebarRoot"></div>
 
   <div class="main">
+    <div class="err-banner" id="errBanner"></div>
+
     <div class="page-head">
       <div class="page-title">Настройки</div>
-      <div class="page-sub">Сегодня, 5 августа</div>
+      <div class="page-sub" id="pageSub">—</div>
     </div>
 
     <div class="panel" style="margin-bottom:16px">
@@ -22,13 +24,13 @@
         <div class="panel-title">Мой профиль</div>
       </div>
       <div class="profile-grid">
-        <div class="profile-cell"><div class="profile-label">Имя</div><div class="profile-value">Даниил Ковалёв</div></div>
-        <div class="profile-cell"><div class="profile-label">Должность</div><div class="profile-value">Администратор</div></div>
-        <div class="profile-cell"><div class="profile-label">Филиал входа</div><div class="profile-value">Ленина, 12</div></div>
+        <div class="profile-cell"><div class="profile-label">Имя</div><div class="profile-value" id="pName">—</div></div>
+        <div class="profile-cell"><div class="profile-label">Должность</div><div class="profile-value" id="pRole">—</div></div>
+        <div class="profile-cell"><div class="profile-label">Филиал входа</div><div class="profile-value" id="pBranch">—</div></div>
       </div>
     </div>
 
-    <div class="panel" style="margin-bottom:16px">
+    <div class="panel" id="whitelistPanel" style="margin-bottom:16px;display:none">
       <div class="panel-head">
         <div>
           <div class="panel-title">Белый список сотрудников (Telegram)</div>
@@ -40,32 +42,12 @@
         он пришлёт его ID. Впишите этот ID и имя сюда, и после этого его можно будет
         выбрать в списке «Назначить администратора» на странице «Сотрудники».
       </div>
-      <div>
-        <div class="user-row2">
-          <div class="user-av2">ДК</div>
-          <div class="user-info2"><div class="user-name2">Даниил Ковалёв</div><div class="user-id2">Telegram ID 10231</div></div>
-          <div class="icon-btn danger" title="Удалить из белого списка"><i class="ti ti-trash"></i></div>
-        </div>
-        <div class="user-row2">
-          <div class="user-av2">МС</div>
-          <div class="user-info2"><div class="user-name2">Марат Сафин</div><div class="user-id2">Telegram ID 10455</div></div>
-          <div class="icon-btn danger" title="Удалить из белого списка"><i class="ti ti-trash"></i></div>
-        </div>
-        <div class="user-row2">
-          <div class="user-av2">ИВ</div>
-          <div class="user-info2"><div class="user-name2">Ирина Волкова</div><div class="user-id2">Telegram ID 10812</div></div>
-          <div class="icon-btn danger" title="Удалить из белого списка"><i class="ti ti-trash"></i></div>
-        </div>
-        <div class="user-row2">
-          <div class="user-av2">ПМ</div>
-          <div class="user-info2"><div class="user-name2">Полина Морозова</div><div class="user-id2">Telegram ID 11003</div></div>
-          <div class="icon-btn danger" title="Удалить из белого списка"><i class="ti ti-trash"></i></div>
-        </div>
-      </div>
+      <div id="userList"></div>
+      <div id="userEmpty" class="empty-note" style="display:none">Список пуст</div>
       <div class="add-row">
-        <input class="f-id" type="number" placeholder="Telegram ID">
-        <input class="f-name" type="text" placeholder="Имя (Фамилия Имя)">
-        <button><i class="ti ti-plus"></i></button>
+        <input class="f-id" id="uId" type="number" placeholder="Telegram ID">
+        <input class="f-name" id="uName" type="text" placeholder="Имя (Фамилия Имя)">
+        <button id="uAddBtn"><i class="ti ti-plus"></i></button>
       </div>
     </div>
 
@@ -74,12 +56,81 @@
         <div class="lp-title">Выйти из аккаунта</div>
         <div class="lp-sub">Потребуется снова ввести общий пароль</div>
       </div>
-      <button class="btn danger"><i class="ti ti-logout"></i>Выйти</button>
+      <button class="btn danger" id="logoutBtn2"><i class="ti ti-logout"></i>Выйти</button>
     </div>
   </div>
 </div>
 
-<script src="js/common-plata.js"></script>
-<script>PLATA.renderSidebar("settings");</script>
+<script src="/static/site-common.js"></script>
+<script>
+if (CW.requireAuth()) {
+  CW.renderSidebar("settings");
+
+  const role = CW.getRole();
+  const errEl = document.getElementById("errBanner");
+  function showErr(msg) { errEl.textContent = msg; errEl.style.display = "block"; }
+
+  document.getElementById("pageSub").textContent = CW.todayLabel();
+  document.getElementById("pName").textContent = CW.getName() || "—";
+  document.getElementById("pRole").textContent = CW.roleLabel(role);
+  document.getElementById("pBranch").textContent = role === "владелец" ? "Все филиалы" : (CW.getLoginBranch() || "—");
+
+  document.getElementById("logoutBtn2").addEventListener("click", () => {
+    if (confirm("Выйти из аккаунта?")) CW.logout();
+  });
+
+  if (role === "владелец") {
+    document.getElementById("whitelistPanel").style.display = "block";
+    loadUsers();
+  }
+
+  let usersCache = [];
+  async function loadUsers() {
+    errEl.style.display = "none";
+    try {
+      const data = await CW.authFetch("/api/users");
+      usersCache = data.users || [];
+      renderUsers();
+    } catch (e) { showErr(e.message); }
+  }
+
+  function renderUsers() {
+    const list = document.getElementById("userList");
+    const empty = document.getElementById("userEmpty");
+    if (!usersCache.length) { list.innerHTML = ""; empty.style.display = "block"; return; }
+    empty.style.display = "none";
+    list.innerHTML = usersCache.map(u => `
+      <div class="user-row2">
+        <div class="user-av2">${CW.initials(u.name)}</div>
+        <div class="user-info2">
+          <div class="user-name2">${u.name}</div>
+          <div class="user-id2">Telegram ID ${u.user_id}</div>
+        </div>
+        <div class="icon-btn danger" title="Удалить из белого списка" onclick="CW_delUser(${u.user_id})"><i class="ti ti-trash"></i></div>
+      </div>
+    `).join("");
+  }
+
+  document.getElementById("uAddBtn").addEventListener("click", async () => {
+    const user_id = parseInt(document.getElementById("uId").value, 10);
+    const name = document.getElementById("uName").value.trim();
+    if (!user_id || !name) { showErr("Укажите Telegram ID и имя"); return; }
+    try {
+      await CW.authFetch("/api/users", { method: "POST", body: JSON.stringify({ user_id, name }) });
+      document.getElementById("uId").value = "";
+      document.getElementById("uName").value = "";
+      await loadUsers();
+    } catch (e) { showErr(e.message); }
+  });
+
+  window.CW_delUser = async (user_id) => {
+    if (!confirm("Удалить пользователя из белого списка? Если он назначен администратором филиала — назначение перестанет работать.")) return;
+    try {
+      await CW.authFetch(`/api/users/${user_id}`, { method: "DELETE" });
+      await loadUsers();
+    } catch (e) { showErr(e.message); }
+  };
+}
+</script>
 </body>
 </html>

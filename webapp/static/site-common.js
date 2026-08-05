@@ -131,15 +131,18 @@ const CW = (() => {
   /* Рендерит сайдбар в элемент с id="sidebarRoot".
      activeKey — ключ текущей страницы (см. NAV[].items[].key).
 
-     Тема v2 «Studio Blue»: узкий (76px) сплошной синий icon-rail вместо
-     текстового списка — подписи убраны (не помещались бы для длинных
-     пунктов вроде «Расходы и доходы» в узкой колонке), вместо них —
-     title-тултип на hover. Название филиала и текущей страницы всё
-     равно видно вверху каждой страницы (page-title/page-sub), так что
-     контекст не теряется. См. PROGRESS.md → «Решения/заметки». */
+     Тема v3 «Plata»: узкий (84px) чёрный icon-rail с оранжевым акцентом
+     на активном пункте (см. webapp/static/css/theme-plata.css). Разметка
+     здесь соответствует классам .rail-logo/.rail-items/.rail-item/
+     .rail-bottom/.rail-avatar из этого файла; .rail-branch и .rail-div —
+     доп. классы, которых не было в исходном визуальном макете темы
+     (там сайдбар был статичным мокапом без выбора филиала/ролей), они
+     добавлены в конец theme-plata.css в том же визуальном языке.
+     Подписи пунктов — title-тултип на hover, как и раньше. */
   function renderSidebar(activeKey) {
     const root = document.getElementById("sidebarRoot");
     if (!root) return;
+    root.classList.add("rail");
     const role = getRole();
 
     const groupsHtml = NAV.map(group => {
@@ -149,28 +152,28 @@ const CW = (() => {
       );
       if (!items.length) return "";
       return items.map(it => `
-        <div class="rail-item ${it.key === activeKey ? "active" : ""}" data-href="${it.href}" title="${it.label}">
+        <a class="rail-item ${it.key === activeKey ? "active" : ""}" data-href="${it.href}" title="${it.label}">
           <i class="ti ${it.icon}"></i>
-        </div>`).join("") + `<div class="rail-div"></div>`;
+        </a>`).join("") + `<div class="rail-div"></div>`;
     }).filter(Boolean).join("");
     // убираем последний лишний разделитель после последней группы
-    const navHtml = groupsHtml.replace(/<div class="rail-div"><\/div>$/, "");
+    const itemsHtml = groupsHtml.replace(/<div class="rail-div"><\/div>$/, "");
 
     const branch = getActiveBranch();
 
     root.innerHTML = `
-      <div class="rail-brand" title="CarWash Cloud"><i class="ti ti-droplet"></i></div>
+      <div class="rail-logo" title="CarWash Cloud">CW</div>
 
       <div class="rail-branch" id="branchSelect" title="Филиал: ${branch || "не выбран"}">
         <span id="bsValue">${initials(branch || "—")}</span>
-        <select id="bsSelect" style="position:absolute;inset:0;width:38px;height:38px;opacity:0;${role === 'владелец' ? 'cursor:pointer' : 'pointer-events:none'}"></select>
+        <select id="bsSelect" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;${role === 'владелец' ? 'cursor:pointer' : 'pointer-events:none'}"></select>
       </div>
 
-      <div class="rail-nav">${navHtml}</div>
+      <div class="rail-items">${itemsHtml}</div>
 
-      <div class="rail-foot">
-        <div class="rail-item avatar" title="${getName() || "—"} · ${roleLabel(role)}">${initials(getName())}</div>
+      <div class="rail-bottom">
         <div class="rail-item" id="logoutBtn" title="Выйти"><i class="ti ti-logout"></i></div>
+        <div class="rail-avatar" title="${getName() || "—"} · ${roleLabel(role)}">${initials(getName())}</div>
       </div>
     `;
 

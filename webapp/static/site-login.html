@@ -5,21 +5,30 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CarWash Cloud — вход</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
-<link rel="stylesheet" href="/static/site-theme.css?v=studioblue2">
+<link rel="stylesheet" href="/static/css/theme-plata.css">
 <style>
-/* Тема v3 «Studio Blue» — экран входа не использует #sidebarRoot/.shell,
-   поэтому свёрстан отдельно, но берёт токены и шрифты (Gosha Sans, IBM Plex
-   Mono уже импортированы в site-theme.css) из общего файла темы. */
+/* Экран входа не использует .shell/.rail (сайдбара тут нет),
+   поэтому свёрстан отдельно, но берёт цвета/шрифты из общей
+   темы theme-plata.css. Раньше зависел от старой темы
+   site-theme.css (удалена) — тут только докидываем
+   несколько токенов, которых не было в общей теме
+   (боковая панель формы входа тёмная, «чёрная», а не оранжевая). */
+:root{
+  --sidebar-bg:#1A1A1A;
+  --sidebar-bg-2:#0D0D0D;
+  --input-text:var(--ink);
+  --radius-sm:var(--r-sm);
+}
 *{box-sizing:border-box;margin:0;padding:0}
 body{
-  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display",Segoe UI,Roboto,sans-serif;
+  font-family:var(--font-body);
   min-height:100vh;
   display:flex;align-items:center;justify-content:center;
   -webkit-font-smoothing:antialiased;
   position:relative;overflow:hidden;padding:24px;
   background:
-    radial-gradient(60% 50% at 12% 8%, rgba(255,255,255,.14), transparent 60%),
-    radial-gradient(55% 45% at 92% 96%, rgba(139,92,246,.35), transparent 60%),
+    radial-gradient(60% 50% at 12% 8%, rgba(255,255,255,.10), transparent 60%),
+    radial-gradient(55% 45% at 92% 96%, rgba(255,80,0,.35), transparent 60%),
     linear-gradient(160deg, var(--sidebar-bg) 0%, var(--sidebar-bg-2) 100%);
 }
 /* лёгкий узор из капель — чисто CSS, без картинок */
@@ -40,9 +49,9 @@ body::before{
 }
 .side::after{
   content:"";position:absolute;width:260px;height:260px;border-radius:50%;right:-90px;bottom:-100px;
-  background:radial-gradient(circle, rgba(255,255,255,.16), transparent 65%);
+  background:radial-gradient(circle, rgba(255,80,0,.30), transparent 65%);
 }
-.side .mark{width:44px;height:44px;border-radius:14px;background:rgba(255,255,255,.18);
+.side .mark{width:44px;height:44px;border-radius:14px;background:var(--orange-grad);
   display:flex;align-items:center;justify-content:center;font-size:21px;margin-bottom:22px}
 .side h2{font-family:var(--font-display);font-weight:700;font-size:26px;line-height:1.08;letter-spacing:-.01em}
 .side p{font-size:12.5px;line-height:1.55;color:rgba(255,255,255,.78);margin-top:12px;max-width:210px}
@@ -69,12 +78,12 @@ input:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 
   height:42px;border-radius:100px;background:var(--surface-2);border:1px solid var(--border-strong);
   color:var(--text-secondary);font-size:12.5px;font-weight:700;cursor:pointer;transition:all .12s;
 }
-.role-btn.active{background:var(--accent-gradient);color:#fff;border-color:transparent;box-shadow:0 6px 16px -6px rgba(47,92,255,.45)}
+.role-btn.active{background:var(--accent-gradient);color:#fff;border-color:transparent;box-shadow:0 6px 16px -6px rgba(255,80,0,.45)}
 
 .btn-submit{
   width:100%;height:46px;border-radius:100px;border:none;
   background:var(--accent-gradient);color:#fff;
-  box-shadow:0 10px 22px -8px rgba(47,92,255,.5);
+  box-shadow:0 10px 22px -8px rgba(255,80,0,.5);
   font-size:14px;font-weight:700;margin-top:22px;cursor:pointer;transition:opacity .12s,transform .08s;
 }
 .btn-submit:hover{opacity:.94}

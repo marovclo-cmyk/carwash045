@@ -5,101 +5,135 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CarWash Cloud — Филиалы</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
-<link rel="stylesheet" href="css/theme-plata.css">
+<link rel="stylesheet" href="/static/css/theme-plata.css">
 </head>
 <body>
 <div class="shell">
-  <div class="rail" id="railRoot"></div>
+  <div class="rail" id="sidebarRoot"></div>
 
   <div class="main">
+    <div class="err-banner" id="errBanner"></div>
+
     <div class="page-head">
       <div>
         <div class="page-title">Филиалы</div>
-        <div class="page-sub">Сегодня, 5 августа · только для владельца</div>
+        <div class="page-sub" id="pageSub">—</div>
       </div>
-      <button class="btn secondary"><i class="ti ti-refresh"></i>Обновить</button>
+      <button class="btn secondary" id="refreshBtn"><i class="ti ti-refresh"></i>Обновить</button>
     </div>
 
     <div class="info-banner">
-      Список филиалов задаётся в конфигурации бэкенда — добавить новый филиал
-      через сайт пока нельзя, это отдельная доработка. Здесь можно посмотреть
-      сводку по каждому филиалу за сегодня и назначить администратора
-      (пользователь должен быть в белом списке — добавляется на странице
-      «Настройки»).
+      Список филиалов задаётся в конфигурации бэкенда (config.py) — добавить
+      новый филиал через сайт пока нельзя, это отдельная доработка. Здесь можно
+      посмотреть сводку по каждому филиалу за сегодня и назначить администратора
+      (пользователь должен быть в белом списке — добавляется на странице «Настройки»).
     </div>
 
-    <div class="branch-cards">
-      <div class="branch-detail">
-        <div class="bc-head">
-          <div>
-            <div class="bc-detail-name">Мойка на Ленина, 12</div>
-            <div class="bc-stats">
-              <div class="bc-stat">Выручка сегодня: <b>36 550 ₽</b></div>
-              <div class="bc-stat">Машин: <b>14</b></div>
-              <div class="bc-stat">Сотрудников: <b>3</b></div>
-            </div>
-          </div>
-        </div>
-        <div class="bc-admin-row">
-          <div class="bc-admin-label">Администратор:</div>
-          <div class="bc-admin-current">Даниил</div>
-          <select class="bc-admin-select">
-            <option>Даниил (ID 10231)</option>
-            <option>Марат (ID 10455)</option>
-            <option>Ирина (ID 10812)</option>
-          </select>
-          <div class="icon-btn confirm" title="Назначить"><i class="ti ti-check"></i></div>
-        </div>
-      </div>
-
-      <div class="branch-detail">
-        <div class="bc-head">
-          <div>
-            <div class="bc-detail-name">Мойка на Гагарина, 4</div>
-            <div class="bc-stats">
-              <div class="bc-stat">Выручка сегодня: <b>28 900 ₽</b></div>
-              <div class="bc-stat">Машин: <b>11</b></div>
-              <div class="bc-stat">Сотрудников: <b>2</b></div>
-            </div>
-          </div>
-        </div>
-        <div class="bc-admin-row">
-          <div class="bc-admin-label">Администратор:</div>
-          <div class="bc-admin-current">Полина</div>
-          <select class="bc-admin-select">
-            <option>Полина (ID 11003)</option>
-            <option>Артём (ID 11090)</option>
-          </select>
-          <div class="icon-btn confirm" title="Назначить"><i class="ti ti-check"></i></div>
-        </div>
-      </div>
-
-      <div class="branch-detail">
-        <div class="bc-head">
-          <div>
-            <div class="bc-detail-name">Мойка на Кирова, 55</div>
-            <div class="bc-stats">
-              <div class="bc-stat">Выручка сегодня: <b>19 200 ₽</b></div>
-              <div class="bc-stat">Машин: <b>8</b></div>
-              <div class="bc-stat">Сотрудников: <b>2</b></div>
-            </div>
-          </div>
-        </div>
-        <div class="bc-admin-row">
-          <div class="bc-admin-label">Администратор:</div>
-          <div class="bc-admin-current" style="color:var(--muted);font-weight:600">не назначен</div>
-          <select class="bc-admin-select">
-            <option value="">Выберите сотрудника</option>
-            <option>Сергей (ID 11244)</option>
-          </select>
-          <div class="icon-btn confirm" title="Назначить"><i class="ti ti-check"></i></div>
-        </div>
-      </div>
-    </div>
+    <div class="branch-cards" id="branchCards"></div>
+    <div class="empty-note" id="branchEmpty" style="display:none">Не удалось загрузить филиалы</div>
   </div>
 </div>
 
-<script src="js/common-plata.js"></script>
-<script>PLATA.renderSidebar("branches");</script>
+<script src="/static/site-common.js"></script>
+<script>
+if (CW.requireAuth()) {
+  CW.renderSidebar("branches");
+
+  const role = CW.getRole();
+  const errEl = document.getElementById("errBanner");
+  function showErr(msg) { errEl.textContent = msg; errEl.style.display = "block"; }
+
+  if (role !== "владелец") {
+    showErr("Эта страница доступна только владельцу.");
+  } else {
+    document.getElementById("pageSub").textContent = CW.todayLabel();
+    document.getElementById("refreshBtn").addEventListener("click", load);
+    load();
+  }
+
+  let usersCache = [];
+  let summaryCache = [];
+  let workersInfoCache = {}; // branch -> {admin_id, workers}
+
+  async function load() {
+    errEl.style.display = "none";
+    try {
+      const [summaryData, usersData] = await Promise.all([
+        CW.authFetch("/api/branches/summary"),
+        CW.authFetch("/api/users"),
+      ]);
+      summaryCache = summaryData.branches || [];
+      usersCache = usersData.users || [];
+
+      // Подтягиваем admin_id/workers по каждому филиалу параллельно
+      const infoResults = await Promise.all(
+        summaryCache.map(b => CW.authFetch(`/api/workers?branch=${encodeURIComponent(b.branch)}`).catch(() => null))
+      );
+      summaryCache.forEach((b, i) => { workersInfoCache[b.branch] = infoResults[i] || { admin_id: 0, workers: [] }; });
+
+      render();
+    } catch (e) {
+      showErr(e.message);
+      document.getElementById("branchEmpty").style.display = "block";
+    }
+  }
+
+  function userName(userId) {
+    if (!userId) return null;
+    const u = usersCache.find(x => x.user_id === userId);
+    return u ? u.name : `ID ${userId} (нет в белом списке)`;
+  }
+
+  function render() {
+    const root = document.getElementById("branchCards");
+    if (!summaryCache.length) {
+      document.getElementById("branchEmpty").style.display = "block";
+      root.innerHTML = "";
+      return;
+    }
+    document.getElementById("branchEmpty").style.display = "none";
+    root.innerHTML = summaryCache.map(b => {
+      const info = workersInfoCache[b.branch] || {};
+      const adminId = info.admin_id || 0;
+      const adminName = userName(adminId) || "не назначен";
+      const workersCount = (info.workers || []).length;
+      const userOptions = usersCache.map(u => `<option value="${u.user_id}" ${u.user_id === adminId ? "selected" : ""}>${u.name} (ID ${u.user_id})</option>`).join("")
+        || `<option value="">Белый список пуст</option>`;
+      return `
+        <div class="branch-detail">
+          <div class="bc-head">
+            <div>
+              <div class="bc-detail-name">${b.branch}</div>
+              <div class="bc-stats">
+                <div class="bc-stat">Выручка сегодня: <b>${CW.money(b.total)}</b></div>
+                <div class="bc-stat">Машин: <b>${b.cars}</b></div>
+                <div class="bc-stat">Сотрудников: <b>${workersCount}</b></div>
+              </div>
+            </div>
+          </div>
+          <div class="bc-admin-row">
+            <div class="bc-admin-label">Администратор:</div>
+            <div class="bc-admin-current">${adminName}</div>
+            <select class="bc-admin-select" id="sel_${cssId(b.branch)}">${userOptions}</select>
+            <div class="icon-btn confirm" title="Назначить" onclick="CW_setAdmin('${b.branch.replace(/'/g, "\\'")}')"><i class="ti ti-check"></i></div>
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
+
+  function cssId(s) { return s.replace(/[^a-zA-Z0-9]/g, "_"); }
+
+  window.CW_setAdmin = async (branch) => {
+    const sel = document.getElementById(`sel_${cssId(branch)}`);
+    const userId = parseInt(sel.value, 10);
+    if (!userId) { showErr("Выберите пользователя из белого списка"); return; }
+    try {
+      await CW.authFetch("/api/branch-admin", { method: "POST", body: JSON.stringify({ branch, user_id: userId }) });
+      await load();
+    } catch (e) { showErr(e.message); }
+  };
+}
+</script>
 </body>
 </html>

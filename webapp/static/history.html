@@ -5,20 +5,22 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CarWash Cloud — История изменений</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
-<link rel="stylesheet" href="css/theme-plata.css">
+<link rel="stylesheet" href="/static/css/theme-plata.css">
 </head>
 <body>
 <div class="shell">
-  <div class="rail" id="railRoot"></div>
+  <div class="rail" id="sidebarRoot"></div>
 
   <div class="main">
+    <div class="err-banner" id="errBanner"></div>
+
     <div class="page-head">
       <div>
         <div class="page-title">История изменений</div>
-        <div class="page-sub">Мойка на Ленина, 12 · последние 100 действий</div>
+        <div class="page-sub" id="pageSub">—</div>
       </div>
       <div class="head-actions">
-        <button class="btn secondary"><i class="ti ti-refresh"></i>Обновить</button>
+        <button class="btn secondary" id="refreshBtn"><i class="ti ti-refresh"></i>Обновить</button>
       </div>
     </div>
 
@@ -26,85 +28,82 @@
       <div class="panel-head">
         <div class="panel-title">Последние действия</div>
       </div>
-      <div>
-        <div class="entry">
-          <div class="entry-icon" style="background:var(--green-tint);color:var(--green)"><i class="ti ti-plus"></i></div>
-          <div class="entry-body">
-            <div class="entry-top"><div class="entry-action">Добавлена машина</div><div class="entry-time">18:42</div></div>
-            <div class="entry-details">Toyota Camry, А123ВС · Комплекс + химчистка · 4 200 ₽</div>
-            <div class="entry-actor"><i class="ti ti-user" style="font-size:11px"></i>Даниил</div>
-          </div>
-        </div>
-        <div class="entry">
-          <div class="entry-icon" style="background:var(--accent-tint);color:var(--accent)"><i class="ti ti-pencil"></i></div>
-          <div class="entry-body">
-            <div class="entry-top"><div class="entry-action">Изменена машина</div><div class="entry-time">17:15</div></div>
-            <div class="entry-details">Hyundai Solaris, В501НК · добавлена услуга «Полировка фар»</div>
-            <div class="entry-actor"><i class="ti ti-user" style="font-size:11px"></i>Марат</div>
-          </div>
-        </div>
-        <div class="entry">
-          <div class="entry-icon" style="background:var(--red-tint);color:var(--red)"><i class="ti ti-minus"></i></div>
-          <div class="entry-body">
-            <div class="entry-top"><div class="entry-action">Добавлен расход</div><div class="entry-time">16:03</div></div>
-            <div class="entry-details">Автохимия (доп. закупка) · −1 400 ₽</div>
-            <div class="entry-actor"><i class="ti ti-user" style="font-size:11px"></i>Даниил</div>
-          </div>
-        </div>
-        <div class="entry">
-          <div class="entry-icon" style="background:var(--purple-tint);color:var(--purple)"><i class="ti ti-shopping-cart"></i></div>
-          <div class="entry-body">
-            <div class="entry-top"><div class="entry-action">Продан товар</div><div class="entry-time">15:47</div></div>
-            <div class="entry-details">Продажа духов для авто · +800 ₽ · раздельная оплата</div>
-            <div class="entry-actor"><i class="ti ti-user" style="font-size:11px"></i>Ирина</div>
-          </div>
-        </div>
-        <div class="entry">
-          <div class="entry-icon" style="background:var(--green-tint);color:var(--green)"><i class="ti ti-check"></i></div>
-          <div class="entry-body">
-            <div class="entry-top"><div class="entry-action">Изменён статус машины</div><div class="entry-time">14:30</div></div>
-            <div class="entry-details">BMW X5, Е777ТТ · «В работе» → «Готово»</div>
-            <div class="entry-actor"><i class="ti ti-user" style="font-size:11px"></i>Даниил</div>
-          </div>
-        </div>
-        <div class="entry">
-          <div class="entry-icon" style="background:var(--orange-tint);color:var(--orange)"><i class="ti ti-cash-banknote"></i></div>
-          <div class="entry-body">
-            <div class="entry-top"><div class="entry-action">Установлена ставка</div><div class="entry-time">10:05</div></div>
-            <div class="entry-details">Марат · фиксированная ставка 1 500 ₽/смена</div>
-            <div class="entry-actor"><i class="ti ti-user" style="font-size:11px"></i>Администратор</div>
-          </div>
-        </div>
-        <div class="entry">
-          <div class="entry-icon" style="background:var(--purple-tint);color:var(--purple)"><i class="ti ti-heart"></i></div>
-          <div class="entry-body">
-            <div class="entry-top"><div class="entry-action">Удалена скидка</div><div class="entry-time">09:52</div></div>
-            <div class="entry-details">Kia Rio, О222РА · скидка постоянного клиента</div>
-            <div class="entry-actor"><i class="ti ti-user" style="font-size:11px"></i>Ирина</div>
-          </div>
-        </div>
-        <div class="entry">
-          <div class="entry-icon" style="background:var(--green-tint);color:var(--green)"><i class="ti ti-lock-open"></i></div>
-          <div class="entry-body">
-            <div class="entry-top"><div class="entry-action">Смена открыта</div><div class="entry-time">09:00</div></div>
-            <div class="entry-details">Стартовая касса: 5 000 ₽</div>
-            <div class="entry-actor"><i class="ti ti-user" style="font-size:11px"></i>Даниил</div>
-          </div>
-        </div>
-        <div class="entry">
-          <div class="entry-icon" style="background:var(--red-tint);color:var(--red)"><i class="ti ti-calendar-event"></i></div>
-          <div class="entry-body">
-            <div class="entry-top"><div class="entry-action">Смена закрыта</div><div class="entry-time">Вчера, 22:04</div></div>
-            <div class="entry-details">Касса не сошлась: расхождение −350 ₽</div>
-            <div class="entry-actor"><i class="ti ti-user" style="font-size:11px"></i>Марат</div>
-          </div>
-        </div>
-      </div>
+      <div id="entriesList"></div>
+      <div id="entriesEmpty" class="empty-note" style="display:none">Пока ничего не происходило</div>
     </div>
   </div>
 </div>
 
-<script src="js/common-plata.js"></script>
-<script>PLATA.renderSidebar("history");</script>
+<script src="/static/site-common.js"></script>
+<script>
+if (CW.requireAuth()) {
+  CW.renderSidebar("history");
+
+  const branch = CW.getActiveBranch();
+  const errEl = document.getElementById("errBanner");
+  function showErr(msg) { errEl.textContent = msg; errEl.style.display = "block"; }
+
+  const ACTION_META = {
+    add:             { icon: "ti-plus",          color: "green",  label: "Добавлена машина" },
+    edit:            { icon: "ti-pencil",        color: "accent", label: "Изменена машина" },
+    delete:          { icon: "ti-trash",         color: "red",    label: "Удалена машина" },
+    status:          { icon: "ti-check",         color: "green",  label: "Изменён статус машины" },
+    expense_add:     { icon: "ti-minus",         color: "red",    label: "Добавлен расход" },
+    expense_delete:  { icon: "ti-trash",         color: "red",    label: "Удалён расход" },
+    income_add:      { icon: "ti-plus",          color: "green",  label: "Добавлен доход" },
+    income_delete:   { icon: "ti-trash",         color: "red",    label: "Удалён доход" },
+    product_add:     { icon: "ti-shopping-cart", color: "purple", label: "Продан товар" },
+    product_delete:  { icon: "ti-trash",         color: "red",    label: "Удалён товар" },
+    loyalty_delete:  { icon: "ti-heart",         color: "purple", label: "Удалена скидка" },
+    fixed_rate_set:  { icon: "ti-cash-banknote", color: "orange", label: "Установлена ставка" },
+    fixed_rate_clear:{ icon: "ti-cash-banknote", color: "red",    label: "Убрана ставка" },
+    newday:          { icon: "ti-calendar-event",color: "orange", label: "Смена закрыта" },
+    dayopen:         { icon: "ti-lock-open",      color: "green",  label: "Смена открыта" },
+  };
+
+  if (!branch) {
+    showErr("Филиал не выбран. Выберите филиал в сайдбаре.");
+  } else {
+    document.getElementById("pageSub").textContent = `${branch} · последние 100 действий`;
+    load();
+  }
+
+  document.getElementById("refreshBtn").addEventListener("click", load);
+
+  async function load() {
+    errEl.style.display = "none";
+    try {
+      const data = await CW.authFetch(`/api/history?branch=${encodeURIComponent(branch)}&limit=100`);
+      const entries = data.entries || [];
+      const list = document.getElementById("entriesList");
+      const empty = document.getElementById("entriesEmpty");
+      if (!entries.length) {
+        list.innerHTML = ""; empty.style.display = "block"; return;
+      }
+      empty.style.display = "none";
+      list.innerHTML = entries.map(e => {
+        const meta = ACTION_META[e.action] || { icon: "ti-dots", color: "accent", label: e.action };
+        const isWarn = e.action === "newday" && (e.details || "").includes("не сошлась");
+        const color = isWarn ? "red" : meta.color;
+        return `
+          <div class="entry">
+            <div class="entry-icon" style="background:var(--${color}-tint);color:var(--${color})"><i class="ti ${meta.icon}"></i></div>
+            <div class="entry-body">
+              <div class="entry-top">
+                <div class="entry-action">${meta.label}</div>
+                <div class="entry-time">${e.at || ""}</div>
+              </div>
+              ${e.details ? `<div class="entry-details">${e.details}</div>` : ""}
+              <div class="entry-actor"><i class="ti ti-user" style="font-size:11px;vertical-align:-1px"></i> ${e.actor_name || "—"}</div>
+            </div>
+          </div>
+        `;
+      }).join("");
+    } catch (e) {
+      showErr(e.message);
+    }
+  }
+}
+</script>
 </body>
 </html>

@@ -3,179 +3,212 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CarWash Cloud — Дашборд</title>
+<title>CarWash Cloud — панель управления</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
-<link rel="stylesheet" href="css/theme-plata.css">
+<link rel="stylesheet" href="/static/css/theme-plata.css">
 </head>
 <body>
 <div class="shell">
-  <div class="rail" id="railRoot"></div>
+  <div class="rail" id="sidebarRoot"></div>
 
   <div class="main">
+    <div class="err-banner" id="errBanner"></div>
+
     <div class="page-head">
       <div>
         <div class="page-title">Дашборд</div>
-        <div class="page-sub">Мойка на Ленина, 12 · сегодня, 5 августа</div>
+        <div class="page-sub" id="pageSub">—</div>
       </div>
       <div class="head-actions">
-        <button class="btn secondary"><i class="ti ti-file-export"></i>Экспорт PDF</button>
-        <button class="btn accent"><i class="ti ti-plus"></i>Добавить машину</button>
+        <button class="btn secondary" id="exportBtn"><i class="ti ti-file-export"></i>Экспорт PDF</button>
+        <button class="btn accent" id="addCarBtn"><i class="ti ti-plus"></i>Добавить машину</button>
       </div>
     </div>
 
-    <div style="display:grid;grid-template-columns:1.55fr 1fr;gap:16px;margin-bottom:16px;align-items:stretch">
-      <div class="card-hero">
-        <div class="card-top">
-          <div>
-            <div class="card-label">Дневная выручка</div>
-            <div class="card-value">38 450 ₽</div>
-          </div>
-          <div class="card-chip"></div>
+    <div class="card-hero" id="heroRevenue" style="margin-bottom:16px">
+      <div class="card-top">
+        <div>
+          <div class="card-label">Дневная выручка</div>
+          <div class="card-value" id="heroValue">—</div>
         </div>
-        <div class="card-bottom">
-          <div class="card-mask">•••• &nbsp; 14 машин за смену</div>
-          <div class="card-goal">
-            <div class="goal-text">До цели<br><b>82%</b></div>
-            <svg class="goal-ring" viewBox="0 0 44 44">
-              <circle class="track" cx="22" cy="22" r="18"></circle>
-              <circle class="prog" cx="22" cy="22" r="18" stroke-dasharray="113" stroke-dashoffset="20"></circle>
-            </svg>
-          </div>
-        </div>
+        <div class="card-chip"></div>
       </div>
-
-      <div style="display:flex;flex-direction:column;gap:16px">
-        <div class="mini-card">
-          <div class="mini-top">
-            <span class="mini-label">Зарплаты (всего)</span>
-            <span class="mini-icon o"><i class="ti ti-users"></i></span>
-          </div>
-          <div class="mini-value">11 260 ₽</div>
-        </div>
-        <div class="mini-card">
-          <div class="mini-top">
-            <span class="mini-label">Остаток в кассе</span>
-            <span class="mini-icon k"><i class="ti ti-wallet"></i></span>
-          </div>
-          <div class="mini-value">24 190 ₽</div>
-          <div class="mini-delta">после расходов</div>
-        </div>
+      <div class="card-bottom">
+        <div class="card-mask" id="heroSub">&nbsp;</div>
       </div>
     </div>
 
-    <div class="stat-row">
-      <div class="stat-card">
-        <div class="stat-top"><span class="sq b1"><i class="ti ti-car"></i></span></div>
-        <div class="stat-label">Машин за смену</div>
-        <div class="stat-value">14</div>
-        <div class="stat-delta up">+3 к вчерашнему дню</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-top"><span class="sq b3"><i class="ti ti-trending-up"></i></span></div>
-        <div class="stat-label">Средний чек</div>
-        <div class="stat-value">2 746 ₽</div>
-        <div class="stat-delta">выше среднего за неделю</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-top"><span class="sq b2"><i class="ti ti-clock"></i></span></div>
-        <div class="stat-label">До конца смены</div>
-        <div class="stat-value">3 ч 40 м</div>
-        <div class="stat-delta">закрытие в 22:00</div>
-      </div>
+    <div class="stat-row" id="statRow">
+      <div class="stat-card"><div class="stat-top"><span class="sq b1"><i class="ti ti-car"></i></span></div><div class="stat-label">Машин за смену</div><div class="stat-value">—</div></div>
+      <div class="stat-card"><div class="stat-top"><span class="sq b3"><i class="ti ti-users"></i></span></div><div class="stat-label">Зарплаты (всего)</div><div class="stat-value">—</div></div>
+      <div class="stat-card"><div class="stat-top"><span class="sq b2"><i class="ti ti-wallet"></i></span></div><div class="stat-label">Остаток в кассе</div><div class="stat-value">—</div></div>
     </div>
 
-    <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:16px;align-items:start">
+    <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:16px;align-items:start;margin-top:16px">
       <div class="panel">
         <div class="panel-head">
           <div class="panel-title">Машины за смену</div>
-          <a class="panel-link" href="cars.html">Смотреть все →</a>
+          <div class="panel-link" id="carsLink">Смотреть все →</div>
         </div>
-        <table class="data">
-          <tr><th>Клиент</th><th>Сотрудник</th><th>Услуга</th><th>Оплата</th><th style="text-align:right">Сумма</th></tr>
-          <tr>
-            <td>Toyota Camry, А123ВС</td>
-            <td><div class="emp-cell"><span class="emp-dot" style="background:#FF5000"></span>Даниил</div></td>
-            <td>Комплекс + химчистка</td>
-            <td><span class="pay-tag card">Карта</span></td>
-            <td style="text-align:right;font-weight:700">4 200 ₽</td>
-          </tr>
-          <tr>
-            <td>Hyundai Solaris, В501НК</td>
-            <td><div class="emp-cell"><span class="emp-dot" style="background:#1B8A57"></span>Марат</div></td>
-            <td>Экспресс-мойка</td>
-            <td><span class="pay-tag cash">Нал</span></td>
-            <td style="text-align:right;font-weight:700">900 ₽</td>
-          </tr>
-          <tr>
-            <td>BMW X5, Е777ТТ</td>
-            <td><div class="emp-cell"><span class="emp-dot" style="background:#FF711F"></span>Даниил</div></td>
-            <td>Полировка кузова</td>
-            <td><span class="pay-tag transfer">Перевод</span></td>
-            <td style="text-align:right;font-weight:700">6 500 ₽</td>
-          </tr>
-          <tr>
-            <td>Kia Rio, О222РА</td>
-            <td><div class="emp-cell"><span class="emp-dot" style="background:#7A5CFF"></span>Ирина</div></td>
-            <td>Комплекс</td>
-            <td><span class="pay-tag card">Карта</span></td>
-            <td style="text-align:right;font-weight:700">2 100 ₽</td>
-          </tr>
-          <tr>
-            <td>Lada Vesta, У456ХВ</td>
-            <td><div class="emp-cell"><span class="emp-dot" style="background:#1B8A57"></span>Марат</div></td>
-            <td>Мойка кузова</td>
-            <td><span class="pay-tag cash">Нал</span></td>
-            <td style="text-align:right;font-weight:700">700 ₽</td>
-          </tr>
+        <table class="data" id="carsTable">
+          <tr><th>Клиент</th><th>Сотрудник</th><th>Услуга</th><th>Оплата</th><th class="num">Сумма</th></tr>
         </table>
+        <div id="carsEmpty" class="empty-note" style="display:none">Машин за сегодня ещё нет</div>
       </div>
 
       <div class="panel">
         <div class="panel-head">
           <div class="panel-title">Зарплаты сотрудников</div>
-          <a class="panel-link" href="workers.html">Все →</a>
+          <div class="panel-link" id="workersLink">Все →</div>
         </div>
-        <div>
-          <div class="worker-row">
-            <div class="worker-av" style="background:#FF500026;color:#FF5000">ДН</div>
-            <div class="worker-info">
-              <div class="worker-name">Даниил</div>
-              <div class="worker-meta">Намыл 18 900 ₽</div>
-            </div>
-            <div class="worker-sal">5 670 ₽</div>
-          </div>
-          <div class="worker-row">
-            <div class="worker-av" style="background:#1B8A5726;color:#1B8A57">МР</div>
-            <div class="worker-info">
-              <div class="worker-name">Марат</div>
-              <div class="worker-meta">Намыл 9 200 ₽</div>
-            </div>
-            <div class="worker-sal">2 760 ₽</div>
-          </div>
-          <div class="worker-row">
-            <div class="worker-av" style="background:#7A5CFF26;color:#7A5CFF">ИР</div>
-            <div class="worker-info">
-              <div class="worker-name">Ирина</div>
-              <div class="worker-meta">Намыла 6 800 ₽</div>
-            </div>
-            <div class="worker-sal">2 040 ₽</div>
-          </div>
-          <div class="worker-row">
-            <div class="worker-av" style="background:#0D0D0D14;color:#0D0D0D">АД</div>
-            <div class="worker-info">
-              <div class="worker-name">Администратор</div>
-              <div class="worker-meta">Дежурный админ · % от оборота</div>
-            </div>
-            <div class="worker-sal">790 ₽</div>
-          </div>
-        </div>
+        <div id="workersList"></div>
+        <div id="workersEmpty" class="empty-note" style="display:none">Пока нет данных за смену</div>
       </div>
     </div>
-
   </div>
 </div>
 
-<script src="js/common-plata.js"></script>
-<script>PLATA.renderSidebar("dashboard");</script>
+<script src="/static/site-common.js"></script>
+<script>
+if (CW.requireAuth()) {
+  CW.renderSidebar("dashboard");
+
+  const empDotColors = ["#FF5000", "#1B8A57", "#FF711F", "#7A5CFF", "#0D0D0D", "#D63A2E"];
+  function empColor(name) {
+    let h = 0;
+    for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) % empDotColors.length;
+    return empDotColors[h];
+  }
+
+  function payTag(method) {
+    const m = (method || "").toLowerCase();
+    if (m.includes("виз") || m === "visa") return `<span class="pay-tag card">Visa</span>`;
+    if (m.includes("безнал") || m === "transfer") return `<span class="pay-tag transfer">Безнал</span>`;
+    if (m.includes("нал") || m === "cash") return `<span class="pay-tag cash">Нал</span>`;
+    return `<span class="pay-tag transfer">${method || "—"}</span>`;
+  }
+
+  async function load() {
+    const errEl = document.getElementById("errBanner");
+    errEl.style.display = "none";
+
+    const branch = CW.getActiveBranch();
+    if (!branch) {
+      errEl.textContent = "Филиал не выбран. Выберите филиал в сайдбаре.";
+      errEl.style.display = "block";
+      return;
+    }
+
+    document.getElementById("pageSub").textContent = `${branch} · ${CW.todayLabel()}`;
+    document.getElementById("exportBtn").onclick = () => {
+      CW.downloadFile(`/api/reports/pdf?branch=${encodeURIComponent(branch)}`, `Касса_${branch}.pdf`).catch(e => (typeof showErr === "function" ? showErr(e.message) : alert(e.message)));
+    };
+    document.getElementById("addCarBtn").onclick = () => { window.location.href = "/static/cars.html"; };
+    document.getElementById("carsLink").onclick = () => { window.location.href = "/static/cars.html"; };
+    document.getElementById("workersLink").onclick = () => { window.location.href = "/static/workers.html"; };
+
+    try {
+      const data = await CW.authFetch(`/api/session?branch=${encodeURIComponent(branch)}`);
+      const session = data.session || {};
+      const summary = data.summary || {};
+      const cars = session.cars || [];
+
+      const totalSalaries = Object.values(summary.washer_salaries || {}).reduce((a, b) => a + b, 0)
+        + (summary.admin_salary || 0);
+
+      document.getElementById("heroValue").textContent = CW.money(summary.grand_total);
+      document.getElementById("heroSub").textContent = `${cars.length} машин за смену`;
+
+      const statRow = document.getElementById("statRow");
+      statRow.innerHTML = `
+        <div class="stat-card">
+          <div class="stat-top"><span class="sq b1"><i class="ti ti-car"></i></span></div>
+          <div class="stat-label">Машин за смену</div>
+          <div class="stat-value">${cars.length}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-top"><span class="sq b3"><i class="ti ti-users"></i></span></div>
+          <div class="stat-label">Зарплаты (всего)</div>
+          <div class="stat-value">${CW.money(totalSalaries)}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-top"><span class="sq b2"><i class="ti ti-wallet"></i></span></div>
+          <div class="stat-label">Остаток в кассе</div>
+          <div class="stat-value">${CW.money(summary.remainder)}</div>
+          <div class="stat-delta">после расходов</div>
+        </div>
+      `;
+
+      const table = document.getElementById("carsTable");
+      const carsEmpty = document.getElementById("carsEmpty");
+      if (!cars.length) {
+        table.style.display = "none";
+        carsEmpty.style.display = "block";
+      } else {
+        table.style.display = "table";
+        carsEmpty.style.display = "none";
+        const rows = cars.slice().reverse().slice(0, 8).map(c => `
+          <tr>
+            <td>${c.car || "—"}</td>
+            <td><div class="emp-cell"><span class="emp-dot" style="background:${empColor(c.employee || "")}"></span>${c.employee || "—"}</div></td>
+            <td>${c.service || "—"}</td>
+            <td>${payTag(c.payment_split ? Object.keys(c.payment_split)[0] : c.payment)}</td>
+            <td class="num" style="font-weight:600">${CW.money(c.price)}</td>
+          </tr>
+        `).join("");
+        table.innerHTML = `<tr><th>Клиент</th><th>Сотрудник</th><th>Услуга</th><th>Оплата</th><th class="num">Сумма</th></tr>${rows}`;
+      }
+
+      const workersList = document.getElementById("workersList");
+      const workersEmpty = document.getElementById("workersEmpty");
+      const salaries = summary.washer_salaries || {};
+      const totals = summary.washer_totals || {};
+      const names = Object.keys(salaries);
+
+      let workersHtml = names.map(name => {
+        const color = empColor(name);
+        return `
+          <div class="worker-row">
+            <div class="worker-av" style="background:${color}26;color:${color}">${CW.initials(name)}</div>
+            <div class="worker-info">
+              <div class="worker-name">${name}</div>
+              <div class="worker-meta">Намыл ${CW.money(totals[name] || 0)}</div>
+            </div>
+            <div class="worker-sal">${CW.money(salaries[name])}</div>
+          </div>
+        `;
+      }).join("");
+
+      if (summary.admin_salary) {
+        const adminName = session.admin_name || "Администратор";
+        workersHtml += `
+          <div class="worker-row">
+            <div class="worker-av" style="background:var(--purple-tint);color:var(--purple)">${CW.initials(adminName)}</div>
+            <div class="worker-info">
+              <div class="worker-name">${adminName}</div>
+              <div class="worker-meta">${session.admin_name ? "Дежурный админ · % от оборота" : "Администратор не назначен · % от оборота"}</div>
+            </div>
+            <div class="worker-sal">${CW.money(summary.admin_salary)}</div>
+          </div>
+        `;
+      }
+
+      if (!names.length && !summary.admin_salary) {
+        workersList.style.display = "none";
+        workersEmpty.style.display = "block";
+      } else {
+        workersList.style.display = "block";
+        workersEmpty.style.display = "none";
+        workersList.innerHTML = workersHtml;
+      }
+    } catch (e) {
+      errEl.textContent = e.message || "Не удалось загрузить данные";
+      errEl.style.display = "block";
+    }
+  }
+
+  load();
+}
+</script>
 </body>
 </html>

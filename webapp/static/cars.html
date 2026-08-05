@@ -3,19 +3,21 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CarWash Cloud — Машины</title>
+<title>CarWash Cloud — машины</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
-<link rel="stylesheet" href="css/theme-plata.css">
+<link rel="stylesheet" href="/static/css/theme-plata.css">
 </head>
 <body>
 <div class="shell">
-  <div class="rail" id="railRoot"></div>
+  <div class="rail" id="sidebarRoot"></div>
 
   <div class="main">
+    <div class="err-banner" id="errBanner"></div>
+
     <div class="page-head">
       <div>
         <div class="page-title">Машины</div>
-        <div class="page-sub">Мойка на Ленина, 12 · сегодня, 5 августа</div>
+        <div class="page-sub" id="pageSub">—</div>
       </div>
       <div class="head-actions">
         <button class="btn secondary" id="refreshBtn"><i class="ti ti-refresh"></i>Обновить</button>
@@ -28,188 +30,501 @@
         <div class="panel-title">Машины за смену</div>
       </div>
       <table class="data" id="carsTable">
-        <tr><th>#</th><th>Клиент</th><th>Сотрудник</th><th>Услуга</th><th>Оплата</th><th>Статус</th><th style="text-align:right">Сумма</th><th></th></tr>
-        <tr data-num="6">
-          <td>6</td>
-          <td>Toyota Camry, А123ВС</td>
-          <td><div class="emp-cell"><span class="emp-dot" style="background:#FF5000"></span>Даниил</div></td>
-          <td>Комплекс + химчистка</td>
-          <td><span class="pay-tag card">Карта</span></td>
-          <td><button class="status-tag done" onclick="toggleStatus(this)"><i class="ti ti-check"></i>Оплачено</button></td>
-          <td style="text-align:right;font-weight:700">4 200 ₽</td>
-          <td><div class="row-actions"><div class="icon-btn" title="Редактировать"><i class="ti ti-pencil"></i></div><div class="icon-btn danger" title="Удалить"><i class="ti ti-trash"></i></div></div></td>
-        </tr>
-        <tr data-num="5">
-          <td>5</td>
-          <td>BMW X5, Е777ТТ</td>
-          <td><div class="emp-cell"><span class="emp-dot" style="background:#FF711F"></span>Даниил</div></td>
-          <td>Полировка кузова</td>
-          <td><span class="pay-tag transfer">Перевод</span></td>
-          <td><button class="status-tag progress" onclick="toggleStatus(this)"><i class="ti ti-clock"></i>В работе</button></td>
-          <td style="text-align:right;font-weight:700">6 500 ₽</td>
-          <td><div class="row-actions"><div class="icon-btn" title="Редактировать"><i class="ti ti-pencil"></i></div><div class="icon-btn danger" title="Удалить"><i class="ti ti-trash"></i></div></div></td>
-        </tr>
-        <tr data-num="4">
-          <td>4</td>
-          <td>Kia Rio, О222РА</td>
-          <td><div class="emp-cell"><span class="emp-dot" style="background:#7A5CFF"></span>Ирина</div></td>
-          <td>Комплекс</td>
-          <td><span class="pay-tag card">Карта</span></td>
-          <td><button class="status-tag done" onclick="toggleStatus(this)"><i class="ti ti-check"></i>Оплачено</button></td>
-          <td style="text-align:right;font-weight:700">2 100 ₽</td>
-          <td><div class="row-actions"><div class="icon-btn" title="Редактировать"><i class="ti ti-pencil"></i></div><div class="icon-btn danger" title="Удалить"><i class="ti ti-trash"></i></div></div></td>
-        </tr>
-        <tr data-num="3">
-          <td>3</td>
-          <td>Hyundai Solaris, В501НК</td>
-          <td><div class="emp-cell"><span class="emp-dot" style="background:#1B8A57"></span>Марат</div></td>
-          <td>Экспресс-мойка</td>
-          <td><span class="pay-tag cash">Нал</span></td>
-          <td><button class="status-tag done" onclick="toggleStatus(this)"><i class="ti ti-check"></i>Оплачено</button></td>
-          <td style="text-align:right;font-weight:700">900 ₽</td>
-          <td><div class="row-actions"><div class="icon-btn" title="Редактировать"><i class="ti ti-pencil"></i></div><div class="icon-btn danger" title="Удалить"><i class="ti ti-trash"></i></div></div></td>
-        </tr>
-        <tr data-num="2">
-          <td>2</td>
-          <td>Lada Vesta, У456ХВ</td>
-          <td><div class="emp-cell"><span class="emp-dot" style="background:#1B8A57"></span>Марат</div></td>
-          <td>Мойка кузова</td>
-          <td><span class="pay-tag cash">Нал</span></td>
-          <td><button class="status-tag progress" onclick="toggleStatus(this)"><i class="ti ti-clock"></i>В работе</button></td>
-          <td style="text-align:right;font-weight:700">700 ₽</td>
-          <td><div class="row-actions"><div class="icon-btn" title="Редактировать"><i class="ti ti-pencil"></i></div><div class="icon-btn danger" title="Удалить"><i class="ti ti-trash"></i></div></div></td>
-        </tr>
+        <tr><th>#</th><th>Клиент</th><th>Сотрудник</th><th>Услуга</th><th>Оплата</th><th>Статус</th><th class="num">Сумма</th><th></th></tr>
       </table>
+      <div id="carsEmpty" class="empty-note" style="display:none">Машин за сегодня ещё нет</div>
     </div>
   </div>
 </div>
 
-<!-- Модалка добавления/редактирования машины -->
+<!-- Модалка добавления машины -->
 <div class="modal-bg" id="modalBg">
   <div class="modal">
-    <h2>Добавить машину</h2>
+    <h2 id="modalTitle">Добавить машину</h2>
 
     <div class="field">
       <label>Клиент / машина</label>
-      <input type="text" placeholder="Например, Lexus Дарья">
+      <input type="text" id="fCar" placeholder="Например, Lexus Дарья">
     </div>
 
     <div class="field">
       <label>Тип кузова</label>
-      <select>
-        <option>Легковой</option>
-        <option>Кроссовер</option>
-        <option>Внедорожник</option>
-        <option>Микроавтобус</option>
-      </select>
+      <select id="fBodyType"></select>
     </div>
 
     <div class="field">
       <label>Сотрудник</label>
-      <select>
-        <option>Даниил</option>
-        <option>Марат</option>
-        <option>Ирина</option>
-      </select>
+      <select id="fEmployee"></select>
     </div>
 
     <div class="field">
       <label>Услуги</label>
-      <div class="svc-grid" id="svcGrid">
-        <label class="svc-item checked" onclick="toggleSvc(this)"><input type="checkbox" checked>Мойка кузова</label>
-        <label class="svc-item" onclick="toggleSvc(this)"><input type="checkbox">Химчистка салона</label>
-        <label class="svc-item checked" onclick="toggleSvc(this)"><input type="checkbox" checked>Мойка ковриков</label>
-        <label class="svc-item" onclick="toggleSvc(this)"><input type="checkbox">Полировка</label>
-        <label class="svc-item" onclick="toggleSvc(this)"><input type="checkbox">Чернение резины</label>
-        <label class="svc-item" onclick="toggleSvc(this)"><input type="checkbox">Мойка двигателя</label>
-      </div>
-      <div class="custom-svc-list" id="customSvcList">
-        <div class="custom-svc-row">
-          <div class="csr-name">Удаление запаха озоном</div>
-          <div class="csr-meta">800 ₽ · 30% мойщику</div>
-          <div class="csr-del" onclick="this.closest('.custom-svc-row').remove()"><i class="ti ti-x"></i></div>
-        </div>
-      </div>
-      <div class="custom-add-btn" id="customAddBtn" onclick="document.getElementById('customSvcForm').classList.toggle('open')"><i class="ti ti-plus"></i>Другое (своя услуга)</div>
+      <div class="svc-grid" id="svcGrid"></div>
+      <div class="custom-svc-list" id="customSvcList"></div>
+      <div class="custom-add-btn" id="customAddBtn"><i class="ti ti-plus"></i>Другое (своя услуга)</div>
       <div class="custom-svc-form" id="customSvcForm">
-        <div class="csf-row"><input type="text" placeholder="Название услуги"></div>
+        <div class="csf-row">
+          <input type="text" id="csName" placeholder="Название услуги">
+        </div>
         <div class="csf-row csf-row-2">
-          <input type="number" placeholder="Цена, ₽">
-          <input type="number" placeholder="% мойщику">
+          <input type="number" id="csPrice" min="0" step="50" placeholder="Цена, ₽">
+          <input type="number" id="csPercent" min="0" max="100" step="1" placeholder="% мойщику">
         </div>
         <div class="csf-actions">
-          <button type="button" class="btn secondary" onclick="document.getElementById('customSvcForm').classList.remove('open')">Отмена</button>
-          <button type="button" class="btn accent">Добавить</button>
+          <button type="button" class="btn secondary" id="csCancel">Отмена</button>
+          <button type="button" class="btn accent" id="csAdd">Добавить</button>
         </div>
       </div>
     </div>
 
     <div class="field">
       <label>Оплата</label>
-      <div class="pay-grid" id="payGrid">
-        <button type="button" class="pay-btn active" onclick="selectPay(this)">Наличные</button>
-        <button type="button" class="pay-btn" onclick="selectPay(this)">Карта</button>
-        <button type="button" class="pay-btn" onclick="selectPay(this)">Перевод</button>
-      </div>
+      <div class="pay-grid" id="payGrid"></div>
       <div class="split-toggle-row">
         <span>Раздельная оплата</span>
         <label class="switch">
-          <input type="checkbox" id="fSplitToggle" onchange="document.getElementById('splitGrid').classList.toggle('open', this.checked)">
+          <input type="checkbox" id="fSplitToggle">
           <span class="track"></span>
         </label>
       </div>
-      <div class="split-grid" id="splitGrid">
-        <div class="split-row"><span class="split-label">Наличные</span><input type="number" placeholder="0"></div>
-        <div class="split-row"><span class="split-label">Карта</span><input type="number" placeholder="0"></div>
-        <div class="split-row"><span class="split-label">Перевод</span><input type="number" placeholder="0"></div>
-      </div>
+      <div class="split-grid" id="splitGrid"></div>
+      <div class="split-hint" id="splitHint"></div>
     </div>
 
     <div class="field">
       <label>Комментарий (необязательно)</label>
-      <input type="text" placeholder="Например, скидка постоянному клиенту">
+      <input type="text" id="fComment" placeholder="Например, скидка постоянному клиенту">
     </div>
 
     <div class="total-line">
       <span>Итого</span>
       <div class="total-input-wrap">
-        <span class="total-reset show">Сбросить</span>
-        <input type="number" value="1900">
+        <span class="total-reset" id="totalReset">Сбросить</span>
+        <input type="number" id="fTotal" min="0" step="50">
       </div>
     </div>
 
+    <div class="modal-err" id="modalErr"></div>
+
     <div class="modal-actions">
-      <button class="btn secondary" onclick="closeModal()">Отмена</button>
-      <button class="btn accent" onclick="closeModal()">Добавить</button>
+      <button class="btn secondary" id="cancelBtn">Отмена</button>
+      <button class="btn accent" id="saveBtn">Добавить</button>
     </div>
   </div>
 </div>
 
-<script src="js/common-plata.js"></script>
+<script src="/static/site-common.js"></script>
 <script>
-PLATA.renderSidebar("cars");
+if (CW.requireAuth()) {
+  CW.renderSidebar("cars");
 
-function openModal(){ document.getElementById("modalBg").classList.add("open"); }
-function closeModal(){ document.getElementById("modalBg").classList.remove("open"); }
-document.getElementById("addCarBtn").onclick = openModal;
-document.getElementById("modalBg").addEventListener("click", (e) => { if (e.target.id === "modalBg") closeModal(); });
+  const empDotColors = ["#FF5000", "#1B8A57", "#FF711F", "#7A5CFF", "#0D0D0D", "#D63A2E"];
+  function empColor(name) {
+    let h = 0;
+    for (let i = 0; i < (name || "").length; i++) h = (h * 31 + name.charCodeAt(i)) % empDotColors.length;
+    return empDotColors[h];
+  }
+  function payTag(method) {
+    const m = (method || "").toLowerCase();
+    if (m.includes("виз") || m === "visa") return `<span class="pay-tag card">Visa</span>`;
+    if (m.includes("безнал") || m === "transfer") return `<span class="pay-tag transfer">Безнал</span>`;
+    if (m.includes("нал") || m === "cash") return `<span class="pay-tag cash">Нал</span>`;
+    return `<span class="pay-tag transfer">${method || "—"}</span>`;
+  }
 
-function toggleSvc(el){
-  const cb = el.querySelector("input");
-  cb.checked = !cb.checked;
-  el.classList.toggle("checked", cb.checked);
-}
-function selectPay(btn){
-  btn.parentElement.querySelectorAll(".pay-btn").forEach(b => b.classList.remove("active"));
-  btn.classList.add("active");
-}
-function toggleStatus(btn){
-  const done = btn.classList.contains("done");
-  btn.classList.toggle("done", !done);
-  btn.classList.toggle("progress", done);
-  btn.innerHTML = done
-    ? `<i class="ti ti-clock"></i>В работе`
-    : `<i class="ti ti-check"></i>Оплачено`;
+  let cfg = null;
+  let workers = [];
+  let currentCars = [];
+  let editingNum = null;
+  const branch = CW.getActiveBranch();
+
+  const errEl = document.getElementById("errBanner");
+  function showErr(msg) { errEl.textContent = msg; errEl.style.display = "block"; }
+
+  if (!branch) {
+    showErr("Филиал не выбран. Выберите филиал в сайдбаре.");
+  } else {
+    document.getElementById("pageSub").textContent = `${branch} · ${CW.todayLabel()}`;
+    init();
+  }
+
+  async function init() {
+    try {
+      cfg = await CW.authFetch("/api/config");
+      const w = await CW.authFetch(`/api/workers?branch=${encodeURIComponent(branch)}`);
+      workers = w.workers || [];
+    } catch (e) { showErr(e.message); return; }
+    buildForm();
+    await loadCars();
+  }
+
+  function buildForm() {
+    const bodyTypeSel = document.getElementById("fBodyType");
+    bodyTypeSel.innerHTML = cfg.body_types.map(b => `<option value="${b.key}">${b.name}</option>`).join("");
+    bodyTypeSel.addEventListener("change", updateTotal);
+
+    const empSel = document.getElementById("fEmployee");
+    empSel.innerHTML = workers.length
+      ? workers.map(w => `<option value="${w}">${w}</option>`).join("")
+      : `<option value="">Нет сотрудников — добавьте на странице «Сотрудники»</option>`;
+
+    const svcGrid = document.getElementById("svcGrid");
+    svcGrid.innerHTML = cfg.services.map(s => `
+      <label class="svc-item" data-key="${s.key}">
+        <input type="checkbox" value="${s.key}"> ${s.name}
+      </label>
+    `).join("");
+    svcGrid.querySelectorAll(".svc-item").forEach(el => {
+      el.addEventListener("click", (e) => {
+        if (e.target.tagName !== "INPUT") {
+          const cb = el.querySelector("input");
+          cb.checked = !cb.checked;
+        }
+        el.classList.toggle("checked", el.querySelector("input").checked);
+        updateTotal();
+      });
+    });
+
+    const payGrid = document.getElementById("payGrid");
+    payGrid.innerHTML = cfg.payment_types.map(p => `<button type="button" class="pay-btn" data-pay="${p}">${p[0].toUpperCase() + p.slice(1)}</button>`).join("");
+    payGrid.querySelectorAll(".pay-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        payGrid.querySelectorAll(".pay-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+      });
+    });
+    if (payGrid.firstElementChild) payGrid.firstElementChild.classList.add("active");
+
+    const splitGrid = document.getElementById("splitGrid");
+    splitGrid.innerHTML = cfg.payment_types.map(p => `
+      <div class="split-row">
+        <div class="split-label">${p[0].toUpperCase() + p.slice(1)}</div>
+        <input type="number" min="0" step="50" data-split="${p}" placeholder="0">
+      </div>
+    `).join("");
+    splitGrid.querySelectorAll("input").forEach(i => i.addEventListener("input", updateSplitHint));
+
+    document.getElementById("fSplitToggle").addEventListener("change", (e) => {
+      const on = e.target.checked;
+      splitGrid.classList.toggle("open", on);
+      payGrid.querySelectorAll(".pay-btn").forEach(b => b.disabled = on);
+      if (on) {
+        // по умолчанию кладём всю сумму в первый способ оплаты
+        splitGrid.querySelectorAll("input").forEach(i => i.value = "");
+        const first = splitGrid.querySelector("input");
+        if (first) first.value = parseInt(document.getElementById("fTotal").value) || 0;
+      }
+      updateSplitHint();
+    });
+  }
+
+  function updateSplitHint() {
+    const hint = document.getElementById("splitHint");
+    if (!document.getElementById("fSplitToggle").checked) { hint.textContent = ""; return; }
+    const total = parseInt(document.getElementById("fTotal").value) || 0;
+    const sum = Array.from(document.querySelectorAll("#splitGrid input")).reduce((s, i) => s + (parseInt(i.value) || 0), 0);
+    if (sum === total) {
+      hint.textContent = `Сумма сходится: ${CW.money(sum)}`;
+      hint.className = "split-hint ok";
+    } else {
+      hint.textContent = `Введено ${CW.money(sum)} из ${CW.money(total)} — суммы должны совпадать`;
+      hint.className = "split-hint bad";
+    }
+  }
+
+  function getSplitPayload() {
+    if (!document.getElementById("fSplitToggle").checked) return null;
+    const out = {};
+    document.querySelectorAll("#splitGrid input").forEach(i => {
+      const v = parseInt(i.value) || 0;
+      if (v > 0) out[i.dataset.split] = v;
+    });
+    return out;
+  }
+
+  function selectedServiceKeys() {
+    return Array.from(document.querySelectorAll("#svcGrid input:checked")).map(i => i.value);
+  }
+
+  function servicePrice(svcKey, bodyType) {
+    const svc = cfg.services.find(s => s.key === svcKey);
+    if (!svc) return 0;
+    return svc.prices[bodyType] ?? Object.values(svc.prices)[0] ?? 0;
+  }
+
+  let manualPriceEdited = false;
+  let customServices = []; // [{name, price, percent}] percent 0-100
+
+  function renderCustomChips() {
+    const list = document.getElementById("customSvcList");
+    list.innerHTML = customServices.map((c, i) => `
+      <div class="custom-svc-row">
+        <div class="csr-name">${c.name}</div>
+        <div class="csr-meta">${c.price} ₽ · ${c.percent}% мойщику</div>
+        <div class="csr-del" data-idx="${i}"><i class="ti ti-x"></i></div>
+      </div>
+    `).join("");
+    list.querySelectorAll(".csr-del").forEach(x => {
+      x.addEventListener("click", () => {
+        customServices.splice(parseInt(x.dataset.idx), 1);
+        renderCustomChips();
+        updateTotal();
+      });
+    });
+  }
+
+  document.getElementById("customAddBtn").addEventListener("click", () => {
+    document.getElementById("csName").value = "";
+    document.getElementById("csPrice").value = "";
+    document.getElementById("csPercent").value = "";
+    document.getElementById("customSvcForm").classList.add("open");
+  });
+  document.getElementById("csCancel").addEventListener("click", () => {
+    document.getElementById("customSvcForm").classList.remove("open");
+  });
+  document.getElementById("csAdd").addEventListener("click", () => {
+    const name = document.getElementById("csName").value.trim();
+    const price = parseInt(document.getElementById("csPrice").value);
+    const percent = parseInt(document.getElementById("csPercent").value);
+    if (!name) { alert("Укажите название услуги"); return; }
+    if (isNaN(price) || price < 0) { alert("Укажите корректную цену"); return; }
+    if (isNaN(percent) || percent < 0 || percent > 100) { alert("Процент сотруднику — от 0 до 100"); return; }
+    customServices.push({ name, price, percent });
+    renderCustomChips();
+    document.getElementById("customSvcForm").classList.remove("open");
+    updateTotal();
+  });
+
+  function calcPrice() {
+    const bodyType = document.getElementById("fBodyType").value;
+    const svcSum = selectedServiceKeys().reduce((sum, k) => sum + servicePrice(k, bodyType), 0);
+    const customSum = customServices.reduce((sum, c) => sum + c.price, 0);
+    return svcSum + customSum;
+  }
+
+  function updateTotal() {
+    const totalInput = document.getElementById("fTotal");
+    if (!manualPriceEdited) {
+      totalInput.value = calcPrice();
+    }
+    document.getElementById("totalReset").classList.toggle("show", manualPriceEdited && parseInt(totalInput.value) !== calcPrice());
+    updateSplitHint();
+  }
+
+  const fTotalInput = document.getElementById("fTotal");
+  fTotalInput.addEventListener("input", () => {
+    manualPriceEdited = true;
+    document.getElementById("totalReset").classList.toggle("show", parseInt(fTotalInput.value) !== calcPrice());
+    updateSplitHint();
+  });
+  document.getElementById("totalReset").addEventListener("click", () => {
+    manualPriceEdited = false;
+    updateTotal();
+  });
+
+  function openModal(car) {
+    editingNum = car ? car.num : null;
+    document.getElementById("modalTitle").textContent = car ? `Редактировать машину #${car.num}` : "Добавить машину";
+    document.getElementById("saveBtn").textContent = car ? "Сохранить" : "Добавить";
+    document.getElementById("modalErr").style.display = "none";
+    document.getElementById("fCar").value = car ? (car.car || "") : "";
+    document.getElementById("fComment").value = car ? (car.comment || "") : "";
+
+    document.getElementById("fBodyType").value = car ? car.body_type : document.getElementById("fBodyType").value;
+    document.getElementById("fEmployee").value = car ? car.employee : document.getElementById("fEmployee").value;
+
+    const carServiceKeys = car ? (car.service_keys || []) : [];
+    document.querySelectorAll("#svcGrid input").forEach(i => {
+      const checked = carServiceKeys.includes(i.value);
+      i.checked = checked;
+      i.closest(".svc-item").classList.toggle("checked", checked);
+    });
+
+    customServices = car && car.custom_services
+      ? car.custom_services.map(c => ({ name: c.name, price: c.price, percent: Math.round(c.percent <= 1 ? c.percent * 100 : c.percent) }))
+      : [];
+    document.getElementById("customSvcForm").classList.remove("open");
+    renderCustomChips();
+
+    const payGrid = document.getElementById("payGrid");
+    payGrid.querySelectorAll(".pay-btn").forEach(b => { b.classList.remove("active"); b.disabled = false; });
+    const payToMatch = car ? (car.payment_split ? Object.keys(car.payment_split)[0] : car.payment) : null;
+    const matchBtn = payToMatch && Array.from(payGrid.children).find(b => b.dataset.pay === payToMatch);
+    (matchBtn || payGrid.firstElementChild)?.classList.add("active");
+
+    // раздельная оплата
+    const splitToggle = document.getElementById("fSplitToggle");
+    const splitGrid = document.getElementById("splitGrid");
+    document.querySelectorAll("#splitGrid input").forEach(i => i.value = "");
+    if (car && car.payment_split) {
+      splitToggle.checked = true;
+      splitGrid.classList.add("open");
+      payGrid.querySelectorAll(".pay-btn").forEach(b => b.disabled = true);
+      Object.entries(car.payment_split).forEach(([method, amount]) => {
+        const input = splitGrid.querySelector(`input[data-split="${method}"]`);
+        if (input) input.value = amount;
+      });
+    } else {
+      splitToggle.checked = false;
+      splitGrid.classList.remove("open");
+    }
+
+    // ручная цена
+    manualPriceEdited = !!(car && car.price_override != null);
+    if (car) {
+      document.getElementById("fTotal").value = car.price;
+    }
+    updateTotal();
+    if (car) document.getElementById("fTotal").value = car.price; // updateTotal мог перезаписать при manualPriceEdited=false
+
+    document.getElementById("modalBg").classList.add("open");
+  }
+
+  function closeModal() {
+    document.getElementById("modalBg").classList.remove("open");
+    editingNum = null;
+    manualPriceEdited = false;
+  }
+
+  window.CW_editCar = (num) => {
+    const car = currentCars.find(c => c.num === num);
+    if (car) openModal(car);
+  };
+
+  document.getElementById("addCarBtn").addEventListener("click", () => {
+    if (!branch) { showErr("Сначала выберите филиал"); return; }
+    if (!workers.length) { showErr("Сначала добавьте сотрудников на странице «Сотрудники»"); return; }
+    openModal();
+  });
+  document.getElementById("cancelBtn").addEventListener("click", closeModal);
+  document.getElementById("refreshBtn").addEventListener("click", loadCars);
+  document.getElementById("modalBg").addEventListener("click", (e) => { if (e.target.id === "modalBg") closeModal(); });
+
+  document.getElementById("saveBtn").addEventListener("click", async () => {
+    const modalErr = document.getElementById("modalErr");
+    modalErr.style.display = "none";
+
+    const employee = document.getElementById("fEmployee").value;
+    const bodyType = document.getElementById("fBodyType").value;
+    const serviceKeys = selectedServiceKeys();
+    const payBtn = document.querySelector("#payGrid .pay-btn.active");
+    const payment = payBtn ? payBtn.dataset.pay : "";
+    const total = parseInt(document.getElementById("fTotal").value) || 0;
+    const split = getSplitPayload();
+
+    if (!employee) { modalErr.textContent = "Выберите сотрудника"; modalErr.style.display = "block"; return; }
+    if (!serviceKeys.length && !customServices.length) { modalErr.textContent = "Выберите хотя бы одну услугу"; modalErr.style.display = "block"; return; }
+    if (!payment) { modalErr.textContent = "Выберите способ оплаты"; modalErr.style.display = "block"; return; }
+    if (total < 0) { modalErr.textContent = "Итоговая сумма не может быть отрицательной"; modalErr.style.display = "block"; return; }
+    if (split) {
+      const sum = Object.values(split).reduce((a, b) => a + b, 0);
+      if (sum !== total) {
+        modalErr.textContent = `Сумма раздельной оплаты (${sum}₽) не совпадает с итогом (${total}₽)`;
+        modalErr.style.display = "block";
+        return;
+      }
+      if (!Object.keys(split).length) {
+        modalErr.textContent = "Укажите суммы для раздельной оплаты хотя бы в одном способе";
+        modalErr.style.display = "block";
+        return;
+      }
+    }
+
+    const saveBtn = document.getElementById("saveBtn");
+    saveBtn.disabled = true;
+    try {
+      const payload = {
+        employee, body_type: bodyType,
+        service_keys: serviceKeys, custom_services: customServices,
+        car: document.getElementById("fCar").value.trim(),
+        payment, payment_split: split,
+        comment: document.getElementById("fComment").value.trim(),
+      };
+      if (manualPriceEdited && total !== calcPrice()) {
+        payload.price_override = total;
+      }
+      if (editingNum) {
+        if (!manualPriceEdited) payload.clear_price_override = true;
+        await CW.authFetch(`/api/car/${encodeURIComponent(branch)}/${editingNum}`, {
+          method: "PUT", body: JSON.stringify(payload),
+        });
+      } else {
+        await CW.authFetch("/api/car", {
+          method: "POST", body: JSON.stringify({ branch, ...payload }),
+        });
+      }
+      closeModal();
+      await loadCars();
+    } catch (e) {
+      modalErr.textContent = e.message;
+      modalErr.style.display = "block";
+    } finally {
+      saveBtn.disabled = false;
+    }
+  });
+
+  async function toggleStatus(num, current) {
+    const next = current === "done" ? "in_progress" : "done";
+    try {
+      await CW.authFetch(`/api/car/${encodeURIComponent(branch)}/${num}/status`, {
+        method: "PATCH", body: JSON.stringify({ status: next }),
+      });
+      await loadCars();
+    } catch (e) { showErr(e.message); }
+  }
+
+  async function deleteCar(num) {
+    if (!confirm("Удалить машину из смены?")) return;
+    try {
+      await CW.authFetch(`/api/car/${encodeURIComponent(branch)}/${num}`, { method: "DELETE" });
+      await loadCars();
+    } catch (e) { showErr(e.message); }
+  }
+  window.CW_toggleStatus = toggleStatus;
+  window.CW_deleteCar = deleteCar;
+
+  async function loadCars() {
+    if (!branch) return;
+    errEl.style.display = "none";
+    try {
+      const data = await CW.authFetch(`/api/session?branch=${encodeURIComponent(branch)}`);
+      const cars = (data.session && data.session.cars) || [];
+      currentCars = cars;
+      const table = document.getElementById("carsTable");
+      const empty = document.getElementById("carsEmpty");
+      if (!cars.length) {
+        table.style.display = "none";
+        empty.style.display = "block";
+        return;
+      }
+      table.style.display = "table";
+      empty.style.display = "none";
+      const rows = cars.slice().reverse().map(c => `
+        <tr>
+          <td>${c.num}</td>
+          <td>${c.car || "—"}</td>
+          <td><div class="emp-cell"><span class="emp-dot" style="background:${empColor(c.employee || "")}"></span>${c.employee || "—"}</div></td>
+          <td>${c.service || "—"}</td>
+          <td>${payTag(c.payment_split ? Object.keys(c.payment_split)[0] : c.payment)}</td>
+          <td>
+            <button class="status-tag ${c.status === "done" ? "done" : "progress"}" onclick="CW_toggleStatus(${c.num}, '${c.status}')">
+              <i class="ti ${c.status === "done" ? "ti-check" : "ti-clock"}"></i>${c.status === "done" ? "Оплачено" : "В работе"}
+            </button>
+          </td>
+          <td class="num" style="font-weight:600">${CW.money(c.price)}</td>
+          <td>
+            <div class="row-actions">
+              <div class="icon-btn" title="Редактировать" onclick="CW_editCar(${c.num})"><i class="ti ti-pencil"></i></div>
+              <div class="icon-btn danger" onclick="CW_deleteCar(${c.num})"><i class="ti ti-trash"></i></div>
+            </div>
+          </td>
+        </tr>
+      `).join("");
+      table.innerHTML = `<tr><th>#</th><th>Клиент</th><th>Сотрудник</th><th>Услуга</th><th>Оплата</th><th>Статус</th><th class="num">Сумма</th><th></th></tr>${rows}`;
+    } catch (e) {
+      showErr(e.message);
+    }
+  }
 }
 </script>
 </body>

@@ -5,91 +5,252 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CarWash Cloud — Расходы и доходы</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
-<link rel="stylesheet" href="css/theme-plata.css">
+<link rel="stylesheet" href="/static/css/theme-plata.css">
 </head>
 <body>
 <div class="shell">
-  <div class="rail" id="railRoot"></div>
+  <div class="rail" id="sidebarRoot"></div>
 
   <div class="main">
+    <div class="err-banner" id="errBanner"></div>
+
     <div class="page-head">
       <div>
         <div class="page-title">Расходы и доходы</div>
-        <div class="page-sub">Мойка на Ленина, 12 · сегодня, 5 августа</div>
+        <div class="page-sub" id="pageSub">—</div>
       </div>
       <div class="head-actions">
-        <button class="btn secondary"><i class="ti ti-refresh"></i>Обновить</button>
-        <button class="btn secondary"><i class="ti ti-file-export"></i>PDF</button>
+        <button class="btn secondary" id="refreshBtn"><i class="ti ti-refresh"></i>Обновить</button>
+        <button class="btn secondary" id="exportBtn"><i class="ti ti-file-export"></i>PDF</button>
       </div>
     </div>
 
-    <div class="stat-row">
-      <div class="stat-card">
-        <div class="stat-top"><span class="sq" style="background:var(--red-tint);color:var(--red)"><i class="ti ti-trending-down"></i></span></div>
-        <div class="stat-label">Расходы за смену</div>
-        <div class="stat-value" style="color:var(--red)">−2 400 ₽</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-top"><span class="sq b3"><i class="ti ti-trending-up"></i></span></div>
-        <div class="stat-label">Доп. доходы за смену</div>
-        <div class="stat-value" style="color:var(--green)">+800 ₽</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-top"><span class="sq b1"><i class="ti ti-cash-banknote"></i></span></div>
-        <div class="stat-label">Итого по кассе (с учётом скидок)</div>
-        <div class="stat-value">36 550 ₽</div>
-      </div>
+    <div class="stat-row" id="statRow">
+      <div class="stat-card"><div class="stat-top"><span class="sq" style="background:var(--red-tint);color:var(--red)"><i class="ti ti-trending-down"></i></span></div><div class="stat-label">Расходы за смену</div><div class="stat-value" style="color:var(--red)">—</div></div>
+      <div class="stat-card"><div class="stat-top"><span class="sq b3"><i class="ti ti-trending-up"></i></span></div><div class="stat-label">Доп. доходы за смену</div><div class="stat-value" style="color:var(--green)">—</div></div>
+      <div class="stat-card"><div class="stat-top"><span class="sq b1"><i class="ti ti-cash-banknote"></i></span></div><div class="stat-label">Итого по кассе (с учётом скидок)</div><div class="stat-value">—</div></div>
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;margin-top:16px">
       <div class="panel">
         <div class="panel-head">
           <div class="panel-title">Расходы</div>
-          <div style="font-size:13px;color:var(--red);font-weight:700">−2 400 ₽</div>
+          <div style="font-size:13px;color:var(--red);font-weight:700" id="expTotal">0 ₽</div>
         </div>
-        <div>
-          <div class="list-row"><div class="list-name">Вода в кулер</div><div class="list-amount neg">−400 ₽</div><div class="icon-btn danger"><i class="ti ti-trash"></i></div></div>
-          <div class="list-row"><div class="list-name">Тряпки, губки</div><div class="list-amount neg">−600 ₽</div><div class="icon-btn danger"><i class="ti ti-trash"></i></div></div>
-          <div class="list-row"><div class="list-name">Автохимия (доп. закупка)</div><div class="list-amount neg">−1 400 ₽</div><div class="icon-btn danger"><i class="ti ti-trash"></i></div></div>
-        </div>
+        <div id="expList"></div>
+        <div id="expEmpty" class="empty-note" style="display:none">Расходов пока нет</div>
         <div class="add-row">
-          <input class="f-name" type="text" placeholder="Название (например, вода)">
-          <input class="f-amount" type="number" placeholder="₽">
-          <button><i class="ti ti-plus"></i></button>
+          <input class="f-name" id="expName" type="text" placeholder="Название (например, вода)">
+          <input class="f-amount" id="expAmount" type="number" placeholder="₽">
+          <button id="expAddBtn"><i class="ti ti-plus"></i></button>
         </div>
       </div>
 
       <div class="panel">
         <div class="panel-head">
           <div class="panel-title">Доходы (доп.)</div>
-          <div style="font-size:13px;color:var(--green);font-weight:700">+800 ₽</div>
+          <div style="font-size:13px;color:var(--green);font-weight:700" id="incTotal">0 ₽</div>
         </div>
-        <div>
-          <div class="list-row"><div class="list-name">Продажа духов для авто</div><div class="list-pay"><span class="pay-tag split">Раздельно</span></div><div class="list-amount pos">+800 ₽</div><div class="icon-btn danger"><i class="ti ti-trash"></i></div></div>
-        </div>
+        <div id="incList"></div>
+        <div id="incEmpty" class="empty-note" style="display:none">Доп. доходов пока нет</div>
         <div class="add-row">
-          <input class="f-name" type="text" placeholder="Название (например, продажа духов)">
-          <input class="f-amount" type="number" id="incAmount" placeholder="₽">
-          <select class="f-pay" id="incPay" onchange="document.getElementById('incSplitRow').classList.toggle('show', this.value==='split')">
-            <option value="cash">Наличные</option>
-            <option value="card">Карта</option>
-            <option value="transfer">Перевод</option>
-            <option value="split">Раздельная</option>
-          </select>
-          <button><i class="ti ti-plus"></i></button>
+          <input class="f-name" id="incName" type="text" placeholder="Название (например, продажа духов)">
+          <input class="f-amount" id="incAmount" type="number" placeholder="₽">
+          <select class="f-pay" id="incPay"></select>
+          <button id="incAddBtn"><i class="ti ti-plus"></i></button>
         </div>
         <div class="inline-split-row" id="incSplitRow">
-          <div class="sr-field"><div class="sr-label">Нал</div><input type="number" placeholder="0"></div>
-          <div class="sr-field"><div class="sr-label">Карта</div><input type="number" placeholder="0"></div>
-          <div class="sr-field"><div class="sr-label">Безнал</div><input type="number" placeholder="0"></div>
+          <div class="sr-field"><div class="sr-label">Нал</div><input type="number" id="incSplitCash" placeholder="0"></div>
+          <div class="sr-field"><div class="sr-label">Visa</div><input type="number" id="incSplitVisa" placeholder="0"></div>
+          <div class="sr-field"><div class="sr-label">Безнал</div><input type="number" id="incSplitBeznal" placeholder="0"></div>
         </div>
-        <div class="note">Полная разбивка по способам оплаты и закрытие смены — на странице «Касса за смену».</div>
+        <div class="inline-split-hint" id="incSplitHint"></div>
+        <div class="note">Полная разбивка по способам оплаты (нал/Visa/безнал) и закрытие смены — на странице «Касса за смену».</div>
       </div>
     </div>
   </div>
 </div>
 
-<script src="js/common-plata.js"></script>
-<script>PLATA.renderSidebar("finance");</script>
+<script src="/static/site-common.js"></script>
+<script>
+if (CW.requireAuth()) {
+  CW.renderSidebar("finance");
+
+  const branch = CW.getActiveBranch();
+  const errEl = document.getElementById("errBanner");
+  function showErr(msg) { errEl.textContent = msg; errEl.style.display = "block"; }
+
+  if (!branch) {
+    showErr("Филиал не выбран. Выберите филиал в сайдбаре.");
+  } else {
+    document.getElementById("pageSub").textContent = `${branch} · ${CW.todayLabel()}`;
+    document.getElementById("exportBtn").onclick = () => {
+      CW.downloadFile(`/api/reports/pdf?branch=${encodeURIComponent(branch)}`, `Касса_${branch}.pdf`).catch(e => (typeof showErr === "function" ? showErr(e.message) : alert(e.message)));
+    };
+
+    let cfg = null;
+    CW.authFetch("/api/config").then(c => {
+      cfg = c;
+      const sel = document.getElementById("incPay");
+      sel.innerHTML = cfg.payment_types.map(p => `<option value="${p}">${p[0].toUpperCase() + p.slice(1)}</option>`).join("")
+        + `<option value="раздельная">Раздельная</option>`;
+    }).catch(() => {});
+
+    const incSplitRow = document.getElementById("incSplitRow");
+    const incSplitHint = document.getElementById("incSplitHint");
+    document.getElementById("incPay").addEventListener("change", (e) => {
+      const isSplit = e.target.value === "раздельная";
+      incSplitRow.classList.toggle("show", isSplit);
+      incSplitHint.classList.toggle("show", isSplit);
+      updateSplitHint();
+    });
+
+    function updateSplitHint() {
+      const amount = parseInt(document.getElementById("incAmount").value, 10) || 0;
+      const cash = parseInt(document.getElementById("incSplitCash").value, 10) || 0;
+      const visa = parseInt(document.getElementById("incSplitVisa").value, 10) || 0;
+      const beznal = parseInt(document.getElementById("incSplitBeznal").value, 10) || 0;
+      const sum = cash + visa + beznal;
+      incSplitHint.classList.toggle("err", sum !== amount);
+      incSplitHint.textContent = `Сумма частей: ${sum} ₽ из ${amount} ₽` + (sum !== amount ? " — не совпадает с суммой дохода" : " ✓");
+    }
+    ["incAmount", "incSplitCash", "incSplitVisa", "incSplitBeznal"].forEach(id => {
+      document.getElementById(id).addEventListener("input", updateSplitHint);
+    });
+
+    load();
+  }
+
+  function payTag(inc) {
+    if (inc.payment_split) {
+      const parts = Object.entries(inc.payment_split)
+        .filter(([, v]) => v)
+        .map(([k, v]) => `${k[0].toUpperCase() + k.slice(1)} ${CW.money(v)}`)
+        .join(" + ");
+      return `<span class="pay-tag split" title="${parts}">Раздельная</span>`;
+    }
+    const p = (inc.payment || "нал").toLowerCase();
+    const cls = p === "нал" ? "cash" : (p === "visa" ? "card" : "transfer");
+    const label = p[0].toUpperCase() + p.slice(1);
+    return `<span class="pay-tag ${cls}">${label}</span>`;
+  }
+
+  async function load() {
+    errEl.style.display = "none";
+    try {
+      const data = await CW.authFetch(`/api/session?branch=${encodeURIComponent(branch)}`);
+      const session = data.session || {};
+      const summary = data.summary || {};
+
+      document.getElementById("statRow").innerHTML = `
+        <div class="stat-card"><div class="stat-top"><span class="sq" style="background:var(--red-tint);color:var(--red)"><i class="ti ti-trending-down"></i></span></div><div class="stat-label">Расходы за смену</div><div class="stat-value" style="color:var(--red)">−${CW.money(summary.total_expenses)}</div></div>
+        <div class="stat-card"><div class="stat-top"><span class="sq b3"><i class="ti ti-trending-up"></i></span></div><div class="stat-label">Доп. доходы за смену</div><div class="stat-value" style="color:var(--green)">+${CW.money(summary.total_incomes)}</div></div>
+        <div class="stat-card"><div class="stat-top"><span class="sq b1"><i class="ti ti-cash-banknote"></i></span></div><div class="stat-label">Итого по кассе (с учётом скидок)</div><div class="stat-value">${CW.money(summary.grand_total)}</div></div>
+      `;
+
+      document.getElementById("expTotal").textContent = "−" + CW.money(summary.total_expenses);
+      document.getElementById("incTotal").textContent = "+" + CW.money(summary.total_incomes);
+
+      const expenses = session.expenses || [];
+      const expList = document.getElementById("expList");
+      const expEmpty = document.getElementById("expEmpty");
+      if (!expenses.length) {
+        expList.innerHTML = ""; expEmpty.style.display = "block";
+      } else {
+        expEmpty.style.display = "none";
+        expList.innerHTML = expenses.map((e, i) => `
+          <div class="list-row">
+            <div class="list-name">${e.name}</div>
+            <div class="list-amount neg">−${CW.money(e.amount)}</div>
+            <div class="icon-btn danger" onclick="CW_delExpense(${i})"><i class="ti ti-trash"></i></div>
+          </div>
+        `).join("");
+      }
+
+      const incomes = session.incomes || [];
+      const incList = document.getElementById("incList");
+      const incEmpty = document.getElementById("incEmpty");
+      if (!incomes.length) {
+        incList.innerHTML = ""; incEmpty.style.display = "block";
+      } else {
+        incEmpty.style.display = "none";
+        incList.innerHTML = incomes.map((inc, i) => `
+          <div class="list-row">
+            <div class="list-name">${inc.name}</div>
+            <div class="list-pay">${payTag(inc)}</div>
+            <div class="list-amount pos">+${CW.money(inc.amount)}</div>
+            <div class="icon-btn danger" onclick="CW_delIncome(${i})"><i class="ti ti-trash"></i></div>
+          </div>
+        `).join("");
+      }
+    } catch (e) {
+      showErr(e.message);
+    }
+  }
+
+  document.getElementById("refreshBtn").addEventListener("click", load);
+
+  document.getElementById("expAddBtn").addEventListener("click", async () => {
+    const name = document.getElementById("expName").value.trim();
+    const amount = parseInt(document.getElementById("expAmount").value, 10);
+    if (!name || !amount) { showErr("Укажите название и сумму расхода"); return; }
+    try {
+      await CW.authFetch("/api/expense", { method: "POST", body: JSON.stringify({ branch, name, amount }) });
+      document.getElementById("expName").value = "";
+      document.getElementById("expAmount").value = "";
+      await load();
+    } catch (e) { showErr(e.message); }
+  });
+
+  document.getElementById("incAddBtn").addEventListener("click", async () => {
+    const name = document.getElementById("incName").value.trim();
+    const amount = parseInt(document.getElementById("incAmount").value, 10);
+    const payment = document.getElementById("incPay").value;
+    if (!name || !amount) { showErr("Укажите название и сумму дохода"); return; }
+
+    const body = { branch, name, amount };
+    if (payment === "раздельная") {
+      const cash = parseInt(document.getElementById("incSplitCash").value, 10) || 0;
+      const visa = parseInt(document.getElementById("incSplitVisa").value, 10) || 0;
+      const beznal = parseInt(document.getElementById("incSplitBeznal").value, 10) || 0;
+      const sum = cash + visa + beznal;
+      if (sum !== amount) { showErr(`Сумма раздельной оплаты (${sum} ₽) не совпадает с суммой дохода (${amount} ₽)`); return; }
+      const payment_split = {};
+      if (cash) payment_split["нал"] = cash;
+      if (visa) payment_split["visa"] = visa;
+      if (beznal) payment_split["безнал"] = beznal;
+      if (Object.keys(payment_split).length < 2) { showErr("Для раздельной оплаты укажите минимум два способа"); return; }
+      body.payment_split = payment_split;
+    } else {
+      body.payment = payment;
+    }
+
+    try {
+      await CW.authFetch("/api/income", { method: "POST", body: JSON.stringify(body) });
+      document.getElementById("incName").value = "";
+      document.getElementById("incAmount").value = "";
+      document.getElementById("incSplitCash").value = "";
+      document.getElementById("incSplitVisa").value = "";
+      document.getElementById("incSplitBeznal").value = "";
+      document.getElementById("incSplitRow").classList.remove("show");
+      document.getElementById("incSplitHint").classList.remove("show");
+      await load();
+    } catch (e) { showErr(e.message); }
+  });
+
+  window.CW_delExpense = async (idx) => {
+    try {
+      await CW.authFetch(`/api/expense/${encodeURIComponent(branch)}/${idx}`, { method: "DELETE" });
+      await load();
+    } catch (e) { showErr(e.message); }
+  };
+  window.CW_delIncome = async (idx) => {
+    try {
+      await CW.authFetch(`/api/income/${encodeURIComponent(branch)}/${idx}`, { method: "DELETE" });
+      await load();
+    } catch (e) { showErr(e.message); }
+  };
+}
+</script>
 </body>
 </html>
