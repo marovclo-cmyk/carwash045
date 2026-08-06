@@ -15,6 +15,7 @@ from handlers.products import (
     step_product, cb_product, cb_product_payment,
     show_products_for_action, cb_delete_product,
 )
+from handlers.pdf_import import cb_import_branch, cb_import_confirm, cb_import_cancel
 from sessions import get_branch_workers
 from config import PRODUCTS
 
@@ -83,6 +84,9 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data.startswith("prodpay_"):  await cb_product_payment(update, context)
     elif data.startswith("prod_"):     await cb_product(update, context)
     elif data.startswith("delprod_"):  await cb_delete_product(update, context)
+    elif data.startswith("impbr_"):    await cb_import_branch(update, context)
+    elif data == "impconfirm":         await cb_import_confirm(update, context)
+    elif data == "impcancel":          await cb_import_cancel(update, context)
 
     elif data == "cmd_summary":  await show_summary(update, context)
     elif data == "cmd_list":     await show_list(update, context)
