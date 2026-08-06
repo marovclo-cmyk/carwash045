@@ -6,3 +6,4 @@ httpx[socks]
 fastapi
 uvicorn
 openpyxl
+pdfplumber

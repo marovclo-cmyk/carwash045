@@ -26,6 +26,7 @@ from handlers.reports import (
     allreport_command, reminder_job,
 )
 from handlers.buttons import button_callback, handle_menu_text, handle_settings_text_step, MAIN_MENU
+from handlers.pdf_import import handle_pdf_document
 
 logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s", level=logging.INFO)
 
@@ -258,6 +259,7 @@ def main():
         app.add_handler(CommandHandler(cmd, fn))
 
     app.add_handler(CallbackQueryHandler(button_callback))
+    app.add_handler(MessageHandler(filters.Document.PDF, handle_pdf_document))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
 
     try:
