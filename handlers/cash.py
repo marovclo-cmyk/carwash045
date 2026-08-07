@@ -1,7 +1,7 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 
-from sessions import get_session, save_sessions
+from sessions import get_session, save_sessions, add_advance
 from calculator import calculate_summary
 from handlers.admin import get_current_branch
 
@@ -208,6 +208,98 @@ async def _save_income(update: Update, context: ContextTypes.DEFAULT_TYPE, text:
     total = sum(i["amount"] for i in session["incomes"])
     await update.message.reply_text(
         f"💰 Доход: {name} — {amount}₽ ({payment})\nВсего доходов: {total}₽")
+
+
+# ── /avans — аванс сотруднику: кнопкой выбираем имя → сумма текстом ───────
+# Аванс НЕ трогает кассу дня (в отличие от /expense) — он копится отдельно
+# и вычитается из недельного/месячного заработка сотрудника
+# (см. employee_stats.employee_period_stats -> "advance"/"remaining"),
+# чтобы в ведомости было видно, сколько сотруднику осталось выдать.
+
+async def avans_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Запуск с кнопки '💵 Аванс' — показывает список сотрудников филиала."""
+    query  = update.callback_query
+    branch = get_current_branch(context)
+    if not branch:
+        await query.message.reply_text("⚠️ Сначала выбери филиал: /newday"); return
+    from employee_stats import get_branch_employee_roles
+    names = sorted(get_branch_employee_roles(branch).keys())
+    if not names:
+        await query.message.reply_text("📋 В филиале пока нет сотрудников."); return
+    buttons = [[InlineKeyboardButton(name, callback_data=f"avans_{name}")] for name in names]
+    await query.message.reply_text("💵 *Кому выдаём аванс?*", parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(buttons))
+
+
+async def cb_avans_pick(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    name = query.data.replace("avans_", "", 1)
+    context.user_data["step"] = "avans_amount"
+    context.user_data["avans_name"] = name
+    await query.message.reply_text(f"💵 Напиши сумму аванса для {name} (например: 2000):")
+
+
+async def handle_avans_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
+    if context.user_data.get("step") != "avans_amount":
+        return False
+    branch = get_current_branch(context)
+    if not branch:
+        await update.message.reply_text("⚠️ Сначала выбери филиал: /newday")
+        context.user_data.pop("step", None)
+        return True
+    try:
+        amount = int(update.message.text.strip().replace("р", "").replace("₽", ""))
+    except ValueError:
+        await update.message.reply_text("❌ Введи число. Пример: 2000")
+        return True
+    name = context.user_data.pop("avans_name", None)
+    context.user_data.pop("step", None)
+    await _save_avans(update, branch, name, amount)
+    return True
+
+
+async def avans_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Текстовая команда: `/avans <имя> <сумма>` (имя может быть из нескольких слов)."""
+    from handlers.admin import is_allowed, get_role
+    if not is_allowed(update.effective_user.id):
+        await update.message.reply_text("⛔ Нет доступа."); return
+    branch = get_current_branch(context)
+    if not branch:
+        await update.message.reply_text("⚠️ Сначала выбери филиал: /newday"); return
+    if get_role(update.effective_user.id, branch) not in ("owner", "admin"):
+        await update.message.reply_text("⛔ Только админ филиала может выдавать аванс."); return
+    args = context.args
+    if len(args) < 2:
+        await update.message.reply_text(
+            "💵 Формат: `/avans <имя> <сумма>`\nПример: `/avans Иззет 2000`",
+            parse_mode="Markdown"); return
+    try:
+        amount = int(args[-1].replace("р", "").replace("₽", ""))
+    except ValueError:
+        await update.message.reply_text("❌ Укажи сумму числом последним аргументом."); return
+    name = " ".join(args[:-1])
+    await _save_avans(update, branch, name, amount)
+
+
+async def _save_avans(update: Update, branch: str, name: str, amount: int):
+    from handlers.admin import get_role
+    if get_role(update.effective_user.id, branch) not in ("owner", "admin"):
+        await update.message.reply_text("⛔ Только админ филиала может выдавать аванс."); return
+    if not name:
+        await update.message.reply_text("❌ Не указано имя сотрудника."); return
+    if amount <= 0:
+        await update.message.reply_text("❌ Сумма должна быть больше нуля."); return
+    add_advance(branch, name, amount)
+
+    from employee_stats import week_range, employee_period_stats
+    week_start, today = week_range()
+    stats = employee_period_stats(branch, name, week_start, today)
+    await update.message.reply_text(
+        f"💵 Аванс выдан: *{name}* — {amount}₽\n"
+        f"Аванс за неделю: {stats['advance']}₽\n"
+        f"Остаток к выплате за неделю: *{stats['remaining']}₽*",
+        parse_mode="Markdown")
 
 
 # ── /summary, /list ────────────────────────────────────────────────────────
