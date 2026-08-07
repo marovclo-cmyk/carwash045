@@ -375,20 +375,23 @@ def _parse_advance_date(date_str: str):
 def get_employee_advances(branch: str, name: str,
                            date_from: datetime | None = None,
                            date_to: datetime | None = None) -> list[dict]:
-    """Список авансов сотрудника, по желанию отфильтрованный по периоду."""
+    """Список авансов сотрудника, по желанию отфильтрованный по периоду.
+    Каждая запись содержит "idx" — позицию в ПОЛНОМ списке (не в
+    отфильтрованном), чтобы delete_advance(branch, name, idx) всегда
+    удалял именно ту запись, что показана на экране, а не случайную
+    запись из другого периода."""
     lst = load_advances().get(branch, {}).get(name, [])
-    if not date_from and not date_to:
-        return list(lst)
     out = []
-    for a in lst:
-        dt = _parse_advance_date(a.get("date", ""))
-        if dt is None:
-            continue
-        if date_from and dt < date_from:
-            continue
-        if date_to and dt > date_to:
-            continue
-        out.append(a)
+    for i, a in enumerate(lst):
+        if date_from or date_to:
+            dt = _parse_advance_date(a.get("date", ""))
+            if dt is None:
+                continue
+            if date_from and dt < date_from:
+                continue
+            if date_to and dt > date_to:
+                continue
+        out.append({**a, "idx": i})
     return out
 
 
