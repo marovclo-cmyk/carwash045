@@ -539,3 +539,118 @@ def generate_pdf(session: dict, summary: dict, output_path: str):
     c.setFillColor(BLACK)
 
     c.save()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Ведомость выдачи премии (недельная зарплата) — по образцу бумажного бланка
+# ─────────────────────────────────────────────────────────────────────────────
+
+WEEKDAYS_RU = ["ПН", "ВТ", "СР", "ЧТ", "ПТ", "СБ", "ВС"]
+
+HEADER_BLUE = colors.HexColor("#1F3864")
+ROW_STRIPE  = colors.HexColor("#F5F5F5")
+
+
+def generate_salary_sheet_pdf(branch: str, week_start, week_end, employees: list[dict],
+                               admin_name: str, output_path: str):
+    """Генерирует «Ведомость выдачи премии» — таблицу Сотрудник × дни недели,
+    как в бумажном бланке сети. employees — результат
+    employee_stats.all_employees_period_stats(), т.е. список словарей вида
+    {"name": ..., "total": ..., "days": [{"date": "дд.мм.гггг", "total": N}, ...]}.
+    """
+    c = pdfcanvas.Canvas(output_path, pagesize=A4)
+    c.setTitle(f"Ведомость выдачи премии {branch} {week_start.strftime('%d.%m.%Y')}")
+
+    # ── Колонки таблицы: Сотрудник | ПН..ВС (7) | ИТОГО ──
+    name_w  = 42 * mm
+    total_w = 26 * mm
+    day_w   = (CW - name_w - total_w) / 7
+    col_widths = [name_w] + [day_w] * 7 + [total_w]
+    col_x = [ML]
+    for w in col_widths[:-1]:
+        col_x.append(col_x[-1] + w)
+
+    def draw_title_block(y_top):
+        c.setFont(FB, 14)
+        c.setFillColor(BLACK)
+        c.drawString(ML, y_top, "Ведомость выдачи   премии в сети автомоек Формула:")
+        y = y_top - 10 * mm
+        c.setFont(F, FS + 1)
+        c.drawString(ML, y, f"Адрес объекта: {branch}")
+        y -= 8 * mm
+        period = f"Период: с {week_start.strftime('%d.%m.%Y')}   по {week_end.strftime('%d.%m.%Y')}"
+        c.drawString(ML, y, period)
+        return y - 9 * mm
+
+    def draw_table_head(y_top):
+        h = HEAD_H + 1 * mm
+        filled_rect(c, ML, y_top, CW, h, HEADER_BLUE)
+        labels = ["Сотрудник"] + WEEKDAYS_RU + ["ИТОГО"]
+        for i, label in enumerate(labels):
+            text_in(c, col_x[i], y_top, col_widths[i], h, label,
+                    bold=True, align="left" if i == 0 else "center", color=colors.white)
+        for x in col_x[1:]:
+            vline(c, x, y_top, h)
+        rect(c, ML, y_top, CW, h)
+        return y_top - h
+
+    def draw_emp_row(y_top, emp, shade):
+        h = ROW_H + 2 * mm
+        bg = ROW_STRIPE if shade else colors.white
+        filled_rect(c, ML, y_top, CW, h, bg)
+
+        by_weekday = {}
+        for d in emp["days"]:
+            dt = None
+            try:
+                from datetime import datetime as _dt
+                dt = _dt.strptime(d["date"], "%d.%m.%Y")
+            except (ValueError, TypeError):
+                continue
+            if week_start <= dt <= week_end:
+                by_weekday[dt.weekday()] = by_weekday.get(dt.weekday(), 0) + d["total"]
+
+        text_in(c, col_x[0], y_top, col_widths[0], h, emp["name"], bold=True)
+        for wd in range(7):
+            val = by_weekday.get(wd)
+            text_in(c, col_x[wd + 1], y_top, col_widths[wd + 1], h,
+                    f"{val:g}" if val else "", align="center")
+        text_in(c, col_x[8], y_top, col_widths[8], h, f"{emp['total']:g}",
+                align="center", bold=True)
+
+        for x in col_x[1:]:
+            vline(c, x, y_top, h)
+        rect(c, ML, y_top, CW, h)
+        return y_top - h
+
+    y = PAGE_H - MT
+    y = draw_title_block(y)
+    y = draw_table_head(y)
+
+    shade = False
+    for emp in employees:
+        # Перенос на новую страницу, если строка не помещается
+        if y - (ROW_H + 2 * mm) < MB + 20 * mm:
+            c.showPage()
+            y = PAGE_H - MT
+            y = draw_table_head(y)
+        y = draw_emp_row(y, emp, shade)
+        shade = not shade
+
+    y -= 14 * mm
+    c.setFont(F, FS + 1)
+    c.setFillColor(BLACK)
+    label = "Ответственный за выдачу: "
+    c.drawString(ML, y, label)
+    line_x = ML + c.stringWidth(label, F, FS + 1)
+    line_end = line_x + 45 * mm
+    c.line(line_x, y - 1 * mm, line_end, y - 1 * mm)
+    if admin_name:
+        c.drawString(line_end + 2 * mm, y, admin_name)
+
+    c.setFont(F, FS - 1.5)
+    c.setFillColor(colors.grey)
+    c.drawRightString(PAGE_W - MR, MB, "Сформировано автоматически")
+    c.setFillColor(BLACK)
+
+    c.save()

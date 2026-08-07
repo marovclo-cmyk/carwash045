@@ -23,7 +23,7 @@ from handlers.cash import (
 )
 from handlers.reports import (
     stats_command, week_command, month_command, report_command,
-    allreport_command, reminder_job,
+    allreport_command, premium_command, reminder_job,
 )
 from handlers.buttons import button_callback, handle_menu_text, handle_settings_text_step, MAIN_MENU
 from handlers.pdf_import import handle_pdf_document
@@ -243,6 +243,7 @@ def main():
         ("week",           week_command),
         ("month",          month_command),
         ("report",         report_command),
+        ("premium",        premium_command),
         ("allreport",      allreport_command),
         ("services",       services_command),
         ("setadmin",       setadmin_command),
