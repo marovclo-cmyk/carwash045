@@ -25,6 +25,7 @@ SESSIONS_FILE = os.path.join(DATA_DIR, "carwash_sessions.json")
 ARCHIVE_FILE  = os.path.join(DATA_DIR, "carwash_archive.json")
 BRANCHES_FILE = os.path.join(DATA_DIR, "carwash_branches.json")
 USERS_FILE    = os.path.join(DATA_DIR, "carwash_users.json")
+ADVANCES_FILE = os.path.join(DATA_DIR, "carwash_advances.json")
 
 LOCK_TIMEOUT = 10  # секунд ожидания блокировки, прежде чем сдаться
 
@@ -323,6 +324,85 @@ def patch_archive_fixed_rates(branch: str, date: str, rate_updates: dict, admin_
 
     _update_json_locked(ARCHIVE_FILE, _update)
     return result["ok"]
+
+
+# ── АВАНСЫ ───────────────────────────────────────────────────────────────────
+# carwash_advances.json: { branch: { employee_name: [ {"date": "дд.мм.гггг",
+#                                                        "amount": int}, ... ] } }
+# Хранится отдельно от sessions/archive — аванс не привязан к дневной кассе,
+# это отдельная выдача денег сотруднику "в счёт будущей зарплаты", которая
+# потом вычитается из недельного/месячного итога (см. employee_stats.py).
+
+def load_advances() -> dict:
+    return _read_json_locked(ADVANCES_FILE)
+
+
+def add_advance(branch: str, name: str, amount: int, date: str | None = None, note: str = "") -> dict:
+    """Записывает выдачу аванса сотруднику. Возвращает саму запись."""
+    date = date or datetime.now().strftime("%d.%m.%Y")
+    entry = {"date": date, "amount": amount, "note": note}
+
+    def _update(data):
+        data.setdefault(branch, {}).setdefault(name, []).append(entry)
+        return data
+
+    _update_json_locked(ADVANCES_FILE, _update)
+    return entry
+
+
+def delete_advance(branch: str, name: str, idx: int) -> bool:
+    """Удаляет запись аванса по индексу (например, если ошиблись при вводе)."""
+    result = {"ok": False}
+
+    def _update(data):
+        lst = data.get(branch, {}).get(name, [])
+        if 0 <= idx < len(lst):
+            lst.pop(idx)
+            result["ok"] = True
+        return data
+
+    _update_json_locked(ADVANCES_FILE, _update)
+    return result["ok"]
+
+
+def _parse_advance_date(date_str: str):
+    try:
+        return datetime.strptime(date_str, "%d.%m.%Y")
+    except (ValueError, TypeError):
+        return None
+
+
+def get_employee_advances(branch: str, name: str,
+                           date_from: datetime | None = None,
+                           date_to: datetime | None = None) -> list[dict]:
+    """Список авансов сотрудника, по желанию отфильтрованный по периоду."""
+    lst = load_advances().get(branch, {}).get(name, [])
+    if not date_from and not date_to:
+        return list(lst)
+    out = []
+    for a in lst:
+        dt = _parse_advance_date(a.get("date", ""))
+        if dt is None:
+            continue
+        if date_from and dt < date_from:
+            continue
+        if date_to and dt > date_to:
+            continue
+        out.append(a)
+    return out
+
+
+def get_branch_advances_period(branch: str,
+                                date_from: datetime | None = None,
+                                date_to: datetime | None = None) -> dict[str, int]:
+    """{имя_сотрудника: сумма_авансов} за период — для сводных отчётов."""
+    branch_data = load_advances().get(branch, {})
+    out = {}
+    for name in branch_data:
+        total = sum(a["amount"] for a in get_employee_advances(branch, name, date_from, date_to))
+        if total:
+            out[name] = total
+    return out
 
 
 # ── КОНФИГ ФИЛИАЛОВ: админ + сотрудники ─────────────────────────────────────

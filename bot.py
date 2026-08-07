@@ -19,7 +19,7 @@ from handlers.cars import (
 )
 from handlers.cash import (
     loyal_command, expense_command, income_command, show_summary, show_list, handle_loyal_text,
-    handle_expense_step_text, handle_income_step_text,
+    handle_expense_step_text, handle_income_step_text, avans_command, handle_avans_text,
 )
 from handlers.reports import (
     stats_command, week_command, month_command, report_command,
@@ -126,6 +126,7 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if await handle_loyal_text(update, context): return
     if await handle_expense_step_text(update, context): return
     if await handle_income_step_text(update, context): return
+    if await handle_avans_text(update, context): return
     if await handle_settings_text_step(update, context): return
 
     branch = get_current_branch(context)
@@ -244,6 +245,7 @@ def main():
         ("month",          month_command),
         ("report",         report_command),
         ("premium",        premium_command),
+        ("avans",          avans_command),
         ("allreport",      allreport_command),
         ("services",       services_command),
         ("setadmin",       setadmin_command),

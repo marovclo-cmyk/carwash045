@@ -24,7 +24,10 @@ calculate_summary()["role_earnings"] (см. calculator.py).
 from datetime import datetime
 
 from calculator import calculate_summary
-from sessions import load_archive, sessions as _live_sessions, get_branch_workers, get_branch_admin_names
+from sessions import (
+    load_archive, sessions as _live_sessions, get_branch_workers, get_branch_admin_names,
+    get_employee_advances,
+)
 
 # role_label -> функция, которая возвращает список имён сотрудников с этой ролью.
 # Чтобы добавить новую роль — добавь сюда ещё одну пару "название роли": функция.
@@ -118,6 +121,12 @@ def employee_period_stats(branch: str, name: str,
     shifts = len(shift_dates)
     days_out.sort(key=lambda d: _parse_date(d["date"]) or datetime.min)
 
+    # Авансы за тот же период — вычитаются из заработка, чтобы показать,
+    # сколько сотруднику ЕЩЁ осталось выдать на руки.
+    advances = get_employee_advances(branch, name, date_from, date_to)
+    advance_total = sum(a["amount"] for a in advances)
+    remaining = total - advance_total
+
     return {
         "name": name,
         "total": total,
@@ -128,6 +137,9 @@ def employee_period_stats(branch: str, name: str,
         "avg_per_shift": round(total / shifts, 2) if shifts else 0,
         "avg_per_car": round(total / cars_count, 2) if cars_count else 0,
         "days": days_out,
+        "advance": advance_total,
+        "advances": advances,
+        "remaining": remaining,
     }
 
 

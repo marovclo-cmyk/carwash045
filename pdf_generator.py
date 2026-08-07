@@ -561,11 +561,13 @@ def generate_salary_sheet_pdf(branch: str, week_start, week_end, employees: list
     c = pdfcanvas.Canvas(output_path, pagesize=A4)
     c.setTitle(f"Ведомость выдачи премии {branch} {week_start.strftime('%d.%m.%Y')}")
 
-    # ── Колонки таблицы: Сотрудник | ПН..ВС (7) | ИТОГО ──
-    name_w  = 42 * mm
-    total_w = 26 * mm
-    day_w   = (CW - name_w - total_w) / 7
-    col_widths = [name_w] + [day_w] * 7 + [total_w]
+    # ── Колонки таблицы: Сотрудник | ПН..ВС (7) | ИТОГО | АВАНС | ОСТАТОК ──
+    name_w     = 34 * mm
+    total_w    = 19 * mm
+    advance_w  = 19 * mm
+    remain_w   = 19 * mm
+    day_w      = (CW - name_w - total_w - advance_w - remain_w) / 7
+    col_widths = [name_w] + [day_w] * 7 + [total_w, advance_w, remain_w]
     col_x = [ML]
     for w in col_widths[:-1]:
         col_x.append(col_x[-1] + w)
@@ -585,7 +587,7 @@ def generate_salary_sheet_pdf(branch: str, week_start, week_end, employees: list
     def draw_table_head(y_top):
         h = HEAD_H + 1 * mm
         filled_rect(c, ML, y_top, CW, h, HEADER_BLUE)
-        labels = ["Сотрудник"] + WEEKDAYS_RU + ["ИТОГО"]
+        labels = ["Сотрудник"] + WEEKDAYS_RU + ["ИТОГО", "АВАНС", "ОСТАТОК"]
         for i, label in enumerate(labels):
             text_in(c, col_x[i], y_top, col_widths[i], h, label,
                     bold=True, align="left" if i == 0 else "center", color=colors.white)
@@ -615,7 +617,13 @@ def generate_salary_sheet_pdf(branch: str, week_start, week_end, employees: list
             val = by_weekday.get(wd)
             text_in(c, col_x[wd + 1], y_top, col_widths[wd + 1], h,
                     f"{val:g}" if val else "", align="center")
+        advance  = emp.get("advance", 0)
+        remaining = emp.get("remaining", emp["total"] - advance)
         text_in(c, col_x[8], y_top, col_widths[8], h, f"{emp['total']:g}",
+                align="center", bold=True)
+        text_in(c, col_x[9], y_top, col_widths[9], h, f"{advance:g}" if advance else "",
+                align="center")
+        text_in(c, col_x[10], y_top, col_widths[10], h, f"{remaining:g}",
                 align="center", bold=True)
 
         for x in col_x[1:]:
@@ -636,6 +644,15 @@ def generate_salary_sheet_pdf(branch: str, week_start, week_end, employees: list
             y = draw_table_head(y)
         y = draw_emp_row(y, emp, shade)
         shade = not shade
+
+    total_advance   = sum(e.get("advance", 0) for e in employees)
+    total_remaining = sum(e.get("remaining", e["total"] - e.get("advance", 0)) for e in employees)
+    if total_advance:
+        y -= 8 * mm
+        c.setFont(FB, FS)
+        c.setFillColor(BLACK)
+        c.drawString(ML, y, f"Всего авансов выдано: {total_advance:g}₽")
+        c.drawRightString(ML + CW, y, f"Итого к выплате (остаток): {total_remaining:g}₽")
 
     y -= 14 * mm
     c.setFont(F, FS + 1)
