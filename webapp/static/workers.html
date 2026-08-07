@@ -119,6 +119,7 @@
     <div id="salSummary" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px"></div>
     <div style="max-height:260px;overflow-y:auto;border:1.5px solid var(--line);border-radius:var(--r-sm)" id="salDays"></div>
     <div class="modal-actions">
+      <button class="btn secondary" id="salAvansBtn" style="flex:1;justify-content:center"><i class="ti ti-cash"></i>Выдать аванс</button>
       <button class="btn secondary" id="salCloseBtn" style="flex:1;justify-content:center">Закрыть</button>
     </div>
   </div>
@@ -247,6 +248,7 @@ if (CW.requireAuth()) {
           ${canManage ? `
           <div class="worker-actions">
             <div class="icon-btn" title="Зарплата за период" onclick="CW_openSalary('${name.replace(/'/g, "\\'")}')"><i class="ti ti-report-money"></i></div>
+            <div class="icon-btn" title="Выдать аванс" onclick="CW_giveAvans('${name.replace(/'/g, "\\'")}')"><i class="ti ti-cash"></i></div>
             <div class="icon-btn ${rate ? "rate-active" : ""}" title="${rate ? "Изменить/убрать ставку" : "Поставить ставку (если 0 машин за день)"}" onclick="CW_toggleRate('${name.replace(/'/g, "\\'")}', ${rate || 0})"><i class="ti ti-cash-banknote"></i></div>
             <div class="icon-btn" title="Настроить график" onclick="CW_openSched('${name.replace(/'/g, "\\'")}')"><i class="ti ti-calendar-time"></i></div>
             <div class="icon-btn danger" title="Удалить сотрудника" onclick="CW_delWorker('${name.replace(/'/g, "\\'")}')"><i class="ti ti-trash"></i></div>
@@ -472,6 +474,7 @@ if (CW.requireAuth()) {
 
   salModal.addEventListener("click", (e) => { if (e.target === salModal) salModal.classList.remove("open"); });
   document.getElementById("salCloseBtn").addEventListener("click", () => salModal.classList.remove("open"));
+  document.getElementById("salAvansBtn").addEventListener("click", () => { if (salWorker) giveAvans(salWorker, loadSalary); });
 
   async function loadSalary() {
     const summaryEl = document.getElementById("salSummary");
@@ -489,10 +492,14 @@ if (CW.requireAuth()) {
           <div style="font-size:13px;font-weight:700;color:var(--green)">${CW.money(amount)}</div>
         </div>`).join("") || `<div class="empty-note">За этот период данных нет</div>`;
 
+      const advance = data.advance || 0;
+      const remaining = data.remaining !== undefined ? data.remaining : data.total - advance;
       summaryEl.innerHTML = `
         <div class="mini-stat"><div class="ms-label">Смен</div><div class="ms-value">${data.shifts}</div></div>
         <div class="mini-stat"><div class="ms-label">Машин</div><div class="ms-value">${data.cars}</div></div>
         <div class="mini-stat"><div class="ms-label">Общий заработок</div><div class="ms-value" style="color:var(--green)">${CW.money(data.total)}</div></div>
+        <div class="mini-stat"><div class="ms-label">Аванс</div><div class="ms-value" style="color:var(--red,#e33)">${CW.money(advance)}</div></div>
+        <div class="mini-stat"><div class="ms-label">Остаток к выплате</div><div class="ms-value">${CW.money(remaining)}</div></div>
       `;
 
       const dayRows = (data.days || []).slice().reverse().map(d => `
@@ -504,18 +511,51 @@ if (CW.requireAuth()) {
           <div style="font-size:13px;font-weight:700;color:var(--green)">${CW.money(d.total)}</div>
         </div>`).join("");
 
+      const avansRows = (data.advances || []).slice().reverse().map(a => `
+        <div class="worker-row" style="padding:8px 14px">
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:600">${a.date}</div>
+          </div>
+          <div style="font-size:13px;font-weight:700;color:var(--red,#e33)">-${CW.money(a.amount)}</div>
+          <div class="icon-btn danger" title="Удалить запись" onclick="CW_delAvans('${salWorker.replace(/'/g, "\\'")}', ${a.idx})"><i class="ti ti-x"></i></div>
+        </div>`).join("");
+
       daysEl.innerHTML = `
         <div style="padding:8px 14px 2px;font-size:11px;color:var(--muted)">Разбивка по ролям (${data.roles.join(", ")})</div>
         ${roleRows}
         ${data.avg_per_shift ? `<div style="padding:8px 14px;font-size:12px;color:var(--muted)">Средний заработок за смену: ${CW.money(data.avg_per_shift)} · за автомобиль: ${CW.money(data.avg_per_car)}</div>` : ""}
         <div style="padding:8px 14px 2px;font-size:11px;color:var(--muted)">По дням</div>
         ${dayRows || `<div class="empty-note">За этот период данных нет</div>`}
+        <div style="padding:8px 14px 2px;font-size:11px;color:var(--muted)">Авансы за период</div>
+        ${avansRows || `<div class="empty-note">Авансов не было</div>`}
       `;
     } catch (e) {
       summaryEl.innerHTML = "";
       daysEl.innerHTML = `<div class="empty-note">${e.message}</div>`;
     }
   }
+
+  // ── Аванс ────────────────────────────────────────────────────────────
+  async function giveAvans(name, onDone) {
+    const amountStr = window.prompt(`Сумма аванса для ${name} (₽):`, "2000");
+    if (!amountStr) return;
+    const amount = parseInt(amountStr.replace(/[^\d]/g, ""), 10);
+    if (!amount) { showErr("Введите корректную сумму"); return; }
+    try {
+      await CW.authFetch("/api/advance", { method: "POST", body: JSON.stringify({ branch, name, amount }) });
+      if (onDone) onDone();
+    } catch (e) { showErr(e.message); }
+  }
+  window.CW_giveAvans = (name) => giveAvans(name, () => {
+    if (salModal.classList.contains("open") && salWorker === name) loadSalary();
+  });
+  window.CW_delAvans = async (name, idx) => {
+    if (!window.confirm("Удалить эту запись аванса?")) return;
+    try {
+      await CW.authFetch(`/api/advance/${encodeURIComponent(branch)}/${encodeURIComponent(name)}/${idx}`, { method: "DELETE" });
+      if (salModal.classList.contains("open") && salWorker === name) loadSalary();
+    } catch (e) { showErr(e.message); }
+  };
 
   // ── История дежурств администраторов (заполнение задним числом) ────
   const adminHistModal = document.getElementById("adminHistModal");
