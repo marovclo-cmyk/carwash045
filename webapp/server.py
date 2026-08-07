@@ -36,6 +36,7 @@ from sessions import (
     load_archive, load_users, save_users, add_user, remove_user,
     set_worker_schedule, clear_worker_schedule, get_worker_schedule,
     get_schedule_status, is_working_on,
+    add_advance, delete_advance, get_employee_advances,
 )
 from calculator import calculate_summary
 from pdf_generator import generate_pdf
@@ -782,6 +783,61 @@ def api_delete_income(branch: str, idx: int, x_init_data: str = Header(default="
     return {"ok": True, "summary": calculate_summary(session)}
 
 
+class AdvanceIn(BaseModel):
+    branch: str
+    name: str
+    amount: int
+
+
+@app.post("/api/advance")
+def api_add_advance(body: AdvanceIn, x_init_data: str = Header(default=""), x_site_token: str = Header(default="")):
+    """Выдача аванса сотруднику — не привязана к дневной кассе, вычитается
+    из его недельного/месячного заработка (см. employee_stats.py)."""
+    require_branch_admin(body.branch, x_init_data, x_site_token)
+    if body.amount <= 0:
+        raise HTTPException(400, "Сумма должна быть больше нуля")
+    from employee_stats import get_branch_employee_roles, week_range, employee_period_stats
+    if body.name not in get_branch_employee_roles(body.branch):
+        raise HTTPException(404, "Сотрудник не найден в этом филиале")
+    entry = add_advance(body.branch, body.name, body.amount)
+    log_action(body.branch, "advance_add", current_user_id(x_init_data), current_user_name(x_init_data),
+               f"{body.name} · аванс {body.amount}₽")
+    week_start, today = week_range()
+    stats = employee_period_stats(body.branch, body.name, week_start, today)
+    return {"ok": True, "entry": entry, "week_advance": stats["advance"], "week_remaining": stats["remaining"]}
+
+
+@app.get("/api/advances")
+def api_list_advances(branch: str, name: str, period: str = "week",
+                       x_init_data: str = Header(default=""), x_site_token: str = Header(default="")):
+    """История авансов сотрудника за период — для карточки на сайте."""
+    require_branch_admin(branch, x_init_data, x_site_token)
+    from employee_stats import week_range, month_range
+    today = datetime.now()
+    if period == "week":
+        date_from, date_to = week_range(today)
+    elif period == "month":
+        date_from, date_to = month_range(today.month, today.year)
+    elif period == "all":
+        date_from, date_to = None, None
+    else:
+        raise HTTPException(400, "period должен быть week|month|all")
+    advances = get_employee_advances(branch, name, date_from, date_to)
+    return {"name": name, "period": period, "advances": advances,
+            "total": sum(a["amount"] for a in advances)}
+
+
+@app.delete("/api/advance/{branch}/{name}/{idx}")
+def api_delete_advance(branch: str, name: str, idx: int,
+                        x_init_data: str = Header(default=""), x_site_token: str = Header(default="")):
+    require_branch_admin(branch, x_init_data, x_site_token)
+    if not delete_advance(branch, name, idx):
+        raise HTTPException(404, "Аванс не найден")
+    log_action(branch, "advance_delete", current_user_id(x_init_data), current_user_name(x_init_data),
+               f"{name} · удалён аванс #{idx}")
+    return {"ok": True}
+
+
 class FixedRateIn(BaseModel):
     branch: str
     worker: str
@@ -1356,6 +1412,8 @@ def api_employees_stats(branch: str, period: str = "today",
         "from": date_from.strftime("%d.%m.%Y"), "to": date_to.strftime("%d.%m.%Y"),
         "employees": employees,
         "grand_total": sum(e["total"] for e in employees),
+        "grand_advance": sum(e.get("advance", 0) for e in employees),
+        "grand_remaining": sum(e.get("remaining", e["total"] - e.get("advance", 0)) for e in employees),
     }
 
 
