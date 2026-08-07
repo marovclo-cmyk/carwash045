@@ -1548,19 +1548,17 @@ window.homeSwipeStep=(dir)=>{haptic();HOME_IDX+=dir;renderHomeSwipeCard();};
 window.uiWorkerQuick=async(name)=>{
   const {schedule}=await api(`/api/workers?branch=${encodeURIComponent(BRANCH)}`);
   const stats=await api(`/api/employee-stats?branch=${encodeURIComponent(BRANCH)}&name=${encodeURIComponent(name)}&period=today`).catch(()=>null);
-  const weekStats=await api(`/api/employee-stats?branch=${encodeURIComponent(BRANCH)}&name=${encodeURIComponent(name)}&period=week`).catch(()=>null);
   const cnt=stats?.cars||0;
   const sal=stats?.total||0;
   const roleLine=stats?.roles?.length?stats.roles.join(", "):"";
   const sched=schedule?.[name]?.schedule;
   const working=schedule?.[name]?.working!==false;
   const schedLine=sched?`График: ${sched.work}/${sched.rest} · ${working?"работает":"отдыхает 🌙"}`:"График не задан";
-  const avansLine=weekStats?.advance?`\nАванс за неделю: ${fmt(weekStats.advance)} · Остаток: ${fmt(weekStats.remaining)}`:"";
   tg.showPopup({
     title:name,
-    message:`${roleLine?roleLine+"\n":""}${cnt} машин · к выплате ${fmt(sal)}\n${schedLine}${avansLine}`,
-    buttons:[{id:"avans",type:"default",text:"💵 Аванс"},{id:"schedule",type:"default",text:"График работы"},{id:"cancel",type:"cancel"}],
-  },(id)=>{if(id==="schedule") uiSetSchedule(name); if(id==="avans") uiAddAvans(name);});
+    message:`${roleLine?roleLine+"\n":""}${cnt} машин · к выплате ${fmt(sal)}\n${schedLine}`,
+    buttons:[{id:"schedule",type:"default",text:"График работы"},{id:"cancel",type:"cancel"}],
+  },(id)=>{if(id==="schedule") uiSetSchedule(name);});
 };
 window.uiCarQuick=(num)=>{
   tg.showConfirm("Удалить эту машину?",async(ok)=>{
@@ -2298,10 +2296,6 @@ async function renderMyStats(){
       <div class="home-stat-box"><span><i class="ti ti-calendar"></i>Смен</span><b>${data.shifts}</b></div>
       <div class="home-stat-box"><span><i class="ti ti-chart-bar"></i>Средняя за смену</span><b>${fmt(data.avg_per_shift)}</b></div>
     </div>`:""}
-    ${data.advance?`<div class="home-stat-row">
-      <div class="home-stat-box"><span><i class="ti ti-cash-banknote"></i>Аванс</span><b>${fmt(data.advance)}</b></div>
-      <div class="home-stat-box"><span><i class="ti ti-wallet"></i>Остаток к выплате</span><b>${fmt(data.remaining)}</b></div>
-    </div>`:""}
     <div class="section-label">Разбивка по ролям</div>
     <div class="card">${roleRowsHtml||`<p class="empty">За этот период данных нет</p>`}</div>
     <div class="section-label">По дням</div>
@@ -2369,12 +2363,8 @@ async function renderEmployees(){
     const roleRows=Object.entries(emp.by_role||{}).map(([role,amount])=>
       `<div class="wc-sub" style="display:flex;justify-content:space-between"><span>${role[0].toUpperCase()+role.slice(1)}</span><span>${fmt(amount)}</span></div>`
     ).join("");
-    const advance=emp.advance||0;
-    const remaining=emp.remaining!==undefined?emp.remaining:emp.total-advance;
-    const advanceRow=advance?`<div class="wc-sub" style="display:flex;justify-content:space-between;color:var(--danger,#EF4444)"><span>Аванс</span><span>-${fmt(advance)}</span></div>
-      <div class="wc-sub" style="display:flex;justify-content:space-between;font-weight:600"><span>Остаток к выплате</span><span>${fmt(remaining)}</span></div>`:"";
     return `<div class="worker-card">
-      <div class="wc-top" onclick="uiWorkerQuick('${emp.name.replace(/'/g,"\\'")}')" style="cursor:pointer">
+      <div class="wc-top">
         <div class="wc-info">
           <div class="wc-av" style="background:${col}22;color:${col}">${initials(emp.name)}</div>
           <div>
@@ -2385,8 +2375,6 @@ async function renderEmployees(){
         <div class="wc-sal">${fmt(emp.total)}</div>
       </div>
       ${roleRows?`<div style="margin-top:8px;padding-top:8px;border-top:0.5px solid var(--border)">${roleRows}</div>`:""}
-      ${advanceRow?`<div style="margin-top:4px">${advanceRow}</div>`:""}
-      <div class="add-worker-btn" style="margin-top:8px" onclick="uiAddAvans('${emp.name.replace(/'/g,"\\'")}')"><i class="ti ti-cash-banknote"></i>Выдать аванс</div>
     </div>`;
   }).join(""):`<p class="empty">За этот период данных нет</p>`;
 
@@ -2404,24 +2392,12 @@ async function renderEmployees(){
           <b>${employees.length}</b>
         </div>
       </div>
-      ${data.grand_advance?`<div class="home-stat-row">
-        <div class="home-stat-box"><span><i class="ti ti-cash-banknote"></i>Авансы выданы</span><b>${fmt(data.grand_advance)}</b></div>
-        <div class="home-stat-box"><span><i class="ti ti-wallet"></i>Остаток к выплате</span><b>${fmt(data.grand_remaining)}</b></div>
-      </div>`:""}
       <div class="section-label">${data.from} – ${data.to}</div>
       <div class="card">${cardsHtml}</div>
     </div>`;
   attachPullToRefresh("view-employees",renderEmployees);
 }
 window.uiEmployeesPeriod=(p)=>{ EMPLOYEES_PERIOD=p; haptic(); renderEmployees(); };
-window.uiAddAvans=(name)=>{
-  const amountStr=window.prompt(`Сумма аванса для ${name} (₽):`,"2000");
-  const amount=parseInt((amountStr||"").replace(/[^\d]/g,""),10);
-  if(!amount) return;
-  api("/api/advance",{method:"POST",body:JSON.stringify({branch:BRANCH,name,amount})})
-    .then(()=>{haptic("medium");toast("Аванс выдан");renderEmployees();})
-    .catch(()=>{tg.showAlert("Не удалось выдать аванс");});
-};
 
 /* ─── ГРАФИК НА НЕДЕЛЮ ───────────────────────────────────────────────────── */
 async function renderScheduleWeek(){
