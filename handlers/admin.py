@@ -13,7 +13,7 @@ from sessions import (
     get_session, save_sessions, save_to_archive, reset_session,
     load_users, save_users, add_user, remove_user,
     get_branch_admin, is_branch_admin, is_branch_worker, get_role, set_branch_admin,
-    get_branch_workers, add_branch_worker, remove_branch_worker,
+    get_branch_workers, add_branch_worker, remove_branch_worker, get_branch_admin_names,
     overwrite_archive_day, load_archive, patch_archive_fixed_rates, patch_fixed_rates,
 )
 from config import OWNER_ID, BRANCHES
@@ -121,8 +121,16 @@ async def fix_day_rates_command(update: Update, context: ContextTypes.DEFAULT_TY
     (за него не заводили ни одной машины) — создаёт ПУСТОЙ отчёт за этот
     день (0 машин, 0 касса) прямо в архиве и сразу проставляет ставки.
 
+    Имя может быть в одно слово (Имя-Сумма) или в два (Имя-Фамилия-Сумма) —
+    оба варианта в одном токене (без пробелов, Telegram иначе порвёт их на
+    разные аргументы). Если написать в два слова через дефис, а такой
+    сотрудник уже зарегистрирован именно с дефисом в имени (например,
+    двойная фамилия) — сохранится как есть, через дефис; иначе — как
+    "Имя Фамилия" через пробел (так их добавляет /addworker).
+
     Примеры:
       /fix 14.07.2026 Салим-1000 Саркис-1000 Роман-1000 Артур-1000
+      /fix 14.07.2026 Иван-Петров-1000        (имя-фамилия одним токеном)
       /fix 14.07.2026 admin-1000              (ставка дежурному админу дня)
       /fix 14.07.2026 Салим-0                 (убрать ставку Салиму)
 
@@ -142,6 +150,7 @@ async def fix_day_rates_command(update: Update, context: ContextTypes.DEFAULT_TY
         await update.message.reply_text(
             "Формат: `/fix ДД.ММ.ГГГГ Имя-Сумма Имя-Сумма ...`\n"
             "Например:\n`/fix 14.07.2026 Салим-1000 Саркис-1000 Роман-1000 Артур-1000`\n\n"
+            "Имя-фамилия одним токеном (без пробела): `/fix 14.07.2026 Иван-Петров-1000`\n"
             "Ставка администратору: `/fix 14.07.2026 admin-1000`\n"
             "Убрать ставку: `/fix 14.07.2026 Салим-0`",
             parse_mode="Markdown")
@@ -155,6 +164,8 @@ async def fix_day_rates_command(update: Update, context: ContextTypes.DEFAULT_TY
         await update.message.reply_text("⚠️ Дата должна быть в формате ДД.ММ.ГГГГ, например 14.07.2026")
         return
 
+    known_names = set(get_branch_workers(branch)) | set(get_branch_admin_names(branch))
+
     rate_updates = {}
     admin_amount = None
     bad_tokens = []
@@ -162,11 +173,29 @@ async def fix_day_rates_command(update: Update, context: ContextTypes.DEFAULT_TY
         if "-" not in token:
             bad_tokens.append(token)
             continue
-        name, _, amount_str = token.rpartition("-")
-        if not name or not amount_str.lstrip("-").isdigit():
+        parts = token.split("-")
+        amount_str = parts[-1]
+        name_parts = parts[:-1]
+        if not name_parts or not amount_str.lstrip("-").isdigit():
             bad_tokens.append(token)
             continue
         amount = int(amount_str)
+
+        if len(name_parts) == 1:
+            name = name_parts[0]
+        else:
+            # Имя-Фамилия-Сумма (или больше слов) одним токеном: по умолчанию
+            # склеиваем пробелом ("Иван Петров" — как их регистрирует
+            # /addworker), но если такой сотрудник уже числится именно с
+            # дефисом в имени — оставляем дефис, чтобы не переставать
+            # совпадать с уже существующей записью.
+            candidate_hyphen = "-".join(name_parts)
+            candidate_space  = " ".join(name_parts)
+            name = candidate_hyphen if candidate_hyphen in known_names else candidate_space
+
+        if not name:
+            bad_tokens.append(token)
+            continue
         if name.lower() in ("admin", "админ", "администратор"):
             admin_amount = amount
         else:
