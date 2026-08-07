@@ -176,6 +176,52 @@ async def allreport_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await msg.reply_text("\n".join(lines), parse_mode="Markdown")
 
 
+async def premium_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Ведомость выдачи премии — PDF в формате бумажного бланка сети
+    (Сотрудник × ПН..ВС × ИТОГО). По умолчанию — текущая неделя (Пн-сегодня).
+    `/premium last` — прошлая полная неделя (Пн-Вс)."""
+    from handlers.admin import is_allowed, get_role
+    if not is_allowed(update.effective_user.id):
+        await update.message.reply_text("⛔ Нет доступа."); return
+    branch = get_current_branch(context)
+    if not branch:
+        await update.message.reply_text("⚠️ Сначала выбери филиал: /newday"); return
+    if get_role(update.effective_user.id, branch) not in ("owner", "admin"):
+        await update.message.reply_text("⛔ Ведомость доступна только администратору филиала."); return
+
+    from employee_stats import all_employees_period_stats, week_range
+    if context.args and context.args[0].lower() in ("last", "прошлая", "прошлую"):
+        this_start, _ = week_range()
+        week_start = this_start - timedelta(days=7)
+        week_end = this_start - timedelta(seconds=1)
+    else:
+        week_start, week_end = week_range()
+
+    employees = all_employees_period_stats(branch, week_start, week_end)
+    if not employees:
+        await update.message.reply_text(
+            f"📋 Нет данных за {week_start.strftime('%d.%m')}–{week_end.strftime('%d.%m.%Y')}."); return
+
+    await update.message.reply_text("⏳ Генерирую ведомость...")
+    import os
+    from pdf_generator import generate_salary_sheet_pdf
+    from sessions import get_branch_admin_name
+    admin_name = get_branch_admin_name(branch)
+    safe_branch = branch.replace(" ", "_")
+    pdf_path = os.path.expanduser(
+        f"~/premium_{safe_branch}_{week_start.strftime('%d%m%Y')}.pdf")
+    try:
+        generate_salary_sheet_pdf(branch, week_start, week_end, employees, admin_name, pdf_path)
+        with open(pdf_path, "rb") as f:
+            await update.message.reply_document(
+                document=f,
+                filename=f"Ведомость_{branch}_{week_start.strftime('%d.%m')}-{week_end.strftime('%d.%m.%Y')}.pdf",
+                caption=(f"📄 Ведомость премии {week_start.strftime('%d.%m')}–"
+                         f"{week_end.strftime('%d.%m.%Y')} | 📍 {branch}"))
+    except Exception as e:
+        await update.message.reply_text(f"❌ Ошибка: {e}")
+
+
 async def reminder_job(context):
     try:
         await context.bot.send_message(
