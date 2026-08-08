@@ -102,6 +102,7 @@ const CW = (() => {
     { group: "Обзор", items: [
       { key: "dashboard", icon: "ti-layout-dashboard", label: "Дашборд", href: "/static/dashboard.html" },
       { key: "cars", icon: "ti-car", label: "Машины", href: "/static/cars.html" },
+      { key: "booking", icon: "ti-calendar-event", label: "Запись", href: "/static/booking.html" },
       { key: "cash", icon: "ti-cash", label: "Касса за смену", href: "/static/cash.html" },
     ]},
     { group: "Управление", items: [

@@ -1,0 +1,1270 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CarWash Cloud — запись</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="/static/css/theme-plata.css">
+<style>
+  /* ---------- панель шире дефолтной .main (нужна ширина под сетку боксов) --- */
+  .main{max-width:1440px}
+
+  /* ---------- toolbar: дата + фильтр по боксу ---------- */
+  .toolbar{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:16px;flex-wrap:wrap}
+  .toolbar-left{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .date-nav{display:flex;align-items:center;gap:2px;background:var(--paper);border:1.5px solid var(--line);border-radius:999px;padding:4px}
+  .date-nav button{width:34px;height:34px;border-radius:50%;border:none;background:transparent;color:var(--muted);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px}
+  .date-nav button:hover{background:var(--paper-2);color:var(--ink)}
+  .date-nav .date-label{padding:0 14px;font-size:13.5px;font-weight:600;font-family:var(--font-display);white-space:nowrap;text-transform:capitalize}
+  .today-btn{height:34px;padding:0 14px;border-radius:999px;border:1.5px solid var(--line-strong);background:var(--paper);font-size:12.5px;font-weight:700;color:var(--ink);cursor:pointer}
+  .today-btn:hover{border-color:var(--orange);color:var(--orange)}
+  .filter-select{height:42px;border-radius:999px;border:1.5px solid var(--line-strong);background:var(--paper);padding:0 16px;font-size:13px;font-weight:600;color:var(--ink);font-family:var(--font-body);cursor:pointer}
+  .filter-select:focus{outline:none;border-color:var(--orange)}
+
+  /* ---------- легенда ---------- */
+  .legend{display:flex;gap:16px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+  .legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);font-weight:600}
+  .legend-dot{width:9px;height:9px;border-radius:3px;flex-shrink:0}
+
+  /* ---------- сетка записи ---------- */
+  .grid-scroll{overflow-x:auto}
+  .booking-grid{display:grid;grid-template-columns:64px repeat(var(--cols,1),minmax(220px,1fr));min-width:100%}
+
+  .gh-corner{border-bottom:1.5px solid var(--line)}
+  .gh-col{border-bottom:1.5px solid var(--line);border-left:1px solid var(--line);padding:14px 16px;display:flex;align-items:center;gap:10px}
+  .gh-avatar{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+  .gh-name{font-size:13.5px;font-weight:700}
+  .gh-role{font-size:11px;color:var(--muted);font-weight:600}
+
+  .gt-col{position:relative}
+  .gt-slot{height:34px;border-top:1px solid var(--line);position:relative}
+  .gt-slot:first-child{border-top:none}
+  .gt-slot .gt-label{position:absolute;top:-8px;right:10px;font-size:11px;color:var(--muted-2);font-weight:700;background:var(--paper);padding:0 2px}
+  .gt-slot.hour .gt-label{color:var(--muted)}
+
+  .gb-col{position:relative;border-left:1px solid var(--line);cursor:pointer}
+  .gb-slot{height:34px;border-top:1px solid var(--line)}
+  .gb-slot:first-child{border-top:none}
+  .gb-slot.hour{border-top:1px solid var(--line-strong)}
+
+  .now-line{position:absolute;left:0;right:0;height:0;border-top:2px solid var(--orange);z-index:5;pointer-events:none}
+  .now-line::before{content:"Сейчас · " attr(data-time);position:absolute;left:0;top:-9px;background:var(--orange);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px;white-space:nowrap}
+  .now-line.no-label::before{content:""}
+  .now-line::after{content:"";position:absolute;right:-3px;top:-3.5px;width:7px;height:7px;border-radius:50%;background:var(--orange)}
+
+  .appt{position:absolute;left:4px;right:4px;border-radius:var(--r-sm);padding:8px 10px;overflow:hidden;cursor:pointer;border:1.5px solid transparent;border-left-width:3px;background:var(--paper);box-shadow:0 1px 2px rgba(13,13,13,.04);transition:box-shadow .12s,transform .12s;z-index:2}
+  .appt:hover{box-shadow:0 8px 18px rgba(13,13,13,.10);transform:translateY(-1px)}
+  .appt-top{display:flex;justify-content:space-between;align-items:flex-start;gap:6px}
+  .appt-time{font-size:10.5px;font-weight:700;color:var(--muted);letter-spacing:.01em}
+  .appt-status{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0}
+  .appt-status.done{background:var(--green);color:#fff}
+  .appt-status.progress{background:var(--paper);color:var(--muted);border:1.5px solid var(--line-strong)}
+  .appt-name{font-size:13px;font-weight:700;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .appt-phone{font-size:11px;color:var(--muted);font-weight:600;margin-top:1px}
+  .appt-service{font-size:11px;color:var(--muted);margin-top:4px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
+  .empty-slot-hint{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .12s;pointer-events:none}
+  .gb-col:hover .empty-slot-hint{opacity:1}
+  .empty-slot-hint i{color:var(--muted-2);font-size:15px}
+
+  /* ---------- клиент: поиск/карточка (как на странице «Машины») ---------- */
+  .client-dropdown{position:absolute;left:0;right:0;top:100%;z-index:20;background:var(--surface-0);border:1.5px solid var(--line);border-radius:var(--r-sm);box-shadow:0 8px 24px rgba(13,13,13,0.10);margin-top:4px;max-height:220px;overflow-y:auto;display:none}
+  .client-dropdown.open{display:block}
+  .client-dropdown-item{padding:10px 12px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px;border-bottom:1px solid var(--line)}
+  .client-dropdown-item:last-child{border-bottom:none}
+  .client-dropdown-item:hover{background:var(--paper-2)}
+  .cdi-name{font-size:13px;font-weight:600;color:var(--text)}
+  .cdi-phone{font-size:12px;color:var(--muted)}
+  .cdi-meta{font-size:11px;color:var(--muted);white-space:nowrap}
+  .client-card{margin-top:8px;padding:10px 12px;border-radius:var(--r-sm);background:var(--orange-tint);border:1px solid var(--orange-tint-strong);display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .client-card .cc-name{font-size:13px;font-weight:700;color:var(--text)}
+  .client-card .cc-meta{font-size:11px;color:var(--muted);margin-top:2px}
+  .client-card .cc-clear{font-size:12px;color:var(--muted);cursor:pointer;text-decoration:underline}
+
+  /* ---------- модалка записи: доп. элементы ---------- */
+  .field-row-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .booking-id-tag{font-size:11px;color:var(--muted);font-weight:700;margin-bottom:2px}
+
+  /* ---------- модалка записи: широкая версия на 3 колонки (этап 4) ----------
+     Виджет-компоненты (svc-grid/svc-item, custom-svc-*, pay-grid/pay-btn,
+     split-*, switch, total-line) не дублируются — они уже есть в
+     theme-plata.css (взяты 1:1 из cars.html, где решают ту же задачу выбора
+     услуг/оплаты). Здесь только то, чего в теме объективно не было:
+     широкая 3-колоночная раскладка и вкладки статуса записи. */
+  .modal-lg{width:1080px;max-width:96vw;max-height:92vh;overflow-y:auto;background:var(--paper);border:1.5px solid var(--line);border-radius:var(--r-xl);padding:26px 28px 22px;position:relative}
+  .modal-lg::-webkit-scrollbar{width:6px}
+  .modal-lg::-webkit-scrollbar-thumb{background:var(--paper-3);border-radius:3px}
+  .modal-close{position:absolute;top:18px;right:18px;width:34px;height:34px;border-radius:50%;border:none;background:var(--paper-2);color:var(--muted);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2}
+  .modal-close:hover{color:var(--ink);background:var(--paper-3)}
+  .modal-cols{display:grid;grid-template-columns:1fr 1.25fr 1fr;gap:26px;margin-top:6px}
+  .modal-col{min-width:0}
+  .modal-col .field{margin-bottom:14px}
+  .modal-col .field label{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:7px}
+  .modal-col .field input,.modal-col .field select,.modal-col .field textarea{width:100%}
+  .col-title{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:14px}
+
+  .status-tabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:16px}
+  .status-tab{display:flex;align-items:center;gap:6px;height:36px;padding:0 13px;border-radius:100px;border:none;background:var(--paper-2);color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font-body);transition:.12s}
+  .status-tab:hover{background:var(--paper-3)}
+  .status-tab.active{background:var(--ink);color:#fff}
+
+  .subtabs{display:flex;gap:3px;margin:4px 0 10px;background:var(--paper-2);border-radius:14px;padding:4px}
+  .subtab{flex:1;height:36px;border-radius:10px;border:none;background:transparent;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:var(--font-body);transition:.12s}
+  .subtab.active{background:var(--paper);color:var(--ink);box-shadow:0 3px 10px -4px rgba(13,13,13,.2)}
+  .svc-pane{display:none}
+  .svc-pane.active{display:block}
+
+  .price-hint{font-size:11.5px;color:var(--muted);margin-top:4px}
+  .no-services-note{font-size:12px;color:var(--muted-2);padding:10px 2px}
+
+  /* ---------- клиентская панель: История/Лояльность/Сообщения/Счета (этап 5) ----------
+     Компонент собран по образцу booking-create-modal-v4.html (client-icon-grid,
+     detail-view), но на реальных данных: История — visits из carwash_clients.json
+     (этап 2), Лояльность — реальные visit_count/total_spent + управление
+     discount_percent через уже рабочий API (этап 2), а не фейковый кэшбэк.
+     Сообщения/Счета — честная заглушка: этих сущностей в бэкенде нет вообще. */
+  .client-icon-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:16px 0}
+  .ci-tile{display:flex;flex-direction:column;align-items:center;gap:8px;padding:13px 6px;border-radius:16px;background:var(--paper-2);border:none;cursor:pointer;text-align:center;font-family:var(--font-body);transition:background .12s}
+  .ci-tile:hover{background:var(--paper-3)}
+  .ci-tile:disabled{opacity:.45;cursor:not-allowed}
+  .ci-tile i{font-size:17px;color:var(--muted)}
+  .ci-tile span{font-size:10.5px;font-weight:700;color:var(--ink);line-height:1.25}
+  .ci-tile.wide{grid-column:span 2;flex-direction:row;justify-content:flex-start;padding:12px 14px}
+  .ci-tile.wide i{margin-bottom:0}
+  .ci-hint{font-size:11.5px;color:var(--muted-2);line-height:1.4;margin:-6px 0 16px}
+
+  .detail-view{display:none;padding-top:4px}
+  .detail-view.open{display:block}
+  .detail-header{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+  .detail-title{font-family:var(--font-display);font-size:18px;font-weight:600}
+  .btn.small{height:34px;padding:0 13px;font-size:11.5px}
+  .detail-scroll{max-height:50vh;overflow-y:auto;padding-right:4px}
+
+  .visit-group{margin-bottom:2px}
+  .visit-date{font-size:11.5px;font-weight:700;color:var(--muted);padding:16px 0 10px;border-top:1px solid var(--line)}
+  .visit-group:first-child .visit-date{border-top:none;padding-top:0}
+  .visit-row{display:grid;grid-template-columns:1.3fr 26px 2fr 80px 80px;gap:10px;align-items:center;padding:11px 0;border-top:1px solid var(--line)}
+  .vr-box{font-size:12px;font-weight:700}
+  .vr-time{font-size:11px;color:var(--muted);font-weight:600}
+  .vr-status-dot{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px}
+  .vr-status-dot.done{background:var(--green-tint);color:var(--green)}
+  .vr-status-dot.other{background:var(--paper-3);color:var(--muted)}
+  .vr-service{font-size:12px;color:var(--ink);line-height:1.4}
+  .vr-price{font-size:12.5px;font-weight:700;text-align:right}
+  .vr-paid{font-size:12.5px;color:var(--muted);font-weight:600;text-align:right}
+  .empty-note-sm{font-size:12.5px;color:var(--muted-2);padding:16px 2px}
+
+  .loyalty-card{background:var(--paper-2);border-radius:20px;padding:18px;margin-bottom:20px}
+  .loyalty-card-title{font-family:var(--font-display);font-size:15px;font-weight:600;margin-bottom:2px}
+  .loyalty-card-sub{font-size:11.5px;color:var(--muted);font-weight:600}
+  .loyalty-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+  .loyalty-metric{background:var(--paper);border-radius:14px;padding:12px}
+  .lm-label{font-size:10.5px;color:var(--muted);font-weight:700}
+  .lm-value{font-family:var(--font-display);font-size:16px;font-weight:600;margin-top:6px}
+
+  .section-label{font-size:11.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.02em;margin-top:16px;margin-bottom:8px}
+  .discount-block{background:var(--paper-2);border-radius:18px;padding:18px}
+  .discount-current{font-size:13px;font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+  .badge-active{background:var(--green-tint);color:var(--green);font-size:11px;font-weight:700;padding:4px 11px;border-radius:999px}
+  .badge-inactive{background:var(--paper-3);color:var(--muted);font-size:11px;font-weight:700;padding:4px 11px;border-radius:999px}
+  .discount-form{display:flex;gap:8px;align-items:center}
+  .discount-form input{width:100px}
+  .discount-form span{font-size:13px;font-weight:700;color:var(--muted)}
+  .discount-remove{color:var(--red);font-size:12px;font-weight:700;background:none;border:none;cursor:pointer;margin-left:auto}
+  .discount-err{color:var(--red);font-size:11.5px;margin-top:8px;display:none}
+
+  .module-stub{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:10px;padding:56px 10px;color:var(--muted)}
+  .module-stub i{font-size:28px;color:var(--muted-2)}
+  .module-stub span{font-size:12.5px;font-weight:600;max-width:260px;line-height:1.4}
+
+  @media (max-width:860px){
+    .modal-cols{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="rail" id="sidebarRoot"></div>
+
+  <div class="main">
+    <div class="err-banner" id="errBanner"></div>
+
+    <div class="page-head">
+      <div>
+        <div class="page-title">Запись</div>
+        <div class="page-sub" id="pageSub">—</div>
+      </div>
+      <div class="head-actions">
+        <button class="btn secondary" id="refreshBtn"><i class="ti ti-refresh"></i>Обновить</button>
+        <button class="btn accent" id="newBookingBtn"><i class="ti ti-plus"></i>Новая запись</button>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <div class="date-nav">
+          <button id="datePrev"><i class="ti ti-chevron-left"></i></button>
+          <span class="date-label" id="dateLabel">—</span>
+          <button id="dateNext"><i class="ti ti-chevron-right"></i></button>
+        </div>
+        <button class="today-btn" id="todayBtn">Сегодня</button>
+      </div>
+      <select class="filter-select" id="boxFilter">
+        <option value="all">Все боксы</option>
+      </select>
+    </div>
+
+    <div class="legend" id="legend" style="display:none"></div>
+
+    <div class="panel">
+      <div class="grid-scroll">
+        <div class="booking-grid" id="bookingGrid" style="display:none">
+          <div class="gh-corner"></div>
+          <div class="gt-col" id="timeCol"></div>
+        </div>
+      </div>
+      <div id="gridEmpty" class="empty-note">Загрузка…</div>
+    </div>
+  </div>
+</div>
+
+<!-- Модалка записи (создание/просмотр-редактирование). Этап 4: разметка
+     перенесена из booking-create-modal-v4.html (3 колонки), но услуги/
+     товары/оплата — реальные виджеты темы (svc-grid, pay-grid, split-*
+     и т.д. — те же классы, что использует cars.html), а не самодельная
+     копия макета. Клиентская панель (История/Лояльность/Сообщения/Счета)
+     — заглушка с честной подписью, это этап 5, см. 00-audit-i-plan.md. -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal-lg">
+    <div class="modal-close" id="modalCloseBtn"><i class="ti ti-x"></i></div>
+    <div class="booking-id-tag" id="bookingIdTag" style="display:none"></div>
+    <h2 id="modalTitle">Новая запись</h2>
+
+    <div class="modal-cols">
+      <!-- ============ ЛЕВАЯ КОЛОНКА: бокс / время / статус ============ -->
+      <div class="modal-col">
+        <div class="col-title">Бокс и время</div>
+
+        <div class="field">
+          <label>Бокс</label>
+          <select id="fBox"></select>
+        </div>
+
+        <div class="field-row-2">
+          <div class="field">
+            <label>Дата</label>
+            <input type="date" id="fDate">
+          </div>
+          <div class="field">
+            <label>Тип кузова</label>
+            <select id="fBodyType"></select>
+          </div>
+        </div>
+
+        <div class="field-row-2">
+          <div class="field">
+            <label>Начало</label>
+            <input type="time" id="fStart" step="600">
+          </div>
+          <div class="field">
+            <label>Окончание</label>
+            <input type="time" id="fEnd" step="600">
+          </div>
+        </div>
+
+        <div class="col-title" style="margin-top:20px">Статус</div>
+        <div class="status-tabs" id="statusTabs"></div>
+
+        <div class="field" style="margin-bottom:0">
+          <label>Комментарий (необязательно)</label>
+          <textarea rows="3" id="fComment" placeholder="Например, просил не мыть диски"></textarea>
+        </div>
+      </div>
+
+      <!-- ============ СРЕДНЯЯ КОЛОНКА: услуги / товары / оплата ============ -->
+      <div class="modal-col">
+        <div class="col-title">Услуги и товары</div>
+        <div class="subtabs">
+          <button type="button" class="subtab active" data-sub="services"><i class="ti ti-sparkles"></i>Услуги</button>
+          <button type="button" class="subtab" data-sub="products"><i class="ti ti-package"></i>Товары</button>
+        </div>
+
+        <div class="svc-pane active" id="servicesPane">
+          <div class="svc-grid" id="svcGrid"></div>
+          <div class="custom-svc-list" id="customSvcList"></div>
+          <div class="custom-add-btn" id="customAddBtn"><i class="ti ti-plus"></i>Другое (своя услуга)</div>
+          <div class="custom-svc-form" id="customSvcForm">
+            <div class="csf-row">
+              <input type="text" id="csName" placeholder="Название услуги">
+            </div>
+            <div class="csf-row csf-row-2">
+              <input type="number" id="csPrice" min="0" step="50" placeholder="Цена, ₽">
+              <input type="number" id="csPercent" min="0" max="100" step="1" placeholder="% мойщику">
+            </div>
+            <div class="csf-actions">
+              <button type="button" class="btn secondary" id="csCancel">Отмена</button>
+              <button type="button" class="btn accent" id="csAdd">Добавить</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="svc-pane" id="productsPane">
+          <div class="svc-grid" id="prodGrid"></div>
+          <div class="no-services-note" id="noProductsNote" style="display:none">В прайсе пока нет товаров — добавьте их в config.PRODUCTS.</div>
+        </div>
+
+        <div class="col-title" style="margin-top:18px">Оплата (необязательно — можно оставить на потом)</div>
+        <div class="pay-grid" id="payGrid"></div>
+        <div class="split-toggle-row">
+          <span>Раздельная оплата</span>
+          <label class="switch">
+            <input type="checkbox" id="fSplitToggle">
+            <span class="track"></span>
+          </label>
+        </div>
+        <div class="split-grid" id="splitGrid"></div>
+        <div class="split-hint" id="splitHint"></div>
+
+        <div class="total-line">
+          <span>Итого</span>
+          <div class="total-input-wrap">
+            <span class="total-reset" id="totalReset">Сбросить</span>
+            <input type="number" id="fTotal" min="0" step="50">
+          </div>
+        </div>
+        <div class="price-hint" id="discountHint" style="display:none"></div>
+      </div>
+
+      <!-- ============ ПРАВАЯ КОЛОНКА: клиент ============ -->
+      <div class="modal-col">
+        <div class="col-title">Клиент</div>
+
+        <div class="field" style="position:relative">
+          <label>Телефон клиента (необязательно)</label>
+          <input type="text" id="fPhone" placeholder="Телефон или имя — для поиска клиента" autocomplete="off">
+          <div id="clientDropdown" class="client-dropdown"></div>
+          <div id="clientCard" class="client-card" style="display:none"></div>
+        </div>
+
+        <div class="field">
+          <label>Имя клиента (необязательно)</label>
+          <input type="text" id="fClientName" placeholder="Например, Дарья">
+        </div>
+
+        <div class="field" style="margin-bottom:0">
+          <label>Машина (необязательно)</label>
+          <input type="text" id="fCar" placeholder="Например, Lexus RX">
+        </div>
+
+        <div class="client-icon-grid" id="clientIconGrid">
+          <button type="button" class="ci-tile" data-detail="history" disabled><i class="ti ti-history"></i><span>История посещений</span></button>
+          <button type="button" class="ci-tile" data-detail="loyalty" disabled><i class="ti ti-heart"></i><span>Лояльность</span></button>
+          <button type="button" class="ci-tile" data-detail="messages" disabled><i class="ti ti-message-circle"></i><span>Сообщения и звонки</span></button>
+          <button type="button" class="ci-tile wide" data-detail="accounts" disabled><i class="ti ti-wallet"></i><span>Счета клиента</span></button>
+        </div>
+        <div class="ci-hint" id="ciHint">Сначала выберите клиента через поиск выше — здесь появится история визитов и постоянная скидка.</div>
+      </div>
+    </div>
+
+    <!-- Детальная панель клиента (История/Лояльность/Сообщения/Счета) — этап 5.
+         Заменяет .modal-cols на время просмотра, чтобы не сжимать 3 колонки. -->
+    <div class="detail-view" id="detailView">
+      <div class="detail-header">
+        <button type="button" class="btn secondary small" id="detailBackBtn"><i class="ti ti-arrow-left"></i>Назад к записи</button>
+        <div class="detail-title" id="detailTitle"></div>
+      </div>
+      <div id="detailContent"></div>
+    </div>
+
+    <div class="modal-err" id="modalErr"></div>
+
+    <div class="modal-actions">
+      <button class="btn secondary" id="cancelBtn">Отмена</button>
+      <button class="btn danger" id="deleteBtn" style="display:none">Удалить</button>
+      <button class="btn accent" id="saveBtn">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<script src="/static/site-common.js"></script>
+<script>
+if (CW.requireAuth()) {
+  CW.renderSidebar("booking");
+
+  // Сетка: 08:00–20:00, шаг 30 минут, 34px на слот (столько же, сколько
+  // в макете booking-preview.html) — синхронизировано с START_HOUR/END_HOUR ниже.
+  const START_HOUR = 8, END_HOUR = 20, SLOT_PX = 34;
+  const PX_PER_MIN = SLOT_PX / 30;
+
+  const STATUS_LABELS = {
+    waiting: "Ожидание", confirmed: "Подтверждено", arrived: "Клиент приехал",
+    no_show: "Не пришёл", in_progress: "В работе", done: "Оплачено",
+  };
+  const STATUS_ORDER = ["waiting", "confirmed", "arrived", "no_show", "in_progress", "done"];
+  const STATUS_ICONS = {
+    waiting: "ti-clock", confirmed: "ti-shield-check", arrived: "ti-check",
+    no_show: "ti-x", in_progress: "ti-loader-2", done: "ti-cash",
+  };
+
+  const BOX_COLORS = [
+    { c: "#FF5000", t: "rgba(255,80,0,0.10)" },
+    { c: "#7A5CFF", t: "rgba(122,92,255,0.12)" },
+    { c: "#1B8A57", t: "rgba(27,138,87,0.12)" },
+    { c: "#D63A2E", t: "rgba(214,58,46,0.12)" },
+    { c: "#0D0D0D", t: "rgba(13,13,13,0.08)" },
+    { c: "#FF711F", t: "rgba(255,113,31,0.12)" },
+  ];
+  function boxColor(box) { return BOX_COLORS[(box - 1) % BOX_COLORS.length]; }
+
+  const branch = CW.getActiveBranch();
+  const errEl = document.getElementById("errBanner");
+  function showErr(msg) { errEl.textContent = msg; errEl.style.display = "block"; }
+
+  let curDate = new Date();
+  let boxFilter = "all";
+  let boxes = [];
+  let bookings = [];
+  let editingId = null;
+  let selectedClient = null;
+  let serviceNames = {}; // {key: "Человекочитаемое имя"} — из /api/config, чтобы не показывать в сетке сырые ключи услуг
+  let cfg = null; // весь /api/config: services/products/body_types/payment_types — нужен модалке этапа 4
+
+  function pad2(n) { return String(n).padStart(2, "0"); }
+  function dateKey(d) { return `${pad2(d.getDate())}.${pad2(d.getMonth() + 1)}.${d.getFullYear()}`; }
+  function isoDate(d) { return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`; }
+  function fromIso(s) { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); }
+  function isToday(d) { return dateKey(d) === dateKey(new Date()); }
+  function dateLabel(d) {
+    return d.toLocaleDateString("ru-RU", { day: "numeric", month: "long", weekday: "long" });
+  }
+
+  if (!branch) {
+    showErr("Филиал не выбран. Выберите филиал в сайдбаре.");
+  } else {
+    init();
+  }
+
+  async function init() {
+    document.getElementById("dateLabel").textContent = dateLabel(curDate);
+    document.getElementById("pageSub").textContent = `${branch} · ${dateLabel(curDate)}`;
+    try {
+      cfg = await CW.authFetch("/api/config");
+      (cfg.services || []).forEach(s => { serviceNames[s.key] = s.name; });
+    } catch (e) { /* не критично для сетки — просто покажем сырые ключи, если конфиг недоступен */ }
+    buildModalStaticParts();
+    await loadBookings();
+  }
+
+  async function loadBookings() {
+    if (!branch) return;
+    errEl.style.display = "none";
+    document.getElementById("dateLabel").textContent = dateLabel(curDate);
+    document.getElementById("pageSub").textContent = `${branch} · ${dateLabel(curDate)}`;
+    try {
+      const data = await CW.authFetch(`/api/bookings?branch=${encodeURIComponent(branch)}&date=${encodeURIComponent(dateKey(curDate))}`);
+      boxes = data.boxes || [];
+      bookings = data.bookings || [];
+      buildBoxFilter();
+      renderGrid();
+    } catch (e) {
+      showErr(e.message);
+    }
+  }
+
+  function buildBoxFilter() {
+    const sel = document.getElementById("boxFilter");
+    const prev = sel.value;
+    sel.innerHTML = `<option value="all">Все боксы</option>` +
+      boxes.map(b => `<option value="${b.box}">Бокс ${b.box}</option>`).join("");
+    sel.value = boxes.some(b => String(b.box) === prev) || prev === "all" ? prev : "all";
+    boxFilter = sel.value;
+  }
+
+  function renderGrid() {
+    const grid = document.getElementById("bookingGrid");
+    const empty = document.getElementById("gridEmpty");
+    const legend = document.getElementById("legend");
+
+    if (!boxes.length) {
+      grid.style.display = "none";
+      legend.style.display = "none";
+      empty.style.display = "block";
+      empty.textContent = "На филиале ещё нет сотрудников — боксы появятся, когда добавите их на странице «Сотрудники».";
+      return;
+    }
+
+    const visibleBoxes = boxFilter === "all" ? boxes : boxes.filter(b => String(b.box) === String(boxFilter));
+    if (!visibleBoxes.length) {
+      grid.style.display = "none";
+      empty.style.display = "block";
+      empty.textContent = "Нет боксов, подходящих под выбранный фильтр.";
+      return;
+    }
+
+    empty.style.display = "none";
+    grid.style.display = "grid";
+    grid.style.setProperty("--cols", visibleBoxes.length);
+
+    // легенда: цвет на бокс + расшифровка статусов
+    legend.style.display = "flex";
+    legend.innerHTML = visibleBoxes.map(b => `
+      <div class="legend-item"><span class="legend-dot" style="background:${boxColor(b.box).c}"></span>Бокс ${b.box}${b.employee ? " · " + b.employee : ""}</div>
+    `).join("") + `
+      <div class="legend-item"><span class="appt-status done" style="width:14px;height:14px;font-size:8px"><i class="ti ti-check"></i></span>Оплачено</div>
+      <div class="legend-item"><span class="appt-status progress" style="width:14px;height:14px;font-size:8px"></span>В процессе</div>`;
+
+    // заголовки колонок + время
+    let html = `<div class="gh-corner"></div>`;
+    visibleBoxes.forEach(b => {
+      const col = boxColor(b.box);
+      html += `
+        <div class="gh-col">
+          <div class="gh-avatar" style="background:${col.t};color:${col.c}"><i class="ti ti-steering-wheel"></i></div>
+          <div><div class="gh-name">Бокс ${b.box}</div><div class="gh-role">${b.employee ? "Автомойщик — " + b.employee : "Сотрудник не назначен"}</div></div>
+        </div>`;
+    });
+
+    let timeHtml = "";
+    for (let h = START_HOUR; h < END_HOUR; h++) {
+      timeHtml += `<div class="gt-slot hour"><span class="gt-label">${pad2(h)}:00</span></div>`;
+      timeHtml += `<div class="gt-slot"><span class="gt-label">30</span></div>`;
+    }
+    html += `<div class="gt-col">${timeHtml}</div>`;
+
+    let slotsHtml = "";
+    for (let h = START_HOUR; h < END_HOUR; h++) {
+      slotsHtml += `<div class="gb-slot hour"></div><div class="gb-slot"></div>`;
+    }
+
+    visibleBoxes.forEach(b => {
+      html += `<div class="gb-col" data-box="${b.box}">${slotsHtml}<div class="empty-slot-hint"><i class="ti ti-plus"></i></div></div>`;
+    });
+
+    grid.innerHTML = html;
+
+    // события: клик по пустому месту колонки — новая запись в этом боксе/времени
+    grid.querySelectorAll(".gb-col").forEach(col => {
+      col.addEventListener("click", (e) => {
+        if (e.target.closest(".appt")) return;
+        const rect = col.getBoundingClientRect();
+        const offsetY = e.clientY - rect.top;
+        let minutes = START_HOUR * 60 + Math.round((offsetY / PX_PER_MIN) / 30) * 30;
+        minutes = Math.max(START_HOUR * 60, Math.min((END_HOUR - 1) * 60 + 30, minutes));
+        openCreateModal(Number(col.dataset.box), minutes);
+      });
+    });
+
+    // сами записи, спозиционированные по времени
+    const visibleBoxNums = new Set(visibleBoxes.map(b => String(b.box)));
+    bookings.filter(bk => visibleBoxNums.has(String(bk.box))).forEach(bk => {
+      const col = grid.querySelector(`.gb-col[data-box="${bk.box}"]`);
+      if (!col) return;
+      const startMin = timeToMinutes(bk.start_time);
+      const endMin = timeToMinutes(bk.end_time);
+      if (startMin < 0 || endMin < 0) return;
+      const top = Math.max(0, (startMin - START_HOUR * 60)) * PX_PER_MIN;
+      const height = Math.max(28, (endMin - startMin) * PX_PER_MIN);
+      const col_ = boxColor(bk.box);
+      const done = bk.status === "done";
+      const svcList = [
+        ...(bk.service_keys || []).map(k => serviceNames[k] || k),
+        ...(bk.custom_services || []).map(s => s.name),
+      ];
+      const svcNames = svcList.length ? svcList.map(escapeHtml).join(", ") : (STATUS_LABELS[bk.status] || bk.status);
+      const el = document.createElement("div");
+      el.className = "appt";
+      el.style.top = top + "px";
+      el.style.height = height + "px";
+      el.style.borderLeftColor = col_.c;
+      el.style.background = col_.t;
+      el.title = "Открыть запись";
+      el.innerHTML = `
+        <div class="appt-top">
+          <span class="appt-time">${bk.start_time}–${bk.end_time}</span>
+          <span class="appt-status ${done ? "done" : "progress"}">${done ? '<i class="ti ti-check"></i>' : ""}</span>
+        </div>
+        <div class="appt-name">${escapeHtml(bk.client_name || bk.car || "Без имени")}</div>
+        ${bk.phone ? `<div class="appt-phone">${escapeHtml(bk.phone)}</div>` : ""}
+        <div class="appt-service">${svcNames}</div>`;
+      el.addEventListener("click", (e) => { e.stopPropagation(); openEditModal(bk); });
+      col.appendChild(el);
+    });
+
+    // линия "сейчас" — только если открыт сегодняшний день
+    if (isToday(curDate)) {
+      const now = new Date();
+      const nowMin = now.getHours() * 60 + now.getMinutes();
+      if (nowMin >= START_HOUR * 60 && nowMin <= END_HOUR * 60) {
+        const top = (nowMin - START_HOUR * 60) * PX_PER_MIN;
+        grid.querySelectorAll(".gb-col").forEach((col, i) => {
+          const line = document.createElement("div");
+          line.className = "now-line" + (i === 0 ? "" : " no-label");
+          line.style.top = top + "px";
+          line.dataset.time = `${pad2(now.getHours())}:${pad2(now.getMinutes())}`;
+          col.appendChild(line);
+        });
+      }
+    }
+  }
+
+  function timeToMinutes(v) {
+    if (!v) return -1;
+    const [h, m] = v.split(":").map(Number);
+    if (Number.isNaN(h) || Number.isNaN(m)) return -1;
+    return h * 60 + m;
+  }
+  function minutesToTime(min) { return `${pad2(Math.floor(min / 60))}:${pad2(min % 60)}`; }
+
+  // ---------- модалка: бокс/время/статус (лево) · услуги/товары/оплата
+  // (центр, этап 4) · клиент (право) ----------
+  const modalBg = document.getElementById("modalBg");
+  const clientDropdown = document.getElementById("clientDropdown");
+  const clientCard = document.getElementById("clientCard");
+  const fPhoneInput = document.getElementById("fPhone");
+  const fTotalInput = document.getElementById("fTotal");
+  let clientSearchTimer = null;
+  let manualPriceEdited = false;
+  let customServices = []; // [{name, price, percent}] — тот же формат, что в cars.html
+
+  function buildBoxSelect(selected) {
+    const sel = document.getElementById("fBox");
+    sel.innerHTML = boxes.map(b => `<option value="${b.box}">Бокс ${b.box}${b.employee ? " — " + b.employee : ""}</option>`).join("");
+    if (selected) sel.value = selected;
+  }
+
+  function setStatusTab(status) {
+    document.querySelectorAll(".status-tab").forEach(b => b.classList.toggle("active", b.dataset.status === status));
+  }
+  function currentStatus() {
+    const active = document.querySelector(".status-tab.active");
+    return active ? active.dataset.status : "waiting";
+  }
+
+  // Части модалки, не зависящие от конкретной записи (тип кузова, услуги,
+  // товары, оплата, вкладки статуса) — строятся один раз после /api/config.
+  // Реализация услуг/товаров/оплаты — те же классы и та же логика, что уже
+  // работает в cars.html (svc-grid/custom-svc-*/pay-grid/split-*), просто
+  // источники данных для товаров — новые (cfg.products вместо cfg.services).
+  function buildModalStaticParts() {
+    if (!cfg) return;
+
+    const bodyTypeSel = document.getElementById("fBodyType");
+    bodyTypeSel.innerHTML = (cfg.body_types || []).map(b => `<option value="${b.key}">${b.name}</option>`).join("");
+    bodyTypeSel.addEventListener("change", updateTotal);
+
+    const statusTabs = document.getElementById("statusTabs");
+    statusTabs.innerHTML = STATUS_ORDER.map(s => `<button type="button" class="status-tab" data-status="${s}"><i class="ti ${STATUS_ICONS[s]}"></i>${STATUS_LABELS[s]}</button>`).join("");
+    statusTabs.querySelectorAll(".status-tab").forEach(btn => btn.addEventListener("click", () => setStatusTab(btn.dataset.status)));
+
+    function wireCheckGrid(gridEl) {
+      gridEl.querySelectorAll(".svc-item").forEach(el => {
+        el.addEventListener("click", (e) => {
+          if (e.target.tagName !== "INPUT") {
+            const cb = el.querySelector("input");
+            cb.checked = !cb.checked;
+          }
+          el.classList.toggle("checked", el.querySelector("input").checked);
+          updateTotal();
+        });
+      });
+    }
+
+    const svcGrid = document.getElementById("svcGrid");
+    svcGrid.innerHTML = (cfg.services || []).map(s => `
+      <label class="svc-item" data-key="${s.key}"><input type="checkbox" value="${s.key}"> ${s.name}</label>
+    `).join("");
+    wireCheckGrid(svcGrid);
+
+    const prodGrid = document.getElementById("prodGrid");
+    const products = cfg.products || [];
+    document.getElementById("noProductsNote").style.display = products.length ? "none" : "block";
+    prodGrid.innerHTML = products.map(p => `
+      <label class="svc-item" data-key="${p.key}"><input type="checkbox" value="${p.key}"> ${p.name} — ${CW.money(p.price)}</label>
+    `).join("");
+    wireCheckGrid(prodGrid);
+
+    document.querySelectorAll(".subtab[data-sub]").forEach(tab => {
+      tab.addEventListener("click", () => {
+        document.querySelectorAll(".subtab[data-sub]").forEach(t => t.classList.remove("active"));
+        tab.classList.add("active");
+        document.getElementById("servicesPane").classList.toggle("active", tab.dataset.sub === "services");
+        document.getElementById("productsPane").classList.toggle("active", tab.dataset.sub === "products");
+      });
+    });
+
+    const payGrid = document.getElementById("payGrid");
+    payGrid.innerHTML = (cfg.payment_types || []).map(p => `<button type="button" class="pay-btn" data-pay="${p}">${p[0].toUpperCase() + p.slice(1)}</button>`).join("");
+    payGrid.querySelectorAll(".pay-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        // в отличие от cars.html оплата у записи не обязательна — повторный
+        // клик по уже выбранному способу снимает выбор (см. 01-model.../BookingIn.payment)
+        const already = btn.classList.contains("active");
+        payGrid.querySelectorAll(".pay-btn").forEach(b => b.classList.remove("active"));
+        if (!already) btn.classList.add("active");
+      });
+    });
+
+    const splitGrid = document.getElementById("splitGrid");
+    splitGrid.innerHTML = (cfg.payment_types || []).map(p => `
+      <div class="split-row">
+        <div class="split-label">${p[0].toUpperCase() + p.slice(1)}</div>
+        <input type="number" min="0" step="50" data-split="${p}" placeholder="0">
+      </div>
+    `).join("");
+    splitGrid.querySelectorAll("input").forEach(i => i.addEventListener("input", updateSplitHint));
+
+    document.getElementById("fSplitToggle").addEventListener("change", (e) => {
+      const on = e.target.checked;
+      splitGrid.classList.toggle("open", on);
+      payGrid.querySelectorAll(".pay-btn").forEach(b => b.disabled = on);
+      if (on) {
+        splitGrid.querySelectorAll("input").forEach(i => i.value = "");
+        const first = splitGrid.querySelector("input");
+        if (first) first.value = parseInt(fTotalInput.value) || 0;
+      }
+      updateSplitHint();
+    });
+
+    document.getElementById("customAddBtn").addEventListener("click", () => {
+      document.getElementById("csName").value = "";
+      document.getElementById("csPrice").value = "";
+      document.getElementById("csPercent").value = "";
+      document.getElementById("customSvcForm").classList.add("open");
+    });
+    document.getElementById("csCancel").addEventListener("click", () => {
+      document.getElementById("customSvcForm").classList.remove("open");
+    });
+    document.getElementById("csAdd").addEventListener("click", () => {
+      const name = document.getElementById("csName").value.trim();
+      const price = parseInt(document.getElementById("csPrice").value);
+      const percent = parseInt(document.getElementById("csPercent").value);
+      if (!name) { alert("Укажите название услуги"); return; }
+      if (isNaN(price) || price < 0) { alert("Укажите корректную цену"); return; }
+      if (isNaN(percent) || percent < 0 || percent > 100) { alert("Процент сотруднику — от 0 до 100"); return; }
+      customServices.push({ name, price, percent });
+      renderCustomChips();
+      document.getElementById("customSvcForm").classList.remove("open");
+      updateTotal();
+    });
+
+    fTotalInput.addEventListener("input", () => {
+      manualPriceEdited = true;
+      document.getElementById("totalReset").classList.toggle("show", parseInt(fTotalInput.value) !== calcPrice());
+      updateSplitHint();
+    });
+    document.getElementById("totalReset").addEventListener("click", () => {
+      manualPriceEdited = false;
+      document.getElementById("discountHint").style.display = "none";
+      updateTotal();
+    });
+
+    document.getElementById("modalCloseBtn").addEventListener("click", closeModal);
+  }
+
+  function renderCustomChips() {
+    const list = document.getElementById("customSvcList");
+    list.innerHTML = customServices.map((c, i) => `
+      <div class="custom-svc-row">
+        <div class="csr-name">${escapeHtml(c.name)}</div>
+        <div class="csr-meta">${c.price} ₽ · ${c.percent}% мойщику</div>
+        <div class="csr-del" data-idx="${i}"><i class="ti ti-x"></i></div>
+      </div>
+    `).join("");
+    list.querySelectorAll(".csr-del").forEach(x => {
+      x.addEventListener("click", () => {
+        customServices.splice(parseInt(x.dataset.idx), 1);
+        renderCustomChips();
+        updateTotal();
+      });
+    });
+  }
+
+  function selectedServiceKeys() { return Array.from(document.querySelectorAll("#svcGrid input:checked")).map(i => i.value); }
+  function selectedProductKeys() { return Array.from(document.querySelectorAll("#prodGrid input:checked")).map(i => i.value); }
+  function servicePrice(svcKey, bodyType) {
+    const svc = (cfg.services || []).find(s => s.key === svcKey);
+    if (!svc) return 0;
+    return svc.prices[bodyType] ?? Object.values(svc.prices)[0] ?? 0;
+  }
+  function productPrice(prodKey) {
+    const p = (cfg.products || []).find(x => x.key === prodKey);
+    return p ? p.price : 0;
+  }
+  function calcPrice() {
+    const bodyType = document.getElementById("fBodyType").value;
+    const svcSum = selectedServiceKeys().reduce((sum, k) => sum + servicePrice(k, bodyType), 0);
+    const customSum = customServices.reduce((sum, c) => sum + c.price, 0);
+    const prodSum = selectedProductKeys().reduce((sum, k) => sum + productPrice(k), 0);
+    return svcSum + customSum + prodSum;
+  }
+  function updateTotal() {
+    if (!manualPriceEdited) fTotalInput.value = calcPrice();
+    document.getElementById("totalReset").classList.toggle("show", manualPriceEdited && parseInt(fTotalInput.value) !== calcPrice());
+    updateSplitHint();
+  }
+  function updateSplitHint() {
+    const hint = document.getElementById("splitHint");
+    if (!document.getElementById("fSplitToggle").checked) { hint.textContent = ""; return; }
+    const total = parseInt(fTotalInput.value) || 0;
+    const sum = Array.from(document.querySelectorAll("#splitGrid input")).reduce((s, i) => s + (parseInt(i.value) || 0), 0);
+    if (sum === total) { hint.textContent = `Сумма сходится: ${CW.money(sum)}`; hint.className = "split-hint ok"; }
+    else { hint.textContent = `Введено ${CW.money(sum)} из ${CW.money(total)} — суммы должны совпадать`; hint.className = "split-hint bad"; }
+  }
+  function getSplitPayload() {
+    if (!document.getElementById("fSplitToggle").checked) return null;
+    const out = {};
+    document.querySelectorAll("#splitGrid input").forEach(i => {
+      const v = parseInt(i.value) || 0;
+      if (v > 0) out[i.dataset.split] = v;
+    });
+    return out;
+  }
+
+  // Постоянная скидка клиента (этап 2, discount_percent) — при выборе
+  // клиента из поиска автоматически предлагаем скидку на текущий расчёт
+  // и переключаем поле «Итого» в ручной режим (как «Сбросить» в cars.html —
+  // администратор в любой момент может поправить сумму или вернуть расчётную).
+  function applyClientDiscountSuggestion(client) {
+    const hint = document.getElementById("discountHint");
+    if (!client || !client.discount_percent) { hint.style.display = "none"; return; }
+    const base = calcPrice();
+    const discounted = Math.max(0, Math.round(base * (1 - client.discount_percent / 100)));
+    fTotalInput.value = discounted;
+    manualPriceEdited = true;
+    document.getElementById("totalReset").classList.add("show");
+    hint.textContent = `Применена постоянная скидка клиента ${client.discount_percent}% (${CW.money(base)} → ${CW.money(discounted)}). Сумму можно поправить вручную, «Сбросить» вернёт расчётную цену.`;
+    hint.style.display = "block";
+    updateSplitHint();
+  }
+
+  function resetModalPriceState() {
+    customServices = [];
+    renderCustomChips();
+    document.getElementById("customSvcForm").classList.remove("open");
+    document.querySelectorAll("#svcGrid input, #prodGrid input").forEach(i => { i.checked = false; i.closest(".svc-item").classList.remove("checked"); });
+    document.getElementById("fBodyType").value = (cfg && cfg.body_types && cfg.body_types[0] && cfg.body_types[0].key) || "sedan";
+    const payGrid = document.getElementById("payGrid");
+    payGrid.querySelectorAll(".pay-btn").forEach(b => { b.classList.remove("active"); b.disabled = false; });
+    document.getElementById("fSplitToggle").checked = false;
+    document.getElementById("splitGrid").classList.remove("open");
+    document.querySelectorAll("#splitGrid input").forEach(i => i.value = "");
+    manualPriceEdited = false;
+    document.getElementById("discountHint").style.display = "none";
+    document.querySelectorAll(".subtab[data-sub]").forEach((t, i) => t.classList.toggle("active", i === 0));
+    document.getElementById("servicesPane").classList.add("active");
+    document.getElementById("productsPane").classList.remove("active");
+  }
+
+  function openCreateModal(box, startMinutes) {
+    if (!boxes.length) { showErr("Сначала добавьте сотрудников на странице «Сотрудники» — иначе нет боксов."); return; }
+    editingId = null;
+    selectedClient = null;
+    document.getElementById("bookingIdTag").style.display = "none";
+    document.getElementById("modalTitle").textContent = "Новая запись";
+    document.getElementById("deleteBtn").style.display = "none";
+    document.getElementById("modalErr").style.display = "none";
+    fPhoneInput.value = "";
+    document.getElementById("fClientName").value = "";
+    document.getElementById("fCar").value = "";
+    document.getElementById("fComment").value = "";
+    hideClientCard();
+    buildBoxSelect(box || (boxes[0] && boxes[0].box));
+    document.getElementById("fDate").value = isoDate(curDate);
+    setStatusTab("waiting");
+    const start = startMinutes != null ? startMinutes : START_HOUR * 60;
+    const end = Math.min(END_HOUR * 60, start + 90);
+    document.getElementById("fStart").value = minutesToTime(start);
+    document.getElementById("fEnd").value = minutesToTime(end);
+    resetModalPriceState();
+    updateTotal();
+    modalBg.classList.add("open");
+  }
+
+  function openEditModal(bk) {
+    editingId = bk.id;
+    selectedClient = null;
+    document.getElementById("bookingIdTag").style.display = "block";
+    document.getElementById("bookingIdTag").textContent = `Запись №${bk.id}`;
+    document.getElementById("modalTitle").textContent = "Запись";
+    document.getElementById("deleteBtn").style.display = "inline-flex";
+    document.getElementById("modalErr").style.display = "none";
+    fPhoneInput.value = bk.phone || "";
+    document.getElementById("fClientName").value = bk.client_name || "";
+    document.getElementById("fCar").value = bk.car || "";
+    document.getElementById("fComment").value = bk.comment || "";
+    hideClientCard();
+    buildBoxSelect(bk.box);
+    document.getElementById("fDate").value = isoDate(parseDateKey(bk.date));
+    setStatusTab(bk.status || "waiting");
+    document.getElementById("fStart").value = bk.start_time || "";
+    document.getElementById("fEnd").value = bk.end_time || "";
+
+    resetModalPriceState();
+    document.getElementById("fBodyType").value = bk.body_type || document.getElementById("fBodyType").value;
+    (bk.service_keys || []).forEach(k => {
+      const cb = document.querySelector(`#svcGrid input[value="${k}"]`);
+      if (cb) { cb.checked = true; cb.closest(".svc-item").classList.add("checked"); }
+    });
+    (bk.product_keys || []).forEach(k => {
+      const cb = document.querySelector(`#prodGrid input[value="${k}"]`);
+      if (cb) { cb.checked = true; cb.closest(".svc-item").classList.add("checked"); }
+    });
+    customServices = (bk.custom_services || []).map(c => ({
+      name: c.name, price: c.price, percent: Math.round(c.percent <= 1 ? c.percent * 100 : c.percent),
+    }));
+    renderCustomChips();
+
+    const payGrid = document.getElementById("payGrid");
+    const payToMatch = bk.payment_split ? Object.keys(bk.payment_split)[0] : bk.payment;
+    const matchBtn = payToMatch && Array.from(payGrid.children).find(b => b.dataset.pay === payToMatch);
+    if (matchBtn) matchBtn.classList.add("active");
+    if (bk.payment_split) {
+      document.getElementById("fSplitToggle").checked = true;
+      document.getElementById("splitGrid").classList.add("open");
+      payGrid.querySelectorAll(".pay-btn").forEach(b => b.disabled = true);
+      document.querySelectorAll("#splitGrid input").forEach(i => { i.value = bk.payment_split[i.dataset.split] || ""; });
+    }
+
+    // сохранённая цена записи (bk.price) первична — она уже учитывает
+    // и услуги/товары, и любую ручную правку (price_override) на бэкенде;
+    // "расчётная" calcPrice() пересчитается только если состав поменяют.
+    if (bk.price_override != null) {
+      manualPriceEdited = true;
+      fTotalInput.value = bk.price ?? 0;
+    } else {
+      manualPriceEdited = false;
+      fTotalInput.value = bk.price ?? calcPrice();
+    }
+    document.getElementById("totalReset").classList.toggle("show", manualPriceEdited && parseInt(fTotalInput.value) !== calcPrice());
+    updateSplitHint();
+
+    // пассивно подтягиваем карточку клиента (визиты/скидка), но НЕ
+    // применяем скидку к уже сохранённой сумме — это делает только явный
+    // выбор клиента через поиск (см. showClientCard/applyClientDiscountSuggestion).
+    if (bk.phone) {
+      CW.authFetch(`/api/clients/${encodeURIComponent(bk.phone)}`)
+        .then(client => { if (client) showClientCard(client, { suggestDiscount: false }); })
+        .catch(() => {});
+    }
+
+    modalBg.classList.add("open");
+  }
+
+  function parseDateKey(s) {
+    const [d, m, y] = (s || "").split(".").map(Number);
+    if (!d || !m || !y) return curDate;
+    return new Date(y, m - 1, d);
+  }
+
+  function closeModal() { modalBg.classList.remove("open"); closeDetail(); }
+  document.getElementById("cancelBtn").addEventListener("click", closeModal);
+  modalBg.addEventListener("click", (e) => { if (e.target.id === "modalBg") closeModal(); });
+
+  function hideClientCard() { clientCard.style.display = "none"; document.getElementById("discountHint").style.display = "none"; selectedClient = null; updateClientTiles(); }
+  function hideClientDropdown() { clientDropdown.classList.remove("open"); }
+  function showClientCard(client, opts) {
+    opts = opts || {};
+    selectedClient = client;
+    updateClientTiles();
+    if (client.name) document.getElementById("fClientName").value = client.name;
+    clientCard.style.display = "flex";
+    clientCard.innerHTML = `
+      <div>
+        <div class="cc-name">${escapeHtml(client.name) || "Без имени"}</div>
+        <div class="cc-meta">${client.visit_count}-й визит · всего ${CW.money(client.total_spent)}${client.discount_percent ? " · скидка " + client.discount_percent + "%" : ""}</div>
+      </div>
+      <span class="cc-clear" id="clientClearBtn">Сбросить</span>`;
+    document.getElementById("clientClearBtn").addEventListener("click", () => {
+      selectedClient = null;
+      fPhoneInput.value = "";
+      document.getElementById("fClientName").value = "";
+      hideClientCard();
+      fPhoneInput.focus();
+    });
+    if (opts.suggestDiscount !== false) applyClientDiscountSuggestion(client);
+  }
+  function renderClientDropdown(clients) {
+    if (!clients.length) { hideClientDropdown(); return; }
+    clientDropdown.innerHTML = clients.map(c => `
+      <div class="client-dropdown-item" data-phone="${escapeHtml(c.phone)}">
+        <div><div class="cdi-name">${escapeHtml(c.name) || "Без имени"}</div><div class="cdi-phone">${escapeHtml(c.phone)}</div></div>
+        <div class="cdi-meta">${c.visit_count} визит(ов) · ${CW.money(c.total_spent)}</div>
+      </div>`).join("");
+    clientDropdown.querySelectorAll(".client-dropdown-item").forEach((el, i) => {
+      el.addEventListener("click", () => {
+        const client = clients[i];
+        fPhoneInput.value = client.phone;
+        showClientCard(client);
+        hideClientDropdown();
+      });
+    });
+    clientDropdown.classList.add("open");
+  }
+  fPhoneInput.addEventListener("input", () => {
+    selectedClient = null;
+    hideClientCard();
+    const q = fPhoneInput.value.trim();
+    clearTimeout(clientSearchTimer);
+    if (q.length < 3) { hideClientDropdown(); return; }
+    clientSearchTimer = setTimeout(async () => {
+      try {
+        const data = await CW.authFetch(`/api/clients/search?q=${encodeURIComponent(q)}`);
+        renderClientDropdown(data.clients || []);
+      } catch (e) { hideClientDropdown(); }
+    }, 300);
+  });
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest("#fPhone") && !e.target.closest("#clientDropdown")) hideClientDropdown();
+  });
+
+  // ---------- клиентская панель: История / Лояльность / Сообщения / Счета (этап 5) ----------
+  // История — реальные визиты клиента (carwash_clients.json, поле visits — этап 2).
+  // Лояльность — реальные метрики (визитов/потрачено) + управление постоянной
+  // скидкой прямо здесь, через уже рабочий API (PUT/DELETE /api/clients/{phone}/discount,
+  // этап 2), а не фейковый кэшбэк, которого в бэкенде нет (см. 00-audit-i-plan.md).
+  // Сообщения и звонки / Счета клиента — честная заглушка: этих сущностей
+  // (СМС-провайдер, история звонков, лицевые счета) в бэкенде физически нет.
+  const detailView = document.getElementById("detailView");
+  const detailContent = document.getElementById("detailContent");
+  const detailTitleEl = document.getElementById("detailTitle");
+  const modalColsEl = document.querySelector(".modal-cols");
+  const clientIconGrid = document.getElementById("clientIconGrid");
+  const ciHint = document.getElementById("ciHint");
+
+  function updateClientTiles() {
+    const enabled = !!selectedClient;
+    clientIconGrid.querySelectorAll(".ci-tile").forEach(t => t.disabled = !enabled);
+    ciHint.style.display = enabled ? "none" : "block";
+  }
+
+  function escapeHtml(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+
+  const DETAIL_TITLES = {
+    history: "История посещений", loyalty: "Лояльность",
+    messages: "Сообщения и звонки", accounts: "Счета клиента",
+  };
+
+  function renderHistoryDetail() {
+    const visits = (selectedClient.visits || []).slice().reverse();
+    if (!visits.length) return `<div class="empty-note-sm">У этого клиента пока нет визитов.</div>`;
+    return `<div class="detail-scroll">${visits.map(v => `
+      <div class="visit-group">
+        <div class="visit-date">${escapeHtml(v.date || "—")}</div>
+        <div class="visit-row">
+          <div>
+            <div class="vr-box">${escapeHtml(v.branch || "—")}</div>
+            <div class="vr-time">${escapeHtml(v.time || "")}${v.car ? " · " + escapeHtml(v.car) : ""}</div>
+          </div>
+          <span class="vr-status-dot ${v.status === "done" ? "done" : "other"}"><i class="ti ${v.status === "done" ? "ti-check" : "ti-clock"}"></i></span>
+          <div class="vr-service">${escapeHtml(v.service) || "—"}</div>
+          <div class="vr-price">${CW.money(v.total || 0)}</div>
+          <div class="vr-paid">${CW.money(v.paid != null ? v.paid : (v.total || 0))}</div>
+        </div>
+      </div>`).join("")}</div>`;
+  }
+
+  function discountBlockHtml(c) {
+    if (c.discount_percent) {
+      return `
+        <div class="discount-block">
+          <div class="section-label" style="margin-top:0">Постоянная скидка</div>
+          <div class="discount-current">
+            <span class="badge-active"><i class="ti ti-check" style="font-size:11px"></i> Активна</span>
+            <span>Скидка ${c.discount_percent}% на все услуги</span>
+            <button type="button" class="discount-remove" id="removeDiscountBtn">Удалить</button>
+          </div>
+        </div>`;
+    }
+    return `
+      <div class="discount-block">
+        <div class="section-label" style="margin-top:0">Постоянная скидка</div>
+        <div class="discount-current"><span class="badge-inactive">Не установлена</span></div>
+        <div class="discount-form">
+          <input type="number" id="discountInput" placeholder="10" min="1" max="100">
+          <span>%</span>
+          <button type="button" class="btn accent small" id="saveDiscountBtn"><i class="ti ti-percentage"></i>Сохранить</button>
+        </div>
+      </div>`;
+  }
+
+  function renderLoyaltyDetail() {
+    const c = selectedClient;
+    return `
+      <div class="loyalty-card">
+        <div class="loyalty-card-title">${escapeHtml(c.name) || "Клиент без имени"}</div>
+        <div class="loyalty-card-sub">${escapeHtml(c.phone || "")}</div>
+        <div class="loyalty-grid">
+          <div class="loyalty-metric"><div class="lm-label">Визитов</div><div class="lm-value">${c.visit_count || 0}</div></div>
+          <div class="loyalty-metric"><div class="lm-label">Всего потрачено</div><div class="lm-value">${CW.money(c.total_spent || 0)}</div></div>
+          <div class="loyalty-metric"><div class="lm-label">Последний визит</div><div class="lm-value" style="font-size:13px">${escapeHtml(c.last_visit) || "—"}</div></div>
+        </div>
+      </div>
+      ${discountBlockHtml(c)}
+      <div class="discount-err" id="discountErr"></div>`;
+  }
+
+  function renderMessagesDetail() {
+    return `<div class="module-stub"><i class="ti ti-message-2"></i><span>Модуль в разработке. СМС-уведомлений и записи звонков в системе пока нет — здесь появится переписка с клиентом, когда подключим провайдера связи.</span></div>`;
+  }
+  function renderAccountsDetail() {
+    return `<div class="module-stub"><i class="ti ti-wallet"></i><span>Модуль в разработке. Лицевых счетов клиентов в системе пока нет — здесь появится баланс и история пополнений, когда добавим эту функцию.</span></div>`;
+  }
+
+  const DETAIL_BUILDERS = { history: renderHistoryDetail, loyalty: renderLoyaltyDetail, messages: renderMessagesDetail, accounts: renderAccountsDetail };
+
+  async function refreshSelectedClient() {
+    if (!selectedClient || !selectedClient.phone) return;
+    try {
+      selectedClient = await CW.authFetch(`/api/clients/${encodeURIComponent(selectedClient.phone)}`);
+    } catch (e) { /* не получилось обновить — покажем то, что уже загружено */ }
+  }
+
+  function wireDetailActions(type) {
+    if (type !== "loyalty") return;
+    const saveBtn = document.getElementById("saveDiscountBtn");
+    if (saveBtn) saveBtn.addEventListener("click", async () => {
+      const errEl = document.getElementById("discountErr");
+      errEl.style.display = "none";
+      const val = parseFloat(document.getElementById("discountInput").value);
+      if (!val || val <= 0 || val > 100) { errEl.textContent = "Укажите скидку от 1 до 100%"; errEl.style.display = "block"; return; }
+      saveBtn.disabled = true;
+      try {
+        selectedClient = await CW.authFetch(`/api/clients/${encodeURIComponent(selectedClient.phone)}/discount`, { method: "PUT", body: JSON.stringify({ percent: val }) });
+        openDetail("loyalty");
+      } catch (e) {
+        errEl.textContent = e.message; errEl.style.display = "block"; saveBtn.disabled = false;
+      }
+    });
+    const removeBtn = document.getElementById("removeDiscountBtn");
+    if (removeBtn) removeBtn.addEventListener("click", async () => {
+      removeBtn.disabled = true;
+      try {
+        selectedClient = await CW.authFetch(`/api/clients/${encodeURIComponent(selectedClient.phone)}/discount`, { method: "DELETE" });
+        openDetail("loyalty");
+      } catch (e) { removeBtn.disabled = false; }
+    });
+  }
+
+  async function openDetail(type) {
+    if (!selectedClient) return;
+    detailTitleEl.textContent = DETAIL_TITLES[type];
+    modalColsEl.style.display = "none";
+    detailView.classList.add("open");
+    if (type === "history" || type === "loyalty") {
+      detailContent.innerHTML = `<div class="empty-note-sm">Загрузка…</div>`;
+      await refreshSelectedClient();
+    }
+    detailContent.innerHTML = DETAIL_BUILDERS[type]();
+    wireDetailActions(type);
+  }
+  function closeDetail() {
+    detailView.classList.remove("open");
+    modalColsEl.style.display = "grid";
+  }
+
+  clientIconGrid.querySelectorAll(".ci-tile[data-detail]").forEach(tile => {
+    tile.addEventListener("click", () => { if (!tile.disabled) openDetail(tile.dataset.detail); });
+  });
+  document.getElementById("detailBackBtn").addEventListener("click", closeDetail);
+
+  document.getElementById("newBookingBtn").addEventListener("click", () => openCreateModal());
+  document.getElementById("refreshBtn").addEventListener("click", loadBookings);
+
+  document.getElementById("saveBtn").addEventListener("click", async () => {
+    const modalErr = document.getElementById("modalErr");
+    modalErr.style.display = "none";
+
+    const box = Number(document.getElementById("fBox").value);
+    const dateVal = document.getElementById("fDate").value;
+    const start = document.getElementById("fStart").value;
+    const end = document.getElementById("fEnd").value;
+    const status = currentStatus();
+    if (!box) { modalErr.textContent = "Выберите бокс"; modalErr.style.display = "block"; return; }
+    if (!dateVal) { modalErr.textContent = "Выберите дату"; modalErr.style.display = "block"; return; }
+    if (!start || !end) { modalErr.textContent = "Укажите время начала и окончания"; modalErr.style.display = "block"; return; }
+    if (start >= end) { modalErr.textContent = "Время начала должно быть раньше окончания"; modalErr.style.display = "block"; return; }
+
+    const total = parseInt(fTotalInput.value) || 0;
+    if (total < 0) { modalErr.textContent = "Итоговая сумма не может быть отрицательной"; modalErr.style.display = "block"; return; }
+    const payBtn = document.querySelector("#payGrid .pay-btn.active");
+    const payment = payBtn ? payBtn.dataset.pay : "";
+    const split = getSplitPayload();
+    if (split) {
+      const sum = Object.values(split).reduce((a, b) => a + b, 0);
+      if (sum !== total) {
+        modalErr.textContent = `Сумма раздельной оплаты (${sum}₽) не совпадает с итогом (${total}₽)`;
+        modalErr.style.display = "block";
+        return;
+      }
+      if (!Object.keys(split).length) {
+        modalErr.textContent = "Укажите суммы для раздельной оплаты хотя бы в одном способе";
+        modalErr.style.display = "block";
+        return;
+      }
+    }
+
+    const boxInfo = boxes.find(b => b.box === box);
+    const payload = {
+      branch, date: dateKey(fromIso(dateVal)), box,
+      start_time: start, end_time: end,
+      employee: (boxInfo && boxInfo.employee) || "",
+      body_type: document.getElementById("fBodyType").value,
+      service_keys: selectedServiceKeys(), custom_services: customServices,
+      product_keys: selectedProductKeys(),
+      car: document.getElementById("fCar").value.trim(),
+      comment: document.getElementById("fComment").value.trim(),
+      phone: fPhoneInput.value.trim(),
+      client_name: document.getElementById("fClientName").value.trim(),
+      payment, payment_split: split,
+      status,
+    };
+    if (manualPriceEdited && total !== calcPrice()) {
+      payload.price_override = total;
+    } else if (editingId) {
+      payload.clear_price_override = true;
+    }
+
+    const saveBtn = document.getElementById("saveBtn");
+    saveBtn.disabled = true;
+    try {
+      if (editingId) {
+        await CW.authFetch(`/api/bookings/${editingId}`, { method: "PATCH", body: JSON.stringify(payload) });
+      } else {
+        await CW.authFetch("/api/bookings", { method: "POST", body: JSON.stringify(payload) });
+      }
+      closeModal();
+      await loadBookings();
+    } catch (e) {
+      modalErr.textContent = e.message;
+      modalErr.style.display = "block";
+    } finally {
+      saveBtn.disabled = false;
+    }
+  });
+
+  document.getElementById("deleteBtn").addEventListener("click", async () => {
+    if (!editingId) return;
+    if (!confirm("Удалить запись?")) return;
+    try {
+      await CW.authFetch(`/api/bookings/${editingId}`, { method: "DELETE" });
+      closeModal();
+      await loadBookings();
+    } catch (e) {
+      const modalErr = document.getElementById("modalErr");
+      modalErr.textContent = e.message;
+      modalErr.style.display = "block";
+    }
+  });
+
+  // ---------- навигация по датам ----------
+  document.getElementById("datePrev").addEventListener("click", () => { curDate.setDate(curDate.getDate() - 1); loadBookings(); });
+  document.getElementById("dateNext").addEventListener("click", () => { curDate.setDate(curDate.getDate() + 1); loadBookings(); });
+  document.getElementById("todayBtn").addEventListener("click", () => { curDate = new Date(); loadBookings(); });
+  document.getElementById("boxFilter").addEventListener("change", (e) => { boxFilter = e.target.value; renderGrid(); });
+}
+</script>
+</body>
+</html>
