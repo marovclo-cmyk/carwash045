@@ -71,8 +71,15 @@
   .ds-links a.disabled{opacity:.4;pointer-events:none}
 
   /* не на смене сегодня — колонка бокса приглушена, но не скрыта */
-  .gh-col.off-duty{opacity:.5}
+  .gh-col.off-duty{opacity:.6}
   .gh-col.off-duty .gh-role::after{content:" · не на смене"}
+  /* колонка сотрудника не на смене — диагональная штриховка на всю высоту,
+     как «нерабочее время» в журнале YCLIENTS, вместо плоского затемнения */
+  .gb-col.off-duty{
+    background-image:repeating-linear-gradient(135deg,var(--paper-2) 0 8px,var(--paper) 8px 16px);
+    cursor:not-allowed;
+  }
+  .gb-col.off-duty .empty-slot-hint{display:none}
 
   /* ---------- drag & drop записи (зажать и потянуть — перенос по времени/боксу) ---------- */
   .appt.dragging{opacity:.35}
@@ -90,7 +97,7 @@
 
   .gh-corner{border-bottom:1.5px solid var(--line)}
   .gh-col{border-bottom:1.5px solid var(--line);border-left:1px solid var(--line);padding:14px 16px;display:flex;align-items:center;gap:10px}
-  .gh-avatar{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+  .gh-avatar{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
   .gh-name{font-size:13.5px;font-weight:700}
   .gh-role{font-size:11px;color:var(--muted);font-weight:600}
 
@@ -369,6 +376,14 @@
               <button type="button" class="bf-quick-btn" id="bfDutyBtn">На смене сегодня</button>
             </div>
             <div class="bf-list" id="bfList"></div>
+          </div>
+        </div>
+        <div class="popover-wrap">
+          <button class="filter-select popover-btn" id="clientSearchBtn" type="button" title="Поиск по клиентам"><i class="ti ti-search"></i></button>
+          <div class="popover-panel wide" id="clientSearchPanel">
+            <div class="ds-title" style="margin-bottom:10px">Поиск по клиентам</div>
+            <input type="text" id="gcsInput" placeholder="Телефон или имя" autocomplete="off" style="width:100%;height:42px;border-radius:12px;border:1.5px solid var(--line-strong);background:var(--paper);padding:0 14px;font-size:13px;font-family:var(--font-body)">
+            <div id="gcsResults" style="margin-top:10px;max-height:280px;overflow-y:auto"></div>
           </div>
         </div>
       </div>
@@ -818,7 +833,46 @@ if (CW.requireAuth()) {
   setupPopover("boxFilterBtn", "boxFilterPanel");
   setupPopover("statusFilterBtn", "statusFilterPanel");
   setupPopover("zoomBtn", "zoomPanel");
+  setupPopover("clientSearchBtn", "clientSearchPanel", () => { document.getElementById("gcsInput").focus(); });
   setupPopover("daySummaryBtn", "daySummaryPanel", () => { daySummaryOpen = true; loadDaySummary(); });
+
+  // ---------- поиск по клиентам прямо из тулбара журнала (как значок лупы в YCLIENTS) ----------
+  let gcsTimer = null;
+  document.getElementById("gcsInput").addEventListener("input", (e) => {
+    const q = e.target.value.trim();
+    const results = document.getElementById("gcsResults");
+    clearTimeout(gcsTimer);
+    if (q.length < 3) { results.innerHTML = `<div class="empty-note-sm">Введите минимум 3 символа</div>`; return; }
+    results.innerHTML = `<div class="empty-note-sm">Поиск…</div>`;
+    gcsTimer = setTimeout(async () => {
+      try {
+        const data = await CW.authFetch(`/api/clients/search?q=${encodeURIComponent(q)}`);
+        const clients = data.clients || [];
+        if (!clients.length) { results.innerHTML = `<div class="empty-note-sm">Ничего не найдено</div>`; return; }
+        results.innerHTML = clients.map((c, i) => `
+          <div class="client-dropdown-item" data-idx="${i}" style="cursor:pointer;border-radius:var(--r-sm)">
+            <div><div class="cdi-name">${escapeHtml(c.name) || "Без имени"}</div><div class="cdi-phone">${escapeHtml(c.phone)}</div></div>
+            <div class="cdi-meta">${c.visit_count} визит(ов) · ${CW.money(c.total_spent)}</div>
+          </div>`).join("");
+        results.querySelectorAll(".client-dropdown-item").forEach(el => {
+          el.addEventListener("click", () => {
+            startBookingForClient(clients[Number(el.dataset.idx)]);
+            document.getElementById("clientSearchPanel").classList.remove("open");
+          });
+        });
+      } catch (err) { results.innerHTML = `<div class="empty-note-sm">${escapeHtml(err.message)}</div>`; }
+    }, 300);
+  });
+  // клик по найденному клиенту — сразу открываем новую запись, предзаполненную его данными
+  function startBookingForClient(client) {
+    if (!boxes.length) { showErr("Сначала добавьте сотрудников на странице «Сотрудники» — иначе нет боксов."); return; }
+    const duty = boxes.find(b => b.on_duty) || boxes[0];
+    const now = new Date();
+    let minutes = Math.max(START_HOUR * 60, Math.min((END_HOUR - 1) * 60 + 30, Math.round((now.getHours() * 60 + now.getMinutes()) / 30) * 30));
+    openCreateModal(duty.box, minutes);
+    fPhoneInput.value = client.phone;
+    showClientCard(client);
+  }
   document.getElementById("daySummaryPanel").addEventListener("transitionend", () => {}); // no-op, задел на будущее
   // отслеживаем закрытие попапа «Итоги дня», чтобы не дёргать API, пока он скрыт
   const _daySummaryPanelObserver = new MutationObserver(() => {
@@ -898,9 +952,10 @@ if (CW.requireAuth()) {
     let html = `<div class="gh-corner"></div>`;
     visibleBoxes.forEach(b => {
       const col = boxColor(b.box);
+      const initials = b.employee ? initialsOf(b.employee) : "?";
       html += `
         <div class="gh-col${b.on_duty ? "" : " off-duty"}">
-          <div class="gh-avatar" style="background:${col.t};color:${col.c}"><i class="ti ti-steering-wheel"></i></div>
+          <div class="gh-avatar" style="background:${col.t};color:${col.c}">${initials}</div>
           <div><div class="gh-name">Бокс ${b.box}</div><div class="gh-role">${b.employee ? "Автомойщик — " + b.employee : "Сотрудник не назначен"}</div></div>
         </div>`;
     });
@@ -918,7 +973,7 @@ if (CW.requireAuth()) {
     }
 
     visibleBoxes.forEach(b => {
-      html += `<div class="gb-col" data-box="${b.box}">${slotsHtml}<div class="empty-slot-hint"><i class="ti ti-plus"></i></div></div>`;
+      html += `<div class="gb-col${b.on_duty ? "" : " off-duty"}" data-box="${b.box}">${slotsHtml}<div class="empty-slot-hint"><i class="ti ti-plus"></i></div></div>`;
     });
 
     grid.innerHTML = html;
@@ -927,6 +982,7 @@ if (CW.requireAuth()) {
     grid.querySelectorAll(".gb-col").forEach(col => {
       col.addEventListener("click", (e) => {
         if (e.target.closest(".appt")) return;
+        if (col.classList.contains("off-duty")) return;
         const rect = col.getBoundingClientRect();
         const offsetY = e.clientY - rect.top;
         let minutes = START_HOUR * 60 + Math.round((offsetY / PX_PER_MIN) / 30) * 30;
@@ -1555,6 +1611,12 @@ if (CW.requireAuth()) {
 
   function escapeHtml(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+  // инициалы сотрудника для аватарки в шапке колонки (как фото/инициалы сотрудника в YCLIENTS)
+  function initialsOf(name) {
+    const parts = String(name).trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return "?";
+    return (parts[0][0] + (parts[1] ? parts[1][0] : "")).toUpperCase();
   }
 
   const DETAIL_TITLES = {
