@@ -36,7 +36,7 @@ from sessions import (
     load_archive, load_users, save_users, add_user, remove_user,
     set_worker_schedule, clear_worker_schedule, get_worker_schedule,
     get_schedule_status, is_working_on,
-    add_advance, delete_advance, get_employee_advances,
+    normalize_phone, find_client, search_clients, upsert_client_visit, load_clients, client_summary,
 )
 from calculator import calculate_summary
 from pdf_generator import generate_pdf
@@ -191,6 +191,8 @@ class CarIn(BaseModel):
     payment_split: Optional[Dict[str, int]] = None   # {"нал": 800, "безнал": 1200}
     price_override: Optional[int] = None   # ручная правка итоговой суммы (скидка/наценка)
     comment: str = ""
+    phone: str = ""          # телефон клиента (необязательно) — карточка клиента
+    client_name: str = ""    # имя клиента (необязательно)
 
 
 class LoyaltyIn(BaseModel):
@@ -589,12 +591,49 @@ def api_add_car(body: CarIn, x_init_data: str = Header(default=""), x_site_token
         "comment": body.comment,
         "status": "in_progress",
         "time": datetime.now().strftime("%H:%M"),
+        "phone": normalize_phone(body.phone) if body.phone else "",
+        "client_name": body.client_name,
     }
     session["cars"].append(car)
     save_sessions()
     log_action(body.branch, "add", current_user_id(x_init_data), current_user_name(x_init_data),
                f"{car['car'] or 'машина'} · {car['service']} · {total_price}₽")
-    return {"ok": True, "car": car, "summary": calculate_summary(session)}
+    client = None
+    if body.phone:
+        client = upsert_client_visit(
+            body.phone, body.client_name, body.branch, body.car,
+            total_price, car_num=num)
+    return {"ok": True, "car": car, "summary": calculate_summary(session), "client": client}
+
+
+# ── КЛИЕНТЫ (карточка, поиск/автодополнение по телефону или имени) ────────
+
+@app.get("/api/clients/search")
+def api_search_clients(q: str, x_init_data: str = Header(default=""), x_site_token: str = Header(default="")):
+    """Автодополнение при вводе телефона/имени клиента в форме добавления
+    машины — и на сайте, и в mini-app, и в боте."""
+    require_access(x_init_data, x_site_token)
+    return {"clients": search_clients(q)}
+
+
+@app.get("/api/clients/{phone}")
+def api_get_client(phone: str, x_init_data: str = Header(default=""), x_site_token: str = Header(default="")):
+    require_access(x_init_data, x_site_token)
+    client = find_client(phone)
+    if not client:
+        raise HTTPException(404, "Клиент не найден")
+    return client
+
+
+@app.get("/api/clients")
+def api_list_clients(x_init_data: str = Header(default=""), x_site_token: str = Header(default="")):
+    """Полный список клиентов сети (для страницы «Клиенты»), отсортирован
+    по дате последнего визита — самые недавние сверху."""
+    require_access(x_init_data, x_site_token)
+    clients = [client_summary(c) for c in load_clients().values()]
+    clients.sort(key=lambda c: datetime.strptime(c["last_visit"], "%d.%m.%Y") if c.get("last_visit") else datetime.min,
+                 reverse=True)
+    return {"clients": clients, "total": len(clients)}
 
 
 def _rebuild_car_breakdown(body_type: str, service_keys: list, custom_services: list) -> dict:
@@ -781,61 +820,6 @@ def api_delete_income(branch: str, idx: int, x_init_data: str = Header(default="
     log_action(branch, "income_delete", current_user_id(x_init_data), current_user_name(x_init_data),
                f"{removed['name']} · +{removed['amount']}₽")
     return {"ok": True, "summary": calculate_summary(session)}
-
-
-class AdvanceIn(BaseModel):
-    branch: str
-    name: str
-    amount: int
-
-
-@app.post("/api/advance")
-def api_add_advance(body: AdvanceIn, x_init_data: str = Header(default=""), x_site_token: str = Header(default="")):
-    """Выдача аванса сотруднику — не привязана к дневной кассе, вычитается
-    из его недельного/месячного заработка (см. employee_stats.py)."""
-    require_branch_admin(body.branch, x_init_data, x_site_token)
-    if body.amount <= 0:
-        raise HTTPException(400, "Сумма должна быть больше нуля")
-    from employee_stats import get_branch_employee_roles, week_range, employee_period_stats
-    if body.name not in get_branch_employee_roles(body.branch):
-        raise HTTPException(404, "Сотрудник не найден в этом филиале")
-    entry = add_advance(body.branch, body.name, body.amount)
-    log_action(body.branch, "advance_add", current_user_id(x_init_data), current_user_name(x_init_data),
-               f"{body.name} · аванс {body.amount}₽")
-    week_start, today = week_range()
-    stats = employee_period_stats(body.branch, body.name, week_start, today)
-    return {"ok": True, "entry": entry, "week_advance": stats["advance"], "week_remaining": stats["remaining"]}
-
-
-@app.get("/api/advances")
-def api_list_advances(branch: str, name: str, period: str = "week",
-                       x_init_data: str = Header(default=""), x_site_token: str = Header(default="")):
-    """История авансов сотрудника за период — для карточки на сайте."""
-    require_branch_admin(branch, x_init_data, x_site_token)
-    from employee_stats import week_range, month_range
-    today = datetime.now()
-    if period == "week":
-        date_from, date_to = week_range(today)
-    elif period == "month":
-        date_from, date_to = month_range(today.month, today.year)
-    elif period == "all":
-        date_from, date_to = None, None
-    else:
-        raise HTTPException(400, "period должен быть week|month|all")
-    advances = get_employee_advances(branch, name, date_from, date_to)
-    return {"name": name, "period": period, "advances": advances,
-            "total": sum(a["amount"] for a in advances)}
-
-
-@app.delete("/api/advance/{branch}/{name}/{idx}")
-def api_delete_advance(branch: str, name: str, idx: int,
-                        x_init_data: str = Header(default=""), x_site_token: str = Header(default="")):
-    require_branch_admin(branch, x_init_data, x_site_token)
-    if not delete_advance(branch, name, idx):
-        raise HTTPException(404, "Аванс не найден")
-    log_action(branch, "advance_delete", current_user_id(x_init_data), current_user_name(x_init_data),
-               f"{name} · удалён аванс #{idx}")
-    return {"ok": True}
 
 
 class FixedRateIn(BaseModel):
@@ -1412,8 +1396,6 @@ def api_employees_stats(branch: str, period: str = "today",
         "from": date_from.strftime("%d.%m.%Y"), "to": date_to.strftime("%d.%m.%Y"),
         "employees": employees,
         "grand_total": sum(e["total"] for e in employees),
-        "grand_advance": sum(e.get("advance", 0) for e in employees),
-        "grand_remaining": sum(e.get("remaining", e["total"] - e.get("advance", 0)) for e in employees),
     }
 
 
