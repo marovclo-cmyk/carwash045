@@ -62,6 +62,24 @@
           <div class="page-title" id="dName">—</div>
           <div class="page-sub" id="dPhone">—</div>
         </div>
+        <div class="head-actions">
+          <button class="btn secondary" id="editClientBtn"><i class="ti ti-pencil"></i>Редактировать</button>
+        </div>
+      </div>
+      <div id="editClientPanel" class="panel" style="display:none;margin-bottom:16px;padding:16px 20px">
+        <div class="field">
+          <label>Имя клиента</label>
+          <input type="text" id="eName" placeholder="Например, Дарья">
+        </div>
+        <div class="field">
+          <label>Машины (через запятую)</label>
+          <input type="text" id="eCars" placeholder="Например, Lexus RX, Camry">
+        </div>
+        <div id="editClientErr" class="err-banner" style="display:none;margin-bottom:10px"></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn" id="saveClientBtn">Сохранить</button>
+          <button class="btn secondary" id="cancelClientBtn">Отмена</button>
+        </div>
       </div>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px">
         <div class="mini-stat"><div class="ms-label">Визитов</div><div class="ms-value" id="dVisits">0</div></div>
@@ -158,10 +176,48 @@ if (CW.requireAuth()) {
     document.getElementById("viewList").style.display = "block";
   });
 
+  let currentClient = null;
+
+  document.getElementById("editClientBtn").addEventListener("click", () => {
+    document.getElementById("eName").value = currentClient?.name || "";
+    document.getElementById("eCars").value = (currentClient?.cars || []).join(", ");
+    document.getElementById("editClientErr").style.display = "none";
+    document.getElementById("editClientPanel").style.display = "block";
+  });
+  document.getElementById("cancelClientBtn").addEventListener("click", () => {
+    document.getElementById("editClientPanel").style.display = "none";
+  });
+  document.getElementById("saveClientBtn").addEventListener("click", async () => {
+    const errEl2 = document.getElementById("editClientErr");
+    errEl2.style.display = "none";
+    const name = document.getElementById("eName").value.trim();
+    const cars = document.getElementById("eCars").value.split(",").map(s => s.trim()).filter(Boolean);
+    const btn = document.getElementById("saveClientBtn");
+    btn.disabled = true;
+    try {
+      const updated = await CW.authFetch(`/api/clients/${encodeURIComponent(currentClient.phone)}`, {
+        method: "PUT", body: JSON.stringify({ name, cars }),
+      });
+      currentClient = updated;
+      document.getElementById("dName").textContent = updated.name || "Без имени";
+      document.getElementById("dCars").textContent = (updated.cars || []).join(", ") || "—";
+      document.getElementById("editClientPanel").style.display = "none";
+      const idx = clientsCache.findIndex(c => c.phone === updated.phone);
+      if (idx !== -1) clientsCache[idx] = { ...clientsCache[idx], name: updated.name, cars: updated.cars };
+    } catch (e) {
+      errEl2.textContent = e.message;
+      errEl2.style.display = "block";
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
   async function openDetail(phone) {
     errEl.style.display = "none";
     try {
       const c = await CW.authFetch(`/api/clients/${encodeURIComponent(phone)}`);
+      currentClient = c;
+      document.getElementById("editClientPanel").style.display = "none";
       document.getElementById("viewList").style.display = "none";
       document.getElementById("viewDetail").style.display = "block";
       document.getElementById("dName").textContent = c.name || "Без имени";

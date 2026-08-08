@@ -69,8 +69,8 @@
     <h2 id="modalTitle">Добавить машину</h2>
 
     <div class="field">
-      <label>Клиент / машина</label>
-      <input type="text" id="fCar" placeholder="Например, Lexus Дарья">
+      <label>Машина</label>
+      <input type="text" id="fCar" placeholder="Например, Lexus RX">
     </div>
 
     <div class="field" style="position:relative">
@@ -78,6 +78,11 @@
       <input type="text" id="fPhone" placeholder="Телефон или имя — для поиска клиента" autocomplete="off">
       <div id="clientDropdown" class="client-dropdown"></div>
       <div id="clientCard" class="client-card" style="display:none"></div>
+    </div>
+
+    <div class="field">
+      <label>Имя клиента (необязательно)</label>
+      <input type="text" id="fClientName" placeholder="Например, Дарья">
     </div>
 
     <div class="field">
@@ -363,9 +368,15 @@ if (CW.requireAuth()) {
     document.getElementById("fCar").value = car ? (car.car || "") : "";
     document.getElementById("fComment").value = car ? (car.comment || "") : "";
     document.getElementById("fPhone").value = car ? (car.phone || "") : "";
+    document.getElementById("fClientName").value = "";
     selectedClient = null;
     hideClientCard();
     hideClientDropdown();
+    if (car && car.phone) {
+      CW.authFetch(`/api/clients/${encodeURIComponent(car.phone)}`)
+        .then(client => { if (client && client.name) document.getElementById("fClientName").value = client.name; })
+        .catch(() => {});
+    }
 
     document.getElementById("fBodyType").value = car ? car.body_type : document.getElementById("fBodyType").value;
     document.getElementById("fEmployee").value = car ? car.employee : document.getElementById("fEmployee").value;
@@ -435,6 +446,7 @@ if (CW.requireAuth()) {
 
   function showClientCard(client) {
     selectedClient = client;
+    if (client.name) document.getElementById("fClientName").value = client.name;
     clientCard.style.display = "flex";
     clientCard.innerHTML = `
       <div>
@@ -445,6 +457,7 @@ if (CW.requireAuth()) {
     document.getElementById("clientClearBtn").addEventListener("click", () => {
       selectedClient = null;
       fPhoneInput.value = "";
+      document.getElementById("fClientName").value = "";
       hideClientCard();
       fPhoneInput.focus();
     });
@@ -542,7 +555,7 @@ if (CW.requireAuth()) {
         payment, payment_split: split,
         comment: document.getElementById("fComment").value.trim(),
         phone: fPhoneInput.value.trim(),
-        client_name: selectedClient ? (selectedClient.name || "") : "",
+        client_name: document.getElementById("fClientName").value.trim(),
       };
       if (manualPriceEdited && total !== calcPrice()) {
         payload.price_override = total;

@@ -1464,6 +1464,8 @@ async function renderAdd(editNum){
           </div>
         </div>`:""}
       <div class="field-wrap"><div class="field-label">Марка машины</div><input id="f-car" placeholder="Camry" value="${editCar?.car||""}"></div>
+      <div class="field-wrap"><div class="field-label">Телефон клиента (необязательно)</div><input id="f-phone" placeholder="+7..." value="${editCar?.phone||""}"></div>
+      <div class="field-wrap"><div class="field-label">Имя клиента (необязательно)</div><input id="f-client-name" placeholder="Например, Дарья" value=""></div>
       <div class="field-wrap"><div class="field-label">Тип кузова</div><div class="field-select"><select id="f-body">${CFG.body_types.map(b=>`<option value="${b.key}" ${editCar?.body_type===b.key?"selected":""}>${b.name}</option>`).join("")}</select></div></div>
       <div class="field-wrap" style="padding-bottom:6px"><div class="field-label">Услуги</div></div>
       <div class="card" id="f-services"></div>
@@ -1491,6 +1493,11 @@ async function renderAdd(editNum){
   renderServiceChips();
   document.getElementById("f-body").addEventListener("change",renderServiceChips);
   if(editCar?.payment_split){renderSplitInputs();Object.entries(editCar.payment_split).forEach(([method,val])=>{const inp=document.querySelector(`.split-input[data-method="${method}"]`);if(inp) inp.value=val;});updateTotal();}
+  if(editCar?.phone){
+    api(`/api/clients/${encodeURIComponent(editCar.phone)}`).then(c=>{
+      if(c&&c.name){const el=document.getElementById("f-client-name");if(el) el.value=c.name;}
+    }).catch(()=>{});
+  }
 }
 window.applyPreset=(name)=>{
   api(`/api/presets?branch=${encodeURIComponent(BRANCH)}`).then(({presets})=>{
@@ -1599,6 +1606,8 @@ window.submitCar=async()=>{
       body_type:document.getElementById("f-body").value,
       service_keys:selectedServices,custom_services:customServices,
       car:document.getElementById("f-car").value,
+      phone:document.getElementById("f-phone").value.trim(),
+      client_name:document.getElementById("f-client-name").value.trim(),
       payment:isSplit?"Раздельно":document.getElementById("f-payment").value,
       payment_split:paymentSplit,
       comment:document.getElementById("f-comment").value,
