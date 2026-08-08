@@ -106,6 +106,7 @@ const CW = (() => {
     ]},
     { group: "Управление", items: [
       { key: "workers", icon: "ti-users", label: "Сотрудники", href: "/static/workers.html" },
+      { key: "clients", icon: "ti-address-book", label: "Клиенты", href: "/static/clients.html" },
       { key: "loyalty", icon: "ti-heart", label: "Лояльность", href: "/static/loyalty.html" },
       { key: "finance", icon: "ti-receipt", label: "Расходы и доходы", href: "/static/finance.html" },
       { key: "reports", icon: "ti-chart-bar", label: "Отчёты", href: "/static/reports.html" },

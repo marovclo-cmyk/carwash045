@@ -6,6 +6,32 @@
 <title>CarWash Cloud — машины</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
 <link rel="stylesheet" href="/static/css/theme-plata.css">
+<style>
+  .client-dropdown{
+    position:absolute; left:0; right:0; top:100%; z-index:20;
+    background:var(--surface-0); border:1.5px solid var(--line);
+    border-radius:var(--r-sm); box-shadow:0 8px 24px rgba(13,13,13,0.10);
+    margin-top:4px; max-height:220px; overflow-y:auto; display:none;
+  }
+  .client-dropdown.open{ display:block; }
+  .client-dropdown-item{
+    padding:10px 12px; cursor:pointer; display:flex; justify-content:space-between;
+    align-items:center; gap:8px; border-bottom:1px solid var(--line);
+  }
+  .client-dropdown-item:last-child{ border-bottom:none; }
+  .client-dropdown-item:hover{ background:var(--paper-2); }
+  .cdi-name{ font-size:13px; font-weight:600; color:var(--text); }
+  .cdi-phone{ font-size:12px; color:var(--muted); }
+  .cdi-meta{ font-size:11px; color:var(--muted); white-space:nowrap; }
+  .client-card{
+    margin-top:8px; padding:10px 12px; border-radius:var(--r-sm);
+    background:var(--orange-tint); border:1px solid var(--orange-tint-strong);
+    display:flex; justify-content:space-between; align-items:center; gap:8px;
+  }
+  .client-card .cc-name{ font-size:13px; font-weight:700; color:var(--text); }
+  .client-card .cc-meta{ font-size:11px; color:var(--muted); margin-top:2px; }
+  .client-card .cc-clear{ font-size:12px; color:var(--muted); cursor:pointer; text-decoration:underline; }
+</style>
 </head>
 <body>
 <div class="shell">
@@ -45,6 +71,13 @@
     <div class="field">
       <label>Клиент / машина</label>
       <input type="text" id="fCar" placeholder="Например, Lexus Дарья">
+    </div>
+
+    <div class="field" style="position:relative">
+      <label>Телефон клиента (необязательно)</label>
+      <input type="text" id="fPhone" placeholder="Телефон или имя — для поиска клиента" autocomplete="off">
+      <div id="clientDropdown" class="client-dropdown"></div>
+      <div id="clientCard" class="client-card" style="display:none"></div>
     </div>
 
     <div class="field">
@@ -329,6 +362,10 @@ if (CW.requireAuth()) {
     document.getElementById("modalErr").style.display = "none";
     document.getElementById("fCar").value = car ? (car.car || "") : "";
     document.getElementById("fComment").value = car ? (car.comment || "") : "";
+    document.getElementById("fPhone").value = car ? (car.phone || "") : "";
+    selectedClient = null;
+    hideClientCard();
+    hideClientDropdown();
 
     document.getElementById("fBodyType").value = car ? car.body_type : document.getElementById("fBodyType").value;
     document.getElementById("fEmployee").value = car ? car.employee : document.getElementById("fEmployee").value;
@@ -386,6 +423,71 @@ if (CW.requireAuth()) {
     manualPriceEdited = false;
   }
 
+  // ── Клиент: автодополнение по телефону/имени ─────────────────────────
+  let selectedClient = null;
+  let clientSearchTimer = null;
+  const fPhoneInput = document.getElementById("fPhone");
+  const clientDropdown = document.getElementById("clientDropdown");
+  const clientCard = document.getElementById("clientCard");
+
+  function hideClientDropdown() { clientDropdown.classList.remove("open"); clientDropdown.innerHTML = ""; }
+  function hideClientCard() { clientCard.style.display = "none"; clientCard.innerHTML = ""; }
+
+  function showClientCard(client) {
+    selectedClient = client;
+    clientCard.style.display = "flex";
+    clientCard.innerHTML = `
+      <div>
+        <div class="cc-name">${client.name || "Без имени"}</div>
+        <div class="cc-meta">${client.visit_count}-й визит · всего ${CW.money(client.total_spent)} · машины: ${(client.cars || []).join(", ") || "—"}</div>
+      </div>
+      <span class="cc-clear" id="clientClearBtn">Сбросить</span>`;
+    document.getElementById("clientClearBtn").addEventListener("click", () => {
+      selectedClient = null;
+      fPhoneInput.value = "";
+      hideClientCard();
+      fPhoneInput.focus();
+    });
+  }
+
+  function renderClientDropdown(clients) {
+    if (!clients.length) { hideClientDropdown(); return; }
+    clientDropdown.innerHTML = clients.map(c => `
+      <div class="client-dropdown-item" data-phone="${c.phone}">
+        <div>
+          <div class="cdi-name">${c.name || "Без имени"}</div>
+          <div class="cdi-phone">${c.phone}</div>
+        </div>
+        <div class="cdi-meta">${c.visit_count} визит(ов) · ${CW.money(c.total_spent)}</div>
+      </div>`).join("");
+    clientDropdown.querySelectorAll(".client-dropdown-item").forEach((el, i) => {
+      el.addEventListener("click", () => {
+        const client = clients[i];
+        fPhoneInput.value = client.phone;
+        showClientCard(client);
+        hideClientDropdown();
+      });
+    });
+    clientDropdown.classList.add("open");
+  }
+
+  fPhoneInput.addEventListener("input", () => {
+    selectedClient = null;
+    hideClientCard();
+    const q = fPhoneInput.value.trim();
+    clearTimeout(clientSearchTimer);
+    if (q.length < 3) { hideClientDropdown(); return; }
+    clientSearchTimer = setTimeout(async () => {
+      try {
+        const data = await CW.authFetch(`/api/clients/search?q=${encodeURIComponent(q)}`);
+        renderClientDropdown(data.clients || []);
+      } catch (e) { hideClientDropdown(); }
+    }, 300);
+  });
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest("#fPhone") && !e.target.closest("#clientDropdown")) hideClientDropdown();
+  });
+
   window.CW_editCar = (num) => {
     const car = currentCars.find(c => c.num === num);
     if (car) openModal(car);
@@ -439,6 +541,8 @@ if (CW.requireAuth()) {
         car: document.getElementById("fCar").value.trim(),
         payment, payment_split: split,
         comment: document.getElementById("fComment").value.trim(),
+        phone: fPhoneInput.value.trim(),
+        client_name: selectedClient ? (selectedClient.name || "") : "",
       };
       if (manualPriceEdited && total !== calcPrice()) {
         payload.price_override = total;

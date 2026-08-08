@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CarWash Cloud — клиенты</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="/static/css/theme-plata.css">
+<style>
+  .search-field{ position:relative; margin-bottom:16px; }
+  .search-field input{
+    width:100%; padding:12px 14px 12px 40px; border-radius:var(--r-sm);
+    border:1.5px solid var(--line); background:var(--paper); font-size:14px;
+  }
+  .search-field input:focus{ outline:none; border-color:var(--orange); }
+  .search-field i{ position:absolute; left:14px; top:50%; transform:translateY(-50%); color:var(--muted); }
+  .client-row{ cursor:pointer; }
+  .client-row:hover{ background:var(--paper-2); }
+  .client-av{ width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; flex-shrink:0; }
+  .client-name{ font-size:14px; font-weight:600; }
+  .client-sub{ font-size:12px; color:var(--muted); margin-top:1px; }
+  .client-right{ text-align:right; }
+  .client-total{ font-size:14px; font-weight:700; color:var(--green); }
+  .client-visits{ font-size:11px; color:var(--muted); }
+  .detail-back{ display:flex; align-items:center; gap:6px; color:var(--muted); font-size:13px; cursor:pointer; margin-bottom:14px; }
+  .detail-back:hover{ color:var(--ink); }
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="rail" id="sidebarRoot"></div>
+
+  <div class="main">
+    <div class="err-banner" id="errBanner"></div>
+
+    <div id="viewList">
+      <div class="page-head">
+        <div>
+          <div class="page-title">Клиенты</div>
+          <div class="page-sub" id="pageSub">—</div>
+        </div>
+        <div class="head-actions">
+          <button class="btn secondary" id="refreshBtn"><i class="ti ti-refresh"></i>Обновить</button>
+        </div>
+      </div>
+
+      <div class="search-field">
+        <i class="ti ti-search"></i>
+        <input type="text" id="qInput" placeholder="Поиск по телефону или имени">
+      </div>
+
+      <div class="panel">
+        <div id="clientsList"></div>
+        <div id="clientsEmpty" class="empty-note" style="display:none">Клиентов пока нет — они появятся сами, как только при добавлении машины укажут телефон</div>
+      </div>
+    </div>
+
+    <div id="viewDetail" style="display:none">
+      <div class="detail-back" id="backBtn"><i class="ti ti-chevron-left"></i>Все клиенты</div>
+      <div class="page-head">
+        <div>
+          <div class="page-title" id="dName">—</div>
+          <div class="page-sub" id="dPhone">—</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px">
+        <div class="mini-stat"><div class="ms-label">Визитов</div><div class="ms-value" id="dVisits">0</div></div>
+        <div class="mini-stat"><div class="ms-label">Всего потрачено</div><div class="ms-value" id="dTotal" style="color:var(--green)">0</div></div>
+        <div class="mini-stat"><div class="ms-label">Последний визит</div><div class="ms-value" id="dLast" style="font-size:13px">—</div></div>
+      </div>
+      <div class="panel" style="margin-bottom:16px">
+        <div class="panel-head"><div class="panel-title">Машины</div></div>
+        <div id="dCars" style="padding:12px 20px;font-size:13px;color:var(--muted)">—</div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><div class="panel-title">История визитов</div></div>
+        <div id="dVisitsList"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/static/site-common.js"></script>
+<script>
+if (CW.requireAuth()) {
+  CW.renderSidebar("clients");
+
+  const errEl = document.getElementById("errBanner");
+  function showErr(msg) { errEl.textContent = msg; errEl.style.display = "block"; }
+
+  document.getElementById("pageSub").textContent = CW.todayLabel();
+
+  let clientsCache = [];
+
+  async function loadClients() {
+    errEl.style.display = "none";
+    try {
+      const data = await CW.authFetch("/api/clients");
+      clientsCache = data.clients || [];
+      renderList(clientsCache);
+    } catch (e) { showErr(e.message); }
+  }
+
+  function avatarColor(name) {
+    const colors = ["#FF5000", "#7A5CFF", "#1B8A57", "#D63A2E", "#0D0D0D"];
+    let h = 0;
+    for (const ch of (name || "?")) h = (h * 31 + ch.charCodeAt(0)) % colors.length;
+    return colors[h];
+  }
+  function initials(name) {
+    const parts = (name || "").trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return "?";
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+  function formatPhone(phone) {
+    if (phone.length === 11) return `+${phone[0]} ${phone.slice(1, 4)} ${phone.slice(4, 7)}-${phone.slice(7, 9)}-${phone.slice(9, 11)}`;
+    return phone;
+  }
+
+  function renderList(clients) {
+    const list = document.getElementById("clientsList");
+    const empty = document.getElementById("clientsEmpty");
+    if (!clients.length) { list.innerHTML = ""; empty.style.display = "block"; return; }
+    empty.style.display = "none";
+    list.innerHTML = clients.map(c => {
+      const col = avatarColor(c.name || c.phone);
+      return `
+      <div class="worker-row client-row" data-phone="${c.phone}">
+        <div class="client-av" style="background:${col}22;color:${col}">${initials(c.name)}</div>
+        <div style="flex:1">
+          <div class="client-name">${c.name || "Без имени"}</div>
+          <div class="client-sub">${formatPhone(c.phone)} · ${(c.cars || []).slice(0, 2).join(", ") || "—"}</div>
+        </div>
+        <div class="client-right">
+          <div class="client-total">${CW.money(c.total_spent)}</div>
+          <div class="client-visits">${c.visit_count} визит(ов) · ${c.last_visit || "—"}</div>
+        </div>
+      </div>`;
+    }).join("");
+    list.querySelectorAll(".client-row").forEach(el => {
+      el.addEventListener("click", () => openDetail(el.dataset.phone));
+    });
+  }
+
+  document.getElementById("qInput").addEventListener("input", (e) => {
+    const q = e.target.value.trim().toLowerCase();
+    if (!q) { renderList(clientsCache); return; }
+    const qDigits = q.replace(/\D/g, "");
+    renderList(clientsCache.filter(c =>
+      (qDigits && c.phone.includes(qDigits)) || (c.name || "").toLowerCase().includes(q)
+    ));
+  });
+
+  document.getElementById("refreshBtn").addEventListener("click", loadClients);
+  document.getElementById("backBtn").addEventListener("click", () => {
+    document.getElementById("viewDetail").style.display = "none";
+    document.getElementById("viewList").style.display = "block";
+  });
+
+  async function openDetail(phone) {
+    errEl.style.display = "none";
+    try {
+      const c = await CW.authFetch(`/api/clients/${encodeURIComponent(phone)}`);
+      document.getElementById("viewList").style.display = "none";
+      document.getElementById("viewDetail").style.display = "block";
+      document.getElementById("dName").textContent = c.name || "Без имени";
+      document.getElementById("dPhone").textContent = formatPhone(c.phone);
+      document.getElementById("dVisits").textContent = c.visit_count;
+      document.getElementById("dTotal").textContent = CW.money(c.total_spent);
+      document.getElementById("dLast").textContent = c.last_visit || "—";
+      document.getElementById("dCars").textContent = (c.cars || []).join(", ") || "—";
+      const visits = (c.visits || []).slice().reverse();
+      document.getElementById("dVisitsList").innerHTML = visits.length ? visits.map(v => `
+        <div class="worker-row" style="padding:10px 20px">
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:600">${v.date} · ${v.branch}</div>
+            <div class="client-sub">${v.car || "—"}</div>
+          </div>
+          <div style="font-size:13px;font-weight:700;color:var(--green)">${CW.money(v.total)}</div>
+        </div>`).join("") : `<div class="empty-note">Визитов пока нет</div>`;
+    } catch (e) { showErr(e.message); }
+  }
+
+  loadClients();
+}
+</script>
+</body>
+</html>
