@@ -961,11 +961,22 @@ def get_bookings(branch: str, date: str) -> list[dict]:
     return load_bookings().get(branch, {}).get(date, [])
 
 
-def get_branch_boxes(branch: str) -> list[dict]:
+def get_branch_boxes(branch: str, on_date=None) -> list[dict]:
     """Боксы филиала = сотрудники филиала по порядку, пронумерованные с 1.
     Пока в проекте нет отдельной сущности "бокс" — по умолчанию бокс #N
-    соответствует N-му сотруднику в списке (см. 00-audit-i-plan.md, п.1)."""
-    return [{"box": i + 1, "employee": name} for i, name in enumerate(get_branch_workers(branch))]
+    соответствует N-му сотруднику в списке (см. 00-audit-i-plan.md, п.1).
+
+    on_date (datetime.date | None) — если передана, у каждого бокса
+    дополнительно считается on_duty: работает ли сотрудник в этот день
+    по графику (is_working_on). Нужно странице «Запись», чтобы можно было
+    показывать только тех, кто реально на смене в выбранный день, а не
+    всех сотрудников филиала подряд. Если график не задан — считается,
+    что сотрудник доступен всегда (см. is_working_on)."""
+    workers = get_branch_workers(branch)
+    return [
+        {"box": i + 1, "employee": name, "on_duty": is_working_on(branch, name, on_date)}
+        for i, name in enumerate(workers)
+    ]
 
 
 def _time_to_minutes(value: str) -> int:
