@@ -37,6 +37,9 @@ from sessions import (
     set_worker_schedule, clear_worker_schedule, get_worker_schedule,
     get_schedule_status, is_working_on,
     normalize_phone, find_client, search_clients, upsert_client_visit, load_clients, client_summary, update_client,
+    set_client_discount, clear_client_discount,
+    get_branch_boxes, get_bookings, get_booking, create_booking, update_booking,
+    set_booking_status, delete_booking, find_conflicting_booking,
 )
 from calculator import calculate_summary
 from pdf_generator import generate_pdf
@@ -276,6 +279,10 @@ class ClientUpdateIn(BaseModel):
     cars: Optional[list[str]] = None
 
 
+class ClientDiscountIn(BaseModel):
+    percent: float
+
+
 class CarStatusIn(BaseModel):
     status: str  # "in_progress" | "done"
 
@@ -290,6 +297,60 @@ class PresetIn(BaseModel):
 class UserIn(BaseModel):
     user_id: int
     name: str = "Без имени"
+
+
+# ── Запись (журнал записи / bookings) ───────────────────────────────────────
+# Статусы записи. "waiting"/"confirmed"/"arrived"/"no_show" — этапы до начала
+# мойки (из макета модалки), "in_progress"/"done" — во время и после (как в
+# сетке боксов макета). См. sessions.py, раздел "ЗАПИСИ".
+BOOKING_STATUSES = {"waiting", "confirmed", "arrived", "no_show", "in_progress", "done"}
+
+
+class BookingIn(BaseModel):
+    branch: str
+    date: str          # ДД.ММ.ГГГГ
+    box: int
+    start_time: str    # ЧЧ:ММ
+    end_time: str      # ЧЧ:ММ
+    employee: str = ""
+    body_type: str = ""
+    car: str = ""
+    service_keys: list[str] = []
+    custom_services: list[dict] = []   # [{"name","price","percent"}]
+    product_keys: list[str] = []
+    price_override: Optional[int] = None
+    payment: str = ""
+    payment_split: Optional[Dict[str, int]] = None
+    comment: str = ""
+    phone: str = ""
+    client_name: str = ""
+    status: str = "waiting"
+
+
+class BookingEditIn(BaseModel):
+    branch: Optional[str] = None
+    date: Optional[str] = None
+    box: Optional[int] = None
+    start_time: Optional[str] = None
+    end_time: Optional[str] = None
+    employee: Optional[str] = None
+    body_type: Optional[str] = None
+    car: Optional[str] = None
+    service_keys: Optional[list[str]] = None
+    custom_services: Optional[list[dict]] = None
+    product_keys: Optional[list[str]] = None
+    price_override: Optional[int] = None
+    clear_price_override: bool = False
+    payment: Optional[str] = None
+    payment_split: Optional[Dict[str, int]] = None
+    comment: Optional[str] = None
+    phone: Optional[str] = None
+    client_name: Optional[str] = None
+    status: Optional[str] = None
+
+
+class BookingStatusIn(BaseModel):
+    status: str
 
 
 # ── Справочники (без авторизации — статичные данные) ───────────────────────
@@ -609,7 +670,7 @@ def api_add_car(body: CarIn, x_init_data: str = Header(default=""), x_site_token
     if body.phone:
         client = upsert_client_visit(
             body.phone, body.client_name, body.branch, body.car,
-            total_price, car_num=num)
+            total_price, car_num=num, service=car["service"], time=car["time"])
     return {"ok": True, "car": car, "summary": calculate_summary(session), "client": client}
 
 
@@ -651,6 +712,32 @@ def api_update_client(phone: str, body: ClientUpdateIn, x_init_data: str = Heade
     client = update_client(phone, name=body.name, cars=body.cars)
     if not client:
         raise HTTPException(404, "Клиент не найден")
+    return client
+
+
+@app.put("/api/clients/{phone}/discount")
+def api_set_client_discount(phone: str, body: ClientDiscountIn, x_init_data: str = Header(default=""), x_site_token: str = Header(default="")):
+    """Устанавливает постоянную скидку клиента на все услуги (0 < percent
+    <= 100), как в блоке «Постоянная скидка» в макете модалки."""
+    require_access(x_init_data, x_site_token)
+    if body.percent <= 0 or body.percent > 100:
+        raise HTTPException(400, "Скидка должна быть в диапазоне от 0 до 100%")
+    client = set_client_discount(phone, body.percent)
+    if not client:
+        raise HTTPException(404, "Клиент не найден")
+    log_action("—", "client_discount", current_user_id(x_init_data), current_user_name(x_init_data),
+               f"{client.get('name') or phone} · скидка {body.percent}%")
+    return client
+
+
+@app.delete("/api/clients/{phone}/discount")
+def api_clear_client_discount(phone: str, x_init_data: str = Header(default=""), x_site_token: str = Header(default="")):
+    require_access(x_init_data, x_site_token)
+    client = clear_client_discount(phone)
+    if not client:
+        raise HTTPException(404, "Клиент не найден")
+    log_action("—", "client_discount", current_user_id(x_init_data), current_user_name(x_init_data),
+               f"{client.get('name') or phone} · скидка снята")
     return client
 
 
@@ -729,7 +816,8 @@ def api_edit_car(branch: str, num: int, body: CarEditIn, x_init_data: str = Head
         old_phone = car.get("phone", "")
         car["phone"] = new_phone
         if new_phone and new_phone != old_phone:
-            upsert_client_visit(new_phone, body.client_name or "", branch, car.get("car", ""), car["price"], car_num=num)
+            upsert_client_visit(new_phone, body.client_name or "", branch, car.get("car", ""), car["price"],
+                                 car_num=num, service=car.get("service", ""), time=car.get("time", ""))
         elif new_phone and body.client_name:
             update_client(new_phone, name=body.client_name)
     elif body.client_name and car.get("phone"):
@@ -775,6 +863,191 @@ def api_delete_car(branch: str, num: int, x_init_data: str = Header(default=""),
         log_action(branch, "delete", current_user_id(x_init_data), current_user_name(x_init_data),
                    f"{car.get('car') or 'машина'} · {car.get('service','')} · {car.get('price',0)}₽")
     return {"ok": True, "summary": calculate_summary(session)}
+
+
+
+# ── ЗАПИСЬ (ЖУРНАЛ ЗАПИСИ / BOOKINGS) ───────────────────────────────────────
+# Новый раздел, см. 00-audit-i-plan.md и sessions.py. В отличие от /api/car
+# (машина сразу попадает в кассу дня), запись — это слот в боксе на
+# дату/время, который ещё может не иметь ни одной выбранной услуги (клиента
+# просто записали на время), поэтому в отличие от api_add_car здесь НЕ
+# требуется хотя бы одна услуга.
+
+def _booking_breakdown(body_type: str, service_keys: list, custom_services: list, product_keys: list) -> dict:
+    breakdown = {}
+    for k in service_keys:
+        if k not in SERVICES:
+            continue
+        breakdown[k] = {
+            "name": SERVICES[k]["name"],
+            "price": get_service_price(k, body_type or "sedan"),
+            "percent": SERVICES[k]["percent"],
+        }
+    for i, c in enumerate(custom_services):
+        breakdown[f"custom_{i}"] = {
+            "name": c["name"], "price": int(c["price"]), "percent": float(c.get("percent", 0)) / 100,
+        }
+    for k in product_keys:
+        if k not in PRODUCTS:
+            continue
+        breakdown[f"product_{k}"] = {
+            "name": PRODUCTS[k]["name"], "price": PRODUCTS[k]["price"], "percent": 0,
+        }
+    return breakdown
+
+
+@app.get("/api/bookings")
+def api_list_bookings(branch: str, date: str, x_init_data: str = Header(default=""), x_site_token: str = Header(default="")):
+    """Записи филиала на дату (ДД.ММ.ГГГГ) + список боксов (= сотрудники
+    филиала по порядку, см. get_branch_boxes)."""
+    require_access(x_init_data, x_site_token)
+    return {"bookings": get_bookings(branch, date), "boxes": get_branch_boxes(branch)}
+
+
+@app.post("/api/bookings")
+def api_create_booking(body: BookingIn, x_init_data: str = Header(default=""), x_site_token: str = Header(default="")):
+    require_access(x_init_data, x_site_token)
+    if body.status not in BOOKING_STATUSES:
+        raise HTTPException(400, f"Недопустимый статус. Разрешены: {', '.join(sorted(BOOKING_STATUSES))}")
+    if body.box <= 0:
+        raise HTTPException(400, "Некорректный номер бокса")
+    if body.start_time >= body.end_time:
+        raise HTTPException(400, "Время начала должно быть раньше времени окончания")
+
+    conflict = find_conflicting_booking(body.branch, body.date, body.box, body.start_time, body.end_time)
+    if conflict:
+        raise HTTPException(409, f"Бокс {body.box} занят с {conflict['start_time']} до {conflict['end_time']} "
+                                  f"({conflict.get('client_name') or conflict.get('car') or 'без имени'})")
+
+    breakdown = _booking_breakdown(body.body_type, body.service_keys, body.custom_services, body.product_keys)
+    calc_price = sum(v["price"] for v in breakdown.values())
+    total_price = calc_price
+    if body.price_override is not None:
+        if body.price_override < 0:
+            raise HTTPException(400, "Итоговая сумма не может быть отрицательной")
+        total_price = int(body.price_override)
+    if body.payment_split:
+        split_sum = sum(body.payment_split.values())
+        if split_sum != total_price:
+            raise HTTPException(400, f"Сумма раздельной оплаты ({split_sum}₽) не совпадает со стоимостью ({total_price}₽)")
+
+    booking = create_booking(
+        branch=body.branch, date=body.date, box=body.box,
+        start_time=body.start_time, end_time=body.end_time,
+        employee=body.employee, body_type=body.body_type, car=body.car,
+        service_keys=body.service_keys, custom_services=body.custom_services, product_keys=body.product_keys,
+        price=total_price, price_calc=calc_price,
+        price_override=total_price if body.price_override is not None else None,
+        payment=body.payment, payment_split=body.payment_split, comment=body.comment,
+        phone=body.phone, client_name=body.client_name, status=body.status,
+    )
+    log_action(body.branch, "booking_add", current_user_id(x_init_data), current_user_name(x_init_data),
+               f"бокс {body.box} · {body.start_time}–{body.end_time} · {body.client_name or body.car or 'без имени'}")
+    return {"ok": True, "booking": booking}
+
+
+@app.patch("/api/bookings/{booking_id}")
+def api_edit_booking(booking_id: int, body: BookingEditIn, x_init_data: str = Header(default=""), x_site_token: str = Header(default="")):
+    require_access(x_init_data, x_site_token)
+    booking = get_booking(booking_id)
+    if not booking:
+        raise HTTPException(404, "Запись не найдена")
+
+    if body.status is not None and body.status not in BOOKING_STATUSES:
+        raise HTTPException(400, f"Недопустимый статус. Разрешены: {', '.join(sorted(BOOKING_STATUSES))}")
+
+    target_branch = body.branch if body.branch is not None else booking["branch"]
+    target_date = body.date if body.date is not None else booking["date"]
+    target_box = body.box if body.box is not None else booking["box"]
+    target_start = body.start_time if body.start_time is not None else booking["start_time"]
+    target_end = body.end_time if body.end_time is not None else booking["end_time"]
+    if target_start >= target_end:
+        raise HTTPException(400, "Время начала должно быть раньше времени окончания")
+    if body.box is not None or body.start_time is not None or body.end_time is not None or \
+       body.branch is not None or body.date is not None:
+        conflict = find_conflicting_booking(target_branch, target_date, target_box, target_start, target_end,
+                                             exclude_id=booking_id)
+        if conflict:
+            raise HTTPException(409, f"Бокс {target_box} занят с {conflict['start_time']} до {conflict['end_time']} "
+                                      f"({conflict.get('client_name') or conflict.get('car') or 'без имени'})")
+
+    fields: dict = {
+        "branch": body.branch, "date": body.date, "box": body.box,
+        "start_time": body.start_time, "end_time": body.end_time,
+        "employee": body.employee, "car": body.car, "comment": body.comment,
+        "payment": body.payment, "phone": normalize_phone(body.phone) if body.phone else body.phone,
+        "client_name": body.client_name, "status": body.status,
+    }
+    if body.payment_split is not None:
+        fields["payment_split"] = body.payment_split or None
+
+    if body.body_type is not None or body.service_keys is not None or \
+       body.custom_services is not None or body.product_keys is not None:
+        body_type = body.body_type if body.body_type is not None else booking["body_type"]
+        service_keys = body.service_keys if body.service_keys is not None else booking["service_keys"]
+        custom_services = body.custom_services if body.custom_services is not None else booking["custom_services"]
+        product_keys = body.product_keys if body.product_keys is not None else booking.get("product_keys", [])
+        breakdown = _booking_breakdown(body_type, service_keys, custom_services, product_keys)
+        fields["body_type"] = body_type
+        fields["service_keys"] = service_keys
+        fields["custom_services"] = custom_services
+        fields["product_keys"] = product_keys
+        fields["price_calc"] = sum(v["price"] for v in breakdown.values())
+        if booking.get("price_override") is not None and not body.clear_price_override and body.price_override is None:
+            pass  # ручная цена сохраняется при смене состава услуг, пока её явно не сбросили
+        else:
+            fields["price"] = fields["price_calc"]
+            fields["price_override"] = None
+
+    if body.clear_price_override:
+        fields["price"] = fields.get("price_calc", booking.get("price_calc", booking["price"]))
+        fields["price_override"] = None
+    elif body.price_override is not None:
+        if body.price_override < 0:
+            raise HTTPException(400, "Итоговая сумма не может быть отрицательной")
+        fields["price"] = int(body.price_override)
+        fields["price_override"] = int(body.price_override)
+
+    # Валидация суммы раздельной оплаты — ДО записи изменений на диск (иначе
+    # при несовпадении сумм невалидные данные успевают сохраниться в
+    # carwash_bookings.json до того, как эндпоинт вернёт 400).
+    final_price = fields["price"] if fields.get("price") is not None else booking.get("price", 0)
+    final_split = fields["payment_split"] if "payment_split" in fields else booking.get("payment_split")
+    if final_split:
+        split_sum = sum(final_split.values())
+        if split_sum != final_price:
+            raise HTTPException(400, f"Сумма раздельной оплаты ({split_sum}₽) не совпадает со стоимостью ({final_price}₽)")
+
+    updated = update_booking(booking_id, **fields)
+
+    log_action(updated["branch"], "booking_edit", current_user_id(x_init_data), current_user_name(x_init_data),
+               f"бокс {updated['box']} · {updated['start_time']}–{updated['end_time']}")
+    return {"ok": True, "booking": updated}
+
+
+@app.patch("/api/bookings/{booking_id}/status")
+def api_set_booking_status(booking_id: int, body: BookingStatusIn, x_init_data: str = Header(default=""), x_site_token: str = Header(default="")):
+    require_access(x_init_data, x_site_token)
+    if body.status not in BOOKING_STATUSES:
+        raise HTTPException(400, f"Недопустимый статус. Разрешены: {', '.join(sorted(BOOKING_STATUSES))}")
+    booking = get_booking(booking_id)
+    if not booking:
+        raise HTTPException(404, "Запись не найдена")
+    updated = set_booking_status(booking_id, body.status)
+    log_action(updated["branch"], "booking_status", current_user_id(x_init_data), current_user_name(x_init_data),
+               f"бокс {updated['box']} · статус → {body.status}")
+    return {"ok": True, "booking": updated}
+
+
+@app.delete("/api/bookings/{booking_id}")
+def api_delete_booking(booking_id: int, x_init_data: str = Header(default=""), x_site_token: str = Header(default="")):
+    require_access(x_init_data, x_site_token)
+    booking = get_booking(booking_id)
+    if booking:
+        delete_booking(booking_id)
+        log_action(booking["branch"], "booking_delete", current_user_id(x_init_data), current_user_name(x_init_data),
+                   f"бокс {booking['box']} · {booking['start_time']}–{booking['end_time']}")
+    return {"ok": True}
 
 
 @app.post("/api/loyalty")
