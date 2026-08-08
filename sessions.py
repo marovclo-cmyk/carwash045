@@ -25,7 +25,7 @@ SESSIONS_FILE = os.path.join(DATA_DIR, "carwash_sessions.json")
 ARCHIVE_FILE  = os.path.join(DATA_DIR, "carwash_archive.json")
 BRANCHES_FILE = os.path.join(DATA_DIR, "carwash_branches.json")
 USERS_FILE    = os.path.join(DATA_DIR, "carwash_users.json")
-ADVANCES_FILE = os.path.join(DATA_DIR, "carwash_advances.json")
+CLIENTS_FILE  = os.path.join(DATA_DIR, "carwash_clients.json")
 
 LOCK_TIMEOUT = 10  # секунд ожидания блокировки, прежде чем сдаться
 
@@ -326,88 +326,6 @@ def patch_archive_fixed_rates(branch: str, date: str, rate_updates: dict, admin_
     return result["ok"]
 
 
-# ── АВАНСЫ ───────────────────────────────────────────────────────────────────
-# carwash_advances.json: { branch: { employee_name: [ {"date": "дд.мм.гггг",
-#                                                        "amount": int}, ... ] } }
-# Хранится отдельно от sessions/archive — аванс не привязан к дневной кассе,
-# это отдельная выдача денег сотруднику "в счёт будущей зарплаты", которая
-# потом вычитается из недельного/месячного итога (см. employee_stats.py).
-
-def load_advances() -> dict:
-    return _read_json_locked(ADVANCES_FILE)
-
-
-def add_advance(branch: str, name: str, amount: int, date: str | None = None, note: str = "") -> dict:
-    """Записывает выдачу аванса сотруднику. Возвращает саму запись."""
-    date = date or datetime.now().strftime("%d.%m.%Y")
-    entry = {"date": date, "amount": amount, "note": note}
-
-    def _update(data):
-        data.setdefault(branch, {}).setdefault(name, []).append(entry)
-        return data
-
-    _update_json_locked(ADVANCES_FILE, _update)
-    return entry
-
-
-def delete_advance(branch: str, name: str, idx: int) -> bool:
-    """Удаляет запись аванса по индексу (например, если ошиблись при вводе)."""
-    result = {"ok": False}
-
-    def _update(data):
-        lst = data.get(branch, {}).get(name, [])
-        if 0 <= idx < len(lst):
-            lst.pop(idx)
-            result["ok"] = True
-        return data
-
-    _update_json_locked(ADVANCES_FILE, _update)
-    return result["ok"]
-
-
-def _parse_advance_date(date_str: str):
-    try:
-        return datetime.strptime(date_str, "%d.%m.%Y")
-    except (ValueError, TypeError):
-        return None
-
-
-def get_employee_advances(branch: str, name: str,
-                           date_from: datetime | None = None,
-                           date_to: datetime | None = None) -> list[dict]:
-    """Список авансов сотрудника, по желанию отфильтрованный по периоду.
-    Каждая запись содержит "idx" — позицию в ПОЛНОМ списке (не в
-    отфильтрованном), чтобы delete_advance(branch, name, idx) всегда
-    удалял именно ту запись, что показана на экране, а не случайную
-    запись из другого периода."""
-    lst = load_advances().get(branch, {}).get(name, [])
-    out = []
-    for i, a in enumerate(lst):
-        if date_from or date_to:
-            dt = _parse_advance_date(a.get("date", ""))
-            if dt is None:
-                continue
-            if date_from and dt < date_from:
-                continue
-            if date_to and dt > date_to:
-                continue
-        out.append({**a, "idx": i})
-    return out
-
-
-def get_branch_advances_period(branch: str,
-                                date_from: datetime | None = None,
-                                date_to: datetime | None = None) -> dict[str, int]:
-    """{имя_сотрудника: сумма_авансов} за период — для сводных отчётов."""
-    branch_data = load_advances().get(branch, {})
-    out = {}
-    for name in branch_data:
-        total = sum(a["amount"] for a in get_employee_advances(branch, name, date_from, date_to))
-        if total:
-            out[name] = total
-    return out
-
-
 # ── КОНФИГ ФИЛИАЛОВ: админ + сотрудники ─────────────────────────────────────
 # branches_config.json: { branch: {"admin": user_id|0, "workers": [str, ...]} }
 
@@ -696,6 +614,97 @@ def remove_user(user_id: int) -> bool:
 
     _update_json_locked(USERS_FILE, _update)
     return result["removed"]
+
+
+# ── КЛИЕНТЫ (карточка клиента, история визитов, поиск) ─────────────────────
+# carwash_clients.json: { normalized_phone: {"phone","name","cars":[...],
+#                          "visits":[{"date","branch","car","total","car_num"}]} }
+# Клиенты общие на всю сеть — один и тот же человек может приехать в разный
+# филиал, это один и тот же клиент. total_spent/visit_count не хранятся,
+# а считаются из visits на лету — чтобы не рассинхронизировались, если
+# машину потом отредактируют/удалят (это уже не откатывается автоматически,
+# но зато исходные данные всегда согласованы сами с собой).
+
+def normalize_phone(phone: str) -> str:
+    """Оставляет только цифры; российский номер с ведущей 8 приводит к 7,
+    чтобы 89991234567 и 79991234567 считались одним и тем же клиентом."""
+    digits = "".join(ch for ch in (phone or "") if ch.isdigit())
+    if len(digits) == 11 and digits[0] == "8":
+        digits = "7" + digits[1:]
+    return digits
+
+
+def load_clients() -> dict:
+    return _read_json_locked(CLIENTS_FILE)
+
+
+def find_client(phone: str) -> dict | None:
+    phone = normalize_phone(phone)
+    if not phone:
+        return None
+    client = load_clients().get(phone)
+    return client_summary(client) if client else None
+
+
+def search_clients(query: str, limit: int = 8) -> list[dict]:
+    """Ищет клиентов по подстроке телефона ИЛИ имени (регистронезависимо).
+    Используется для автодополнения на сайте/в mini-app/в боте."""
+    query = (query or "").strip()
+    if not query:
+        return []
+    q_digits = "".join(ch for ch in query if ch.isdigit())
+    q_lower  = query.lower()
+    out = []
+    for phone, client in load_clients().items():
+        match = False
+        if q_digits and q_digits in phone:
+            match = True
+        if not match and q_lower and q_lower in (client.get("name") or "").lower():
+            match = True
+        if match:
+            out.append(client_summary(client))
+    # Сначала точные совпадения по началу телефона/имени — удобнее при наборе.
+    out.sort(key=lambda c: not (c["phone"].startswith(q_digits) if q_digits
+              else (c.get("name") or "").lower().startswith(q_lower)))
+    return out[:limit]
+
+
+def client_summary(client: dict) -> dict:
+    """Добавляет вычисляемые поля (визитов, всего потрачено, последний визит)
+    поверх сырой записи клиента."""
+    visits = client.get("visits", [])
+    return {
+        **client,
+        "visit_count": len(visits),
+        "total_spent": sum(v.get("total", 0) for v in visits),
+        "last_visit": visits[-1]["date"] if visits else None,
+    }
+
+
+def upsert_client_visit(phone: str, name: str, branch: str, car: str,
+                         total: int, car_num: int | None = None,
+                         date: str | None = None) -> dict:
+    """Заводит клиента (если новый) или обновляет карточку и добавляет визит.
+    Возвращает актуальную карточку клиента (с вычисляемыми полями)."""
+    phone = normalize_phone(phone)
+    date = date or datetime.now().strftime("%d.%m.%Y")
+    result = {}
+
+    def _update(data):
+        client = data.setdefault(phone, {"phone": phone, "name": "", "cars": [], "visits": []})
+        if name:
+            client["name"] = name
+        if car and car not in client["cars"]:
+            client["cars"].append(car)
+        client["visits"].append({
+            "date": date, "branch": branch, "car": car,
+            "total": total, "car_num": car_num,
+        })
+        result["client"] = client
+        return data
+
+    _update_json_locked(CLIENTS_FILE, _update)
+    return client_summary(result["client"])
 
 
 # ── ПРИВЯЗКА ПОЛЬЗОВАТЕЛЯ К ФИЛИАЛУ (на сегодняшнюю смену) ─────────────────
