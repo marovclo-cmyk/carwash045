@@ -45,6 +45,20 @@
   .bf-name{flex:1;font-weight:600;color:var(--ink)}
   .bf-off{font-size:10px;color:var(--muted-2);font-weight:700;background:var(--paper-3);padding:2px 7px;border-radius:999px}
 
+  /* попап «Масштаб» — вертикальный список опций высоты слота, тот же паттерн, что bf-item */
+  .zoom-list{display:flex;flex-direction:column;gap:6px}
+  .zoom-opt{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:var(--r-sm);background:var(--paper-2);border:1.5px solid var(--line);font-size:12.5px;font-weight:600;cursor:pointer;transition:.12s}
+  .zoom-opt:hover{border-color:var(--orange)}
+  .zoom-opt.active{border-color:var(--orange);background:var(--orange-tint);color:var(--ink)}
+  .zoom-opt .zo-check{font-size:14px;color:var(--orange);opacity:0;visibility:hidden}
+  .zoom-opt.active .zo-check{opacity:1;visibility:visible}
+
+  /* карточка записи, у которой статус «Клиент не пришёл» — приглушаем, как в YCLIENTS */
+  .appt.no-show{opacity:.5}
+
+  /* верхняя полоска карточки записи теперь тоже кодирует статус (низ — цвет бокса слева, верх — статус) */
+  .appt-status-strip{position:absolute;left:4px;right:4px;top:0;height:3px;border-radius:3px 3px 0 0}
+
   /* попап «Итоги дня» */
   .ds-title{font-family:var(--font-display);font-size:15px;font-weight:600}
   .ds-sub{font-size:11.5px;color:var(--muted);font-weight:600;margin-top:1px;margin-bottom:12px}
@@ -81,13 +95,13 @@
   .gh-role{font-size:11px;color:var(--muted);font-weight:600}
 
   .gt-col{position:relative}
-  .gt-slot{height:34px;border-top:1px solid var(--line);position:relative}
+  .gt-slot{height:var(--slot-px,34px);border-top:1px solid var(--line);position:relative}
   .gt-slot:first-child{border-top:none}
   .gt-slot .gt-label{position:absolute;top:-8px;right:10px;font-size:11px;color:var(--muted-2);font-weight:700;background:var(--paper);padding:0 2px}
   .gt-slot.hour .gt-label{color:var(--muted)}
 
   .gb-col{position:relative;border-left:1px solid var(--line);cursor:pointer}
-  .gb-slot{height:34px;border-top:1px solid var(--line)}
+  .gb-slot{height:var(--slot-px,34px);border-top:1px solid var(--line)}
   .gb-slot:first-child{border-top:none}
   .gb-slot.hour{border-top:1px solid var(--line-strong)}
 
@@ -136,9 +150,12 @@
      split-*, switch, total-line) переиспользуют разметку/JS из темы
      (1:1 с cars.html), но здесь, внутри .modal-lg, у них поверх — визуальный
      скин v4: без рамок, скругления 14–16px, светло-серая заливка полей. */
-  .modal-lg{width:1180px;max-width:96vw;max-height:92vh;overflow-y:auto;background:var(--paper);border:none;border-radius:32px;padding:0;position:relative;box-shadow:0 40px 90px -24px rgba(13,13,13,.35)}
+  .modal-lg{width:1180px;max-width:96vw;max-height:92vh;overflow-y:auto;background:var(--paper);border:none;border-radius:32px;padding:0;position:relative;box-shadow:0 40px 90px -24px rgba(13,13,13,.35);--status-accent:var(--muted-2)}
   .modal-lg::-webkit-scrollbar{width:6px}
   .modal-lg::-webkit-scrollbar-thumb{background:var(--paper-3);border-radius:3px}
+  /* цветная полоса статуса слева от окна записи — как заголовок карточки визита в YCLIENTS */
+  .modal-lg::before{content:"";position:absolute;left:0;top:0;bottom:0;width:6px;border-radius:32px 0 0 32px;background:var(--status-accent);z-index:1}
+  .modal-status-pill{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;padding:4px 11px;border-radius:999px;margin-bottom:8px;color:#fff;background:var(--status-accent)}
   .modal-close{position:absolute;top:18px;right:18px;width:36px;height:36px;border-radius:50%;border:none;background:var(--paper-2);color:var(--muted);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2;transition:background .12s,color .12s}
   .modal-close:hover{color:var(--ink);background:var(--paper-3)}
 
@@ -317,6 +334,7 @@
         <button class="today-btn" id="todayBtn">Сегодня</button>
       </div>
       <div class="toolbar-right">
+        <button class="filter-select popover-btn" id="quickSaleBtn" type="button"><i class="ti ti-shopping-cart-plus"></i>Продажа</button>
         <div class="popover-wrap">
           <button class="filter-select popover-btn" id="daySummaryBtn" type="button"><i class="ti ti-report-money"></i>Итоги дня</button>
           <div class="popover-panel wide" id="daySummaryPanel">
@@ -325,6 +343,22 @@
             <div class="ds-grid" id="dsGrid"><div class="empty-note-sm">Загрузка…</div></div>
             <div class="ds-note" id="dsNote"></div>
             <div class="ds-links" id="dsLinks"></div>
+          </div>
+        </div>
+        <div class="popover-wrap">
+          <button class="filter-select popover-btn" id="statusFilterBtn" type="button"><i class="ti ti-filter"></i>Статусы</button>
+          <div class="popover-panel" id="statusFilterPanel">
+            <div class="bf-quick">
+              <button type="button" class="bf-quick-btn" id="sfAllBtn">Все статусы</button>
+            </div>
+            <div class="bf-list" id="sfList"></div>
+          </div>
+        </div>
+        <div class="popover-wrap">
+          <button class="filter-select popover-btn" id="zoomBtn" type="button"><i class="ti ti-arrows-vertical"></i></button>
+          <div class="popover-panel" id="zoomPanel">
+            <div class="ds-title" style="margin-bottom:10px">Масштаб журнала</div>
+            <div class="zoom-list" id="zoomList"></div>
           </div>
         </div>
         <div class="popover-wrap">
@@ -365,6 +399,7 @@
     <div class="modal-close" id="modalCloseBtn"><i class="ti ti-x"></i></div>
     <div class="modal-header">
       <div class="booking-id-tag" id="bookingIdTag" style="display:none"></div>
+      <div class="modal-status-pill" id="modalStatusPill" style="display:none"></div>
       <h2 id="modalTitle">Новая запись</h2>
     </div>
 
@@ -522,8 +557,15 @@ if (CW.requireAuth()) {
 
   // Сетка: 08:00–20:00, шаг 30 минут, 34px на слот (столько же, сколько
   // в макете booking-preview.html) — синхронизировано с START_HOUR/END_HOUR ниже.
-  const START_HOUR = 8, END_HOUR = 20, SLOT_PX = 34;
-  const PX_PER_MIN = SLOT_PX / 30;
+  const START_HOUR = 8, END_HOUR = 20;
+  const ZOOM_LEVELS = [
+    { key: "compact", label: "Компактно", px: 22 },
+    { key: "normal", label: "Обычно", px: 34 },
+    { key: "large", label: "Крупно", px: 48 },
+  ];
+  let SLOT_PX = Number(localStorage.getItem("cw_booking_zoom")) || 34;
+  if (!ZOOM_LEVELS.some(z => z.px === SLOT_PX)) SLOT_PX = 34;
+  let PX_PER_MIN = SLOT_PX / 30;
 
   const STATUS_LABELS = {
     waiting: "Ожидание", confirmed: "Подтверждено", arrived: "Клиент приехал",
@@ -551,6 +593,13 @@ if (CW.requireAuth()) {
   ];
   function boxColor(box) { return BOX_COLORS[(box - 1) % BOX_COLORS.length]; }
 
+  // цвет по статусу визита (используется и в карточках записи в сетке, и в
+  // акцентной полосе/пилюле окна записи — как цветная шапка карточки в YCLIENTS)
+  const STATUS_ACCENT = {
+    waiting: "#83817D", confirmed: "#7A5CFF", arrived: "#1B8A57",
+    no_show: "#D63A2E", in_progress: "#FF5000", done: "#1B8A57",
+  };
+
   const branch = CW.getActiveBranch();
   const errEl = document.getElementById("errBanner");
   function showErr(msg) { errEl.textContent = msg; errEl.style.display = "block"; }
@@ -558,6 +607,7 @@ if (CW.requireAuth()) {
   let curDate = new Date();
   let boxFilterSet = new Set(); // номера видимых боксов — пересобирается в buildBoxFilter()
   let boxFilterAuto = true;     // true = следовать за «на смене сегодня» при смене даты; false = ручной выбор пользователя
+  let statusFilterSet = new Set(STATUS_ORDER); // видимые статусы визитов — по умолчанию все
   let daySummaryOpen = false;
   let boxes = [];
   let bookings = [];
@@ -686,6 +736,69 @@ if (CW.requireAuth()) {
     renderGrid();
   });
 
+  // ---------- фильтр по статусам визита — тот же паттерн попапа-чеклиста, что у боксов.
+  // Позволяет, например, скрыть все «Клиент не пришёл», чтобы они не мешали в журнале
+  // (как в YCLIENTS: Журнал → кнопка фильтрации → статусы визита). ----------
+  function renderStatusFilterPanel() {
+    const btn = document.getElementById("statusFilterBtn");
+    const list = document.getElementById("sfList");
+    document.getElementById("sfAllBtn").classList.toggle("active", statusFilterSet.size === STATUS_ORDER.length);
+    list.innerHTML = STATUS_ORDER.map(s => {
+      const checked = statusFilterSet.has(s);
+      return `
+        <label class="bf-item ${checked ? "checked" : ""}" data-status="${s}">
+          <input type="checkbox" ${checked ? "checked" : ""}>
+          <span class="bf-dot" style="background:${STATUS_ACCENT[s]}"></span>
+          <span class="bf-name"><i class="ti ${STATUS_ICONS[s]}"></i>&nbsp; ${STATUS_LABELS[s]}</span>
+        </label>`;
+    }).join("");
+    list.querySelectorAll(".bf-item").forEach(item => {
+      item.addEventListener("click", (e) => {
+        e.preventDefault();
+        const s = item.dataset.status;
+        if (statusFilterSet.has(s)) {
+          if (statusFilterSet.size > 1) statusFilterSet.delete(s); // не даём скрыть все статусы разом
+        } else {
+          statusFilterSet.add(s);
+        }
+        renderStatusFilterPanel();
+        renderGrid();
+      });
+    });
+    if (statusFilterSet.size === STATUS_ORDER.length) {
+      btn.innerHTML = `<i class="ti ti-filter"></i>Статусы`;
+    } else {
+      btn.innerHTML = `<i class="ti ti-filter"></i>Статусы <span class="pb-badge">${statusFilterSet.size} из ${STATUS_ORDER.length}</span>`;
+    }
+  }
+  document.getElementById("sfAllBtn").addEventListener("click", () => {
+    statusFilterSet = new Set(STATUS_ORDER);
+    renderStatusFilterPanel();
+    renderGrid();
+  });
+  renderStatusFilterPanel();
+
+  // ---------- масштаб журнала (высота получасового слота) — как кнопка-шестерёнка
+  // «Масштаб» в YCLIENTS. Выбор сохраняется в localStorage, чтобы не сбрасывался. ----------
+  function renderZoomPanel() {
+    const list = document.getElementById("zoomList");
+    list.innerHTML = ZOOM_LEVELS.map(z => `
+      <div class="zoom-opt ${z.px === SLOT_PX ? "active" : ""}" data-px="${z.px}">
+        <span>${z.label}</span>
+        <i class="ti ti-check zo-check"></i>
+      </div>`).join("");
+    list.querySelectorAll(".zoom-opt").forEach(el => {
+      el.addEventListener("click", () => {
+        SLOT_PX = Number(el.dataset.px);
+        PX_PER_MIN = SLOT_PX / 30;
+        localStorage.setItem("cw_booking_zoom", String(SLOT_PX));
+        renderZoomPanel();
+        renderGrid();
+      });
+    });
+  }
+  renderZoomPanel();
+
   // ---------- попапы: открытие/закрытие по клику на кнопку / клику снаружи ----------
   function setupPopover(btnId, panelId, onOpen) {
     const btn = document.getElementById(btnId);
@@ -703,6 +816,8 @@ if (CW.requireAuth()) {
   }
   document.addEventListener("click", () => document.querySelectorAll(".popover-panel.open").forEach(p => p.classList.remove("open")));
   setupPopover("boxFilterBtn", "boxFilterPanel");
+  setupPopover("statusFilterBtn", "statusFilterPanel");
+  setupPopover("zoomBtn", "zoomPanel");
   setupPopover("daySummaryBtn", "daySummaryPanel", () => { daySummaryOpen = true; loadDaySummary(); });
   document.getElementById("daySummaryPanel").addEventListener("transitionend", () => {}); // no-op, задел на будущее
   // отслеживаем закрытие попапа «Итоги дня», чтобы не дёргать API, пока он скрыт
@@ -769,14 +884,15 @@ if (CW.requireAuth()) {
     empty.style.display = "none";
     grid.style.display = "grid";
     grid.style.setProperty("--cols", visibleBoxes.length);
+    grid.style.setProperty("--slot-px", SLOT_PX + "px");
 
     // легенда: цвет на бокс + расшифровка статусов
     legend.style.display = "flex";
     legend.innerHTML = visibleBoxes.map(b => `
       <div class="legend-item"><span class="legend-dot" style="background:${boxColor(b.box).c}"></span>Бокс ${b.box}${b.employee ? " · " + b.employee : ""}</div>
-    `).join("") + `
-      <div class="legend-item"><span class="appt-status done" style="width:14px;height:14px;font-size:8px"><i class="ti ti-check"></i></span>Оплачено</div>
-      <div class="legend-item"><span class="appt-status progress" style="width:14px;height:14px;font-size:8px"></span>В процессе</div>`;
+    `).join("") + STATUS_ORDER.map(s => `
+      <div class="legend-item"><span class="legend-dot" style="background:${STATUS_ACCENT[s]}"></span>${STATUS_LABELS[s]}</div>
+    `).join("");
 
     // заголовки колонок + время
     let html = `<div class="gh-corner"></div>`;
@@ -821,7 +937,9 @@ if (CW.requireAuth()) {
 
     // сами записи, спозиционированные по времени
     const visibleBoxNums = new Set(visibleBoxes.map(b => String(b.box)));
-    bookings.filter(bk => visibleBoxNums.has(String(bk.box))).forEach(bk => {
+    bookings
+      .filter(bk => visibleBoxNums.has(String(bk.box)) && statusFilterSet.has(bk.status || "waiting"))
+      .forEach(bk => {
       const col = grid.querySelector(`.gb-col[data-box="${bk.box}"]`);
       if (!col) return;
       const startMin = timeToMinutes(bk.start_time);
@@ -830,23 +948,25 @@ if (CW.requireAuth()) {
       const top = Math.max(0, (startMin - START_HOUR * 60)) * PX_PER_MIN;
       const height = Math.max(28, (endMin - startMin) * PX_PER_MIN);
       const col_ = boxColor(bk.box);
-      const done = bk.status === "done";
+      const status = bk.status || "waiting";
+      const statusColor = STATUS_ACCENT[status] || STATUS_ACCENT.waiting;
       const svcList = [
         ...(bk.service_keys || []).map(k => serviceNames[k] || k),
         ...(bk.custom_services || []).map(s => s.name),
       ];
       const svcNames = svcList.length ? svcList.map(escapeHtml).join(", ") : (STATUS_LABELS[bk.status] || bk.status);
       const el = document.createElement("div");
-      el.className = "appt";
+      el.className = "appt" + (status === "no_show" ? " no-show" : "");
       el.style.top = top + "px";
       el.style.height = height + "px";
       el.style.borderLeftColor = col_.c;
       el.style.background = col_.t;
-      el.title = "Открыть запись";
+      el.title = `${STATUS_LABELS[status] || status} · Открыть запись`;
       el.innerHTML = `
+        <div class="appt-status-strip" style="background:${statusColor}"></div>
         <div class="appt-top">
           <span class="appt-time">${bk.start_time}–${bk.end_time}</span>
-          <span class="appt-status ${done ? "done" : "progress"}">${done ? '<i class="ti ti-check"></i>' : ""}</span>
+          <span class="appt-status" style="background:${statusColor};color:#fff;border:none" title="${STATUS_LABELS[status] || status}"><i class="ti ${STATUS_ICONS[status] || "ti-clock"}"></i></span>
         </div>
         <div class="appt-name">${escapeHtml(bk.client_name || bk.car || "Без имени")}</div>
         ${bk.phone ? `<div class="appt-phone">${escapeHtml(bk.phone)}</div>` : ""}
@@ -1007,6 +1127,11 @@ if (CW.requireAuth()) {
 
   function setStatusTab(status) {
     document.querySelectorAll(".status-tab").forEach(b => b.classList.toggle("active", b.dataset.status === status));
+    const color = STATUS_ACCENT[status] || STATUS_ACCENT.waiting;
+    document.querySelector(".modal-lg").style.setProperty("--status-accent", color);
+    const pill = document.getElementById("modalStatusPill");
+    pill.style.display = "inline-flex";
+    pill.innerHTML = `<i class="ti ${STATUS_ICONS[status] || "ti-clock"}"></i>${STATUS_LABELS[status] || status}`;
   }
   function currentStatus() {
     const active = document.querySelector(".status-tab.active");
@@ -1252,6 +1377,24 @@ if (CW.requireAuth()) {
     updateTotal();
     modalBg.classList.add("open");
   }
+
+  // Быстрая продажа — как кнопка «+» в журнале YCLIENTS: продать услугу/товар
+  // клиенту без записи на конкретное время. У нас нет отдельной сущности
+  // «продажа» на бэке, поэтому переиспользуем ту же запись (POST /api/bookings),
+  // но открываем её уже настроенной на «сейчас», короткую и сразу оплаченную —
+  // администратору остаётся только отметить услуги/товары и способ оплаты.
+  function openQuickSaleModal() {
+    if (!boxes.length) { showErr("Сначала добавьте сотрудников на странице «Сотрудники» — иначе нет боксов."); return; }
+    const duty = boxes.find(b => b.on_duty) || boxes[0];
+    const now = new Date();
+    let minutes = now.getHours() * 60 + now.getMinutes();
+    minutes = Math.max(START_HOUR * 60, Math.min((END_HOUR - 1) * 60 + 30, Math.round(minutes / 10) * 10));
+    openCreateModal(duty.box, minutes);
+    document.getElementById("modalTitle").textContent = "Быстрая продажа";
+    document.getElementById("fEnd").value = minutesToTime(Math.min(END_HOUR * 60, minutes + 20));
+    setStatusTab("done");
+  }
+  document.getElementById("quickSaleBtn").addEventListener("click", openQuickSaleModal);
 
   function openEditModal(bk) {
     editingId = bk.id;
