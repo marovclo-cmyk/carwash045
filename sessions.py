@@ -682,6 +682,34 @@ def client_summary(client: dict) -> dict:
     }
 
 
+def import_contacts(contacts: list[tuple[str, str]]) -> dict:
+    """Массово добавляет клиентов из внешнего списка (телефон, имя) — например,
+    экспорт контактов из телефона. Только ДОБАВЛЯЕТ новых клиентов: если номер
+    уже есть в базе (реальный клиент из приложения или уже импортированный
+    ранее), запись пропускается, существующие данные (визиты, авто) не трогаются.
+    Возвращает {"added": N, "skipped_existing": N, "skipped_invalid": N}."""
+    added = 0
+    skipped_existing = 0
+    skipped_invalid = 0
+
+    def _update(data):
+        nonlocal added, skipped_existing, skipped_invalid
+        for phone, name in contacts:
+            phone = normalize_phone(phone)
+            if not phone:
+                skipped_invalid += 1
+                continue
+            if phone in data:
+                skipped_existing += 1
+                continue
+            data[phone] = {"phone": phone, "name": (name or "").strip(), "cars": [], "visits": []}
+            added += 1
+        return data
+
+    _update_json_locked(CLIENTS_FILE, _update)
+    return {"added": added, "skipped_existing": skipped_existing, "skipped_invalid": skipped_invalid}
+
+
 def upsert_client_visit(phone: str, name: str, branch: str, car: str,
                          total: int, car_num: int | None = None,
                          date: str | None = None) -> dict:

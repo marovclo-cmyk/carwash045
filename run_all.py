@@ -17,6 +17,7 @@ import uvicorn
 
 from bot import main as bot_main
 from sessions import load_sessions
+from import_contacts import run_import_once
 
 print("🚀 run_all.py стартовал", flush=True)
 
@@ -34,6 +35,7 @@ def run_web():
 
 if __name__ == "__main__":
     load_sessions()  # грузим данные с диска в общую память ДО старта обоих сервисов
+    run_import_once()  # разовый импорт клиентов из контактов (см. import_contacts.py)
     web_thread = threading.Thread(target=run_web, daemon=True)
     web_thread.start()
     print("🌐 Веб-сервер (Mini App) запущен в фоновом потоке", flush=True)
