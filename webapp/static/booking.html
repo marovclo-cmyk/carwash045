@@ -129,37 +129,96 @@
   .field-row-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   .booking-id-tag{font-size:11px;color:var(--muted);font-weight:700;margin-bottom:2px}
 
-  /* ---------- модалка записи: широкая версия на 3 колонки (этап 4) ----------
+  /* ---------- модалка записи: широкая версия на 3 колонки (этап 4, приведено
+     к дизайну booking-create-modal-v4.html — мягкая заливка полей вместо
+     рамок, увеличенные скругления, тень вместо тонкой обводки контейнера).
      Виджет-компоненты (svc-grid/svc-item, custom-svc-*, pay-grid/pay-btn,
-     split-*, switch, total-line) не дублируются — они уже есть в
-     theme-plata.css (взяты 1:1 из cars.html, где решают ту же задачу выбора
-     услуг/оплаты). Здесь только то, чего в теме объективно не было:
-     широкая 3-колоночная раскладка и вкладки статуса записи. */
-  .modal-lg{width:1080px;max-width:96vw;max-height:92vh;overflow-y:auto;background:var(--paper);border:1.5px solid var(--line);border-radius:var(--r-xl);padding:26px 28px 22px;position:relative}
+     split-*, switch, total-line) переиспользуют разметку/JS из темы
+     (1:1 с cars.html), но здесь, внутри .modal-lg, у них поверх — визуальный
+     скин v4: без рамок, скругления 14–16px, светло-серая заливка полей. */
+  .modal-lg{width:1180px;max-width:96vw;max-height:92vh;overflow-y:auto;background:var(--paper);border:none;border-radius:32px;padding:0;position:relative;box-shadow:0 40px 90px -24px rgba(13,13,13,.35)}
   .modal-lg::-webkit-scrollbar{width:6px}
   .modal-lg::-webkit-scrollbar-thumb{background:var(--paper-3);border-radius:3px}
-  .modal-close{position:absolute;top:18px;right:18px;width:34px;height:34px;border-radius:50%;border:none;background:var(--paper-2);color:var(--muted);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2}
+  .modal-close{position:absolute;top:18px;right:18px;width:36px;height:36px;border-radius:50%;border:none;background:var(--paper-2);color:var(--muted);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2;transition:background .12s,color .12s}
   .modal-close:hover{color:var(--ink);background:var(--paper-3)}
-  .modal-cols{display:grid;grid-template-columns:1fr 1.25fr 1fr;gap:26px;margin-top:6px}
-  .modal-col{min-width:0}
-  .modal-col .field{margin-bottom:14px}
+
+  .modal-header{padding:32px 60px 6px 28px}
+  .modal-header #modalTitle{font-family:var(--font-display);font-size:22px;font-weight:600;letter-spacing:-0.01em;margin:0}
+
+  .modal-cols{display:grid;grid-template-columns:270px 1fr 300px;gap:28px}
+  .modal-col{min-width:0;padding:6px 8px}
+  .modal-col:first-child{padding-left:28px}
+  .modal-col:last-child{padding-right:28px}
+  .modal-col .field{margin-bottom:16px}
   .modal-col .field label{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:7px}
   .modal-col .field input,.modal-col .field select,.modal-col .field textarea{width:100%}
   .col-title{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:14px}
 
-  .status-tabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:16px}
-  .status-tab{display:flex;align-items:center;gap:6px;height:36px;padding:0 13px;border-radius:100px;border:none;background:var(--paper-2);color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font-body);transition:.12s}
-  .status-tab:hover{background:var(--paper-3)}
-  .status-tab.active{background:var(--ink);color:#fff}
+  /* мягкая заливка всех полей внутри широкой модалки — вместо рамок темы */
+  .modal-lg .modal-col input,.modal-lg .modal-col select,.modal-lg .modal-col textarea{
+    height:46px;border-radius:16px;border:1.5px solid transparent;
+    background:var(--paper-2);color:var(--ink);
+    padding:0 15px;font-size:13.5px;font-family:var(--font-body);
+    transition:background .12s,border-color .12s,box-shadow .12s;
+  }
+  .modal-lg .modal-col input::placeholder,.modal-lg .modal-col textarea::placeholder{color:var(--muted-2)}
+  .modal-lg .modal-col select{cursor:pointer;appearance:none;-webkit-appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2383817D' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:right 14px center;padding-right:38px}
+  .modal-lg .modal-col textarea{height:auto;padding:13px 15px;resize:vertical;line-height:1.45}
+  .modal-lg .modal-col input:focus,.modal-lg .modal-col select:focus,.modal-lg .modal-col textarea:focus{
+    outline:none;background:var(--paper);border-color:var(--orange);box-shadow:0 0 0 3px var(--orange-tint)}
 
-  .subtabs{display:flex;gap:3px;margin:4px 0 10px;background:var(--paper-2);border-radius:14px;padding:4px}
-  .subtab{flex:1;height:36px;border-radius:10px;border:none;background:transparent;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:var(--font-body);transition:.12s}
+  .status-tabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:16px}
+  .status-tab{display:flex;align-items:center;gap:6px;height:38px;padding:0 14px;border-radius:100px;border:none;background:var(--paper-2);color:var(--muted);font-size:12.5px;font-weight:700;cursor:pointer;font-family:var(--font-body);transition:background .12s,color .12s}
+  .status-tab:hover{background:var(--paper-3)}
+  .status-tab i{font-size:14px}
+  .status-tab[data-kind="ok"] i,.status-tab[data-kind="done"] i{color:var(--green)}
+  .status-tab[data-kind="no"] i{color:var(--red)}
+  .status-tab[data-kind="confirm"] i{color:var(--purple)}
+  .status-tab[data-kind="progress"] i{color:var(--orange)}
+  .status-tab.active{background:var(--ink);color:#fff}
+  .status-tab.active i{color:#fff}
+
+  .subtabs{display:flex;gap:3px;margin:18px 0 12px;background:var(--paper-2);border-radius:16px;padding:4px}
+  .subtab{flex:1;height:38px;border-radius:12px;border:none;background:transparent;color:var(--muted);font-size:12.5px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:var(--font-body);transition:background .15s,color .15s,box-shadow .15s}
   .subtab.active{background:var(--paper);color:var(--ink);box-shadow:0 3px 10px -4px rgba(13,13,13,.2)}
   .svc-pane{display:none}
   .svc-pane.active{display:block}
 
+  /* svc-grid/svc-item, custom-add-btn, custom-svc-form/-row, pay-grid/pay-btn,
+     split-toggle-row/split-grid, total-line — сама разметка и JS общие с
+     cars.html (theme-plata.css), а вот внешний вид здесь переопределён под
+     мягкую заливку v4 (без рамок, скругления 14–16px). */
+  .modal-lg .svc-grid{grid-template-columns:1fr 1fr;gap:8px;max-height:220px}
+  .modal-lg .svc-item{border:1.5px solid transparent;border-radius:16px;padding:11px 13px;background:var(--paper-2)}
+  .modal-lg .svc-item:hover{background:var(--paper-3)}
+  .modal-lg .svc-item.checked{border-color:var(--orange);background:var(--orange-tint);color:var(--ink)}
+  .modal-lg .custom-add-btn{border:none;border-radius:14px;height:42px;padding:0 15px;background:var(--paper-2);justify-content:center}
+  .modal-lg .custom-add-btn:hover{background:var(--paper-3);color:var(--ink)}
+  .modal-lg .custom-svc-form{border:none;border-radius:16px;background:var(--paper-2)}
+  .modal-lg .custom-svc-form .csf-row input{border:1.5px solid transparent;border-radius:14px;background:var(--paper);height:42px}
+  .modal-lg .custom-svc-form .csf-row input:focus{border-color:var(--orange)}
+  .modal-lg .custom-svc-row{border:none;border-radius:14px}
+  .modal-lg .pay-grid{gap:8px}
+  .modal-lg .pay-btn{border:1.5px solid transparent;border-radius:14px;background:var(--paper-2);height:44px}
+  .modal-lg .pay-btn.active{background:var(--orange-tint);color:var(--orange-2);border-color:var(--orange)}
+  .modal-lg .split-toggle-row{border:none;border-radius:14px;background:var(--paper-2)}
+  .modal-lg .split-row input{border:1.5px solid transparent;border-radius:12px;background:var(--paper-2);height:38px}
+  .modal-lg .split-row input:focus{outline:none;border-color:var(--orange)}
+  .modal-lg .total-input-wrap input{border:1.5px solid transparent;border-radius:14px;background:var(--paper-2);height:46px}
+  .modal-lg .total-input-wrap input:focus{outline:none;border-color:var(--orange)}
+
   .price-hint{font-size:11.5px;color:var(--muted);margin-top:4px}
   .no-services-note{font-size:12px;color:var(--muted-2);padding:10px 2px}
+
+  /* ---------- нижняя панель модалки: отмена/удалить/сохранить ---------- */
+  .modal-footer{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:16px 28px 26px;flex-wrap:wrap}
+  .modal-lg .modal-err{margin:0;flex:1 1 100%;order:-1}
+  .modal-lg .modal-actions{display:flex;gap:8px;margin-top:0;flex:1;justify-content:flex-end}
+  .modal-lg .modal-actions .btn{flex:none;justify-content:center;height:44px;padding:0 22px}
+  .modal-lg .modal-actions .btn.danger{background:transparent;color:var(--red);border:1.5px solid transparent;order:-1;margin-right:auto}
+  .modal-lg .modal-actions .btn.danger:hover{background:var(--red-tint)}
 
   /* ---------- клиентская панель: История/Лояльность/Сообщения/Счета (этап 5) ----------
      Компонент собран по образцу booking-create-modal-v4.html (client-icon-grid,
@@ -167,17 +226,17 @@
      (этап 2), Лояльность — реальные visit_count/total_spent + управление
      discount_percent через уже рабочий API (этап 2), а не фейковый кэшбэк.
      Сообщения/Счета — честная заглушка: этих сущностей в бэкенде нет вообще. */
-  .client-icon-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:16px 0}
+  .client-icon-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:16px 0}
   .ci-tile{display:flex;flex-direction:column;align-items:center;gap:8px;padding:13px 6px;border-radius:16px;background:var(--paper-2);border:none;cursor:pointer;text-align:center;font-family:var(--font-body);transition:background .12s}
   .ci-tile:hover{background:var(--paper-3)}
   .ci-tile:disabled{opacity:.45;cursor:not-allowed}
   .ci-tile i{font-size:17px;color:var(--muted)}
   .ci-tile span{font-size:10.5px;font-weight:700;color:var(--ink);line-height:1.25}
-  .ci-tile.wide{grid-column:span 2;flex-direction:row;justify-content:flex-start;padding:12px 14px}
+  .ci-tile.wide{grid-column:span 3;flex-direction:row;justify-content:flex-start;padding:12px 14px}
   .ci-tile.wide i{margin-bottom:0}
   .ci-hint{font-size:11.5px;color:var(--muted-2);line-height:1.4;margin:-6px 0 16px}
 
-  .detail-view{display:none;padding-top:4px}
+  .detail-view{display:none;padding:4px 28px 0}
   .detail-view.open{display:block}
   .detail-header{display:flex;align-items:center;gap:14px;margin-bottom:18px}
   .detail-title{font-family:var(--font-display);font-size:18px;font-weight:600}
@@ -223,6 +282,10 @@
 
   @media (max-width:860px){
     .modal-cols{grid-template-columns:1fr}
+    .modal-col:first-child,.modal-col:last-child{padding-left:8px;padding-right:8px}
+    .modal-col{padding-left:20px;padding-right:20px}
+    .modal-header{padding-left:20px}
+    .modal-footer{padding-left:20px;padding-right:20px}
   }
 </style>
 </head>
@@ -300,8 +363,10 @@
 <div class="modal-bg" id="modalBg">
   <div class="modal-lg">
     <div class="modal-close" id="modalCloseBtn"><i class="ti ti-x"></i></div>
-    <div class="booking-id-tag" id="bookingIdTag" style="display:none"></div>
-    <h2 id="modalTitle">Новая запись</h2>
+    <div class="modal-header">
+      <div class="booking-id-tag" id="bookingIdTag" style="display:none"></div>
+      <h2 id="modalTitle">Новая запись</h2>
+    </div>
 
     <div class="modal-cols">
       <!-- ============ ЛЕВАЯ КОЛОНКА: бокс / время / статус ============ -->
@@ -439,12 +504,13 @@
       <div id="detailContent"></div>
     </div>
 
-    <div class="modal-err" id="modalErr"></div>
-
-    <div class="modal-actions">
-      <button class="btn secondary" id="cancelBtn">Отмена</button>
-      <button class="btn danger" id="deleteBtn" style="display:none">Удалить</button>
-      <button class="btn accent" id="saveBtn">Сохранить</button>
+    <div class="modal-footer">
+      <div class="modal-err" id="modalErr"></div>
+      <div class="modal-actions">
+        <button class="btn danger" id="deleteBtn" style="display:none">Удалить</button>
+        <button class="btn secondary" id="cancelBtn">Отмена</button>
+        <button class="btn accent" id="saveBtn">Сохранить</button>
+      </div>
     </div>
   </div>
 </div>
@@ -467,6 +533,12 @@ if (CW.requireAuth()) {
   const STATUS_ICONS = {
     waiting: "ti-clock", confirmed: "ti-shield-check", arrived: "ti-check",
     no_show: "ti-x", in_progress: "ti-loader-2", done: "ti-cash",
+  };
+  // цвет иконки неактивной вкладки статуса (см. .status-tab[data-kind] в <style>) —
+  // визуальный акцент как в booking-create-modal-v4.html
+  const STATUS_KIND = {
+    waiting: "", confirmed: "confirm", arrived: "ok",
+    no_show: "no", in_progress: "progress", done: "done",
   };
 
   const BOX_COLORS = [
@@ -954,7 +1026,7 @@ if (CW.requireAuth()) {
     bodyTypeSel.addEventListener("change", updateTotal);
 
     const statusTabs = document.getElementById("statusTabs");
-    statusTabs.innerHTML = STATUS_ORDER.map(s => `<button type="button" class="status-tab" data-status="${s}"><i class="ti ${STATUS_ICONS[s]}"></i>${STATUS_LABELS[s]}</button>`).join("");
+    statusTabs.innerHTML = STATUS_ORDER.map(s => `<button type="button" class="status-tab" data-status="${s}"${STATUS_KIND[s] ? ` data-kind="${STATUS_KIND[s]}"` : ""}><i class="ti ${STATUS_ICONS[s]}"></i>${STATUS_LABELS[s]}</button>`).join("");
     statusTabs.querySelectorAll(".status-tab").forEach(btn => btn.addEventListener("click", () => setStatusTab(btn.dataset.status)));
 
     function wireCheckGrid(gridEl) {
