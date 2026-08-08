@@ -899,9 +899,15 @@ def _booking_breakdown(body_type: str, service_keys: list, custom_services: list
 @app.get("/api/bookings")
 def api_list_bookings(branch: str, date: str, x_init_data: str = Header(default=""), x_site_token: str = Header(default="")):
     """Записи филиала на дату (ДД.ММ.ГГГГ) + список боксов (= сотрудники
-    филиала по порядку, см. get_branch_boxes)."""
+    филиала по порядку, см. get_branch_boxes). У каждого бокса отдаётся
+    on_duty — работает ли сотрудник именно в эту дату по графику, чтобы
+    страница могла по умолчанию показывать только тех, кто на смене."""
     require_access(x_init_data, x_site_token)
-    return {"bookings": get_bookings(branch, date), "boxes": get_branch_boxes(branch)}
+    try:
+        on_date = datetime.strptime(date, "%d.%m.%Y").date()
+    except ValueError:
+        on_date = None
+    return {"bookings": get_bookings(branch, date), "boxes": get_branch_boxes(branch, on_date)}
 
 
 @app.post("/api/bookings")
@@ -1324,6 +1330,56 @@ def api_closeday(branch: str, body: Optional[NewDayIn] = None,
                   x_init_data: str = Header(default=""), x_site_token: str = Header(default="")):
     require_branch_admin(branch, x_init_data, x_site_token)
     return _do_close_day(branch, body or NewDayIn(), x_init_data, x_site_token)
+
+
+@app.get("/api/day-summary")
+def api_day_summary(branch: str, date: str, x_init_data: str = Header(default=""), x_site_token: str = Header(default="")):
+    """Свод по кассе + записям за конкретный день (ДД.ММ.ГГГГ) — данные для
+    попапа «Итоги дня» на странице «Запись» (booking.html), который должен
+    быть синхронизирован с реальными цифрами кассы/машин, а не показывать
+    отдельную, ничем не связанную статистику.
+
+    Для сегодняшней (ещё не закрытой) смены берёт живую сессию
+    (get_session) — те же данные, что показывает /api/reports/today.
+    Для прошлых дней — архив (туда данные попадают при закрытии смены,
+    см. save_to_archive/_do_close_day). Если день ещё не закрыт и это не
+    сегодня (или касса в этот день вообще не велась/будущая дата) —
+    кассовые показатели будут нулевыми: bookings — независимый источник
+    данных и считаются всегда, даже если кассы за этот день ещё/уже нет."""
+    require_access(x_init_data, x_site_token)
+
+    today_key = datetime.now().strftime("%d.%m.%Y")
+    is_live = (date == today_key)
+    day_data = get_session(branch) if is_live else load_archive().get(branch, {}).get(date)
+
+    if day_data:
+        summary = calculate_summary(day_data)
+        clients = len(day_data.get("cars", []))
+        receipts_total = summary["total"]
+        cash = summary["cash"]
+        noncash = summary["visa"] + summary["beznal"]
+        loyalty_total = summary["total_loyalty"]
+        products_total = summary["total_products"]
+    else:
+        clients = receipts_total = cash = noncash = loyalty_total = products_total = 0
+
+    bookings = [b for b in get_bookings(branch, date) if b.get("status") != "no_show"]
+    bookings_total = sum(b.get("price", 0) for b in bookings)
+
+    return {
+        "date": date,
+        "is_live": is_live,
+        "has_cash_data": bool(day_data),
+        "clients": clients,
+        "receipts_total": receipts_total,  # «Поступлений в кассу»
+        "cash": cash,                       # «Оплата наличными»
+        "noncash": noncash,                 # «Оплата безналом» (visa+безнал вместе)
+        "done_total": receipts_total,       # «Выполнено на сумму» — фактически поступившие деньги
+        "bookings_total": bookings_total,   # «Записей на сумму» — сумма всех записей на день (в т.ч. не оплаченных)
+        "bookings_count": len(bookings),
+        "loyalty_total": loyalty_total,     # «Лояльность на сумму»
+        "products_total": products_total,   # «Товаров на сумму»
+    }
 
 
 @app.get("/api/reports/today")
