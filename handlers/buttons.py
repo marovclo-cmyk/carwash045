@@ -1,14 +1,14 @@
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 
-from handlers.cash import show_summary, show_list, loyal_start, expense_prompt, avans_start
+from handlers.cash import show_summary, show_list, loyal_start, expense_prompt
 from handlers.reports import stats_command, _send_week_report, allreport_command
 from handlers.admin import (
     select_branch, cb_branch, cb_force_newday, is_allowed, cb_approve_deny,
     get_current_branch, is_branch_admin, get_role,
 )
 from handlers.cars import (
-    cb_employee, cb_body_type, cb_service, cb_payment, step_employee,
+    cb_employee, cb_body_type, cb_service, cb_payment, step_employee, cb_phone_skip,
     show_cars_for_action, cb_edit_pick, cb_delete_pick,
 )
 from handlers.products import (
@@ -24,8 +24,7 @@ MAIN_MENU = ReplyKeyboardMarkup([
     [KeyboardButton("📋 Список"),          KeyboardButton("💰 Сводка")],
     [KeyboardButton("📊 Статистика"),      KeyboardButton("📄 PDF")],
     [KeyboardButton("🗂 Отчёты"),          KeyboardButton("💸 Расход")],
-    [KeyboardButton("💵 Аванс"),           KeyboardButton("⚙️ Настройки")],
-    [KeyboardButton("📖 Инструкция")],
+    [KeyboardButton("⚙️ Настройки"),       KeyboardButton("📖 Инструкция")],
 ], resize_keyboard=True)
 
 # Урезанное меню для мойщика: только просмотр своего списка машин/статистики
@@ -76,13 +75,13 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data.startswith("body_"):     await cb_body_type(update, context)
     elif data.startswith("svc_"):      await cb_service(update, context)
     elif data.startswith("pay_"):      await cb_payment(update, context)
+    elif data == "phone_skip":         await cb_phone_skip(update, context)
     elif data.startswith("branch_"):   await cb_branch(update, context)
     elif data.startswith("forcenewday_"): await cb_force_newday(update, context)
     elif data.startswith("approve_") or data.startswith("deny_"): await cb_approve_deny(update, context)
     elif data.startswith("edit_"):     await cb_edit_pick(update, context)
     elif data.startswith("delete_"):   await cb_delete_pick(update, context)
     elif data.startswith("loyal_"):    await _cb_loyal_pick(update, context)
-    elif data.startswith("avans_"):    await _cb_avans_pick(update, context)
     elif data.startswith("prodpay_"):  await cb_product_payment(update, context)
     elif data.startswith("prod_"):     await cb_product(update, context)
     elif data.startswith("delprod_"):  await cb_delete_product(update, context)
@@ -98,7 +97,6 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == "cmd_deleteproduct": await show_products_for_action(update, context)
     elif data == "cmd_loyal":    await loyal_start(update, context)
     elif data == "cmd_expense":  await expense_prompt(update, context)
-    elif data == "cmd_avans":    await avans_start(update, context)
     elif data == "cmd_add":      await step_employee(update, context)
     elif data == "cmd_addproduct": await step_product(update, context)
     elif data == "cmd_allreport": await allreport_command(update, context)
@@ -142,11 +140,6 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def _cb_loyal_pick(update: Update, context: ContextTypes.DEFAULT_TYPE):
     from handlers.cash import cb_loyal_pick
     await cb_loyal_pick(update, context)
-
-
-async def _cb_avans_pick(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    from handlers.cash import cb_avans_pick
-    await cb_avans_pick(update, context)
 
 
 # ── ⚙️ НАСТРОЙКИ ───────────────────────────────────────────────────────────
@@ -274,7 +267,7 @@ async def handle_menu_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         # не обновилась — на всякий случай блокируем и на уровне текста.
         if text in ("📋 Список", "📊 Статистика", "📖 Инструкция", "⚙️ Настройки",
                     "🚗 Добавить машину", "🧴 Добавить товар", "💰 Сводка", "📄 PDF",
-                    "🗂 Отчёты", "💸 Расход", "💵 Аванс"):
+                    "🗂 Отчёты", "💸 Расход"):
             await update.message.reply_text(_deny_text())
             return True
         return False
@@ -327,17 +320,6 @@ async def handle_menu_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     elif text == "💸 Расход":
         context.user_data["step"] = "expense_text"
         await update.message.reply_text("💸 Напиши расход одной строкой:\nПример: `химия 500`", parse_mode="Markdown")
-        return True
-
-    elif text == "💵 Аванс":
-        from employee_stats import get_branch_employee_roles
-        names = sorted(get_branch_employee_roles(branch).keys())
-        if not names:
-            await update.message.reply_text("📋 В филиале пока нет сотрудников.")
-            return True
-        buttons = [[InlineKeyboardButton(name, callback_data=f"avans_{name}")] for name in names]
-        await update.message.reply_text("💵 *Кому выдаём аванс?*", parse_mode="Markdown",
-            reply_markup=InlineKeyboardMarkup(buttons))
         return True
 
     elif text == "⚙️ Настройки":

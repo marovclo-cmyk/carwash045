@@ -10,7 +10,7 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 
-from sessions import get_session, save_sessions, get_branch_workers
+from sessions import get_session, save_sessions, get_branch_workers, find_client, upsert_client_visit
 from config import (
     SERVICES, PAYMENT_TYPES, BODY_TYPES, BODY_TYPE_ORDER,
     services_label, services_display_name, get_service_price, get_service_percent,
@@ -204,16 +204,45 @@ async def handle_text_step(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     if step == "car_model":
         car = context.user_data["new_car"]
         car["car"] = update.message.text.strip()
-        context.user_data["step"] = "payment"
-        buttons = [[InlineKeyboardButton(p.upper(), callback_data=f"pay_{p}") for p in PAYMENT_TYPES]]
-        await update.message.reply_text("💳 *Способ оплаты:*", parse_mode="Markdown",
-            reply_markup=InlineKeyboardMarkup(buttons))
+        context.user_data["step"] = "client_phone"
+        await update.message.reply_text(
+            "📱 Телефон клиента (необязательно — для карточки клиента и истории визитов):",
+            reply_markup=InlineKeyboardMarkup(
+                [[InlineKeyboardButton("Пропустить", callback_data="phone_skip")]]))
+        return True
+
+    if step == "client_phone":
+        phone = update.message.text.strip()
+        car = context.user_data["new_car"]
+        car["phone"] = phone
+        client = find_client(phone)
+        if client:
+            await update.message.reply_text(
+                f"👤 *{client['name'] or 'Клиент'}* — это уже "
+                f"{client['visit_count'] + 1}-й визит, всего потратил "
+                f"{client['total_spent']}₽ ранее.", parse_mode="Markdown")
+        await _ask_payment(update.message, context)
         return True
 
     if step == "edit_price":
         return await _handle_edit_price_text(update, context)
 
     return False
+
+
+async def _ask_payment(msg, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data["step"] = "payment"
+    buttons = [[InlineKeyboardButton(p.upper(), callback_data=f"pay_{p}") for p in PAYMENT_TYPES]]
+    await msg.reply_text("💳 *Способ оплаты:*", parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(buttons))
+
+
+async def cb_phone_skip(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Кнопка «Пропустить» на шаге телефона клиента — машина сохранится
+    без привязки к карточке клиента."""
+    query = update.callback_query
+    await query.answer()
+    await _ask_payment(query.message, context)
 
 
 # ── ШАГ 4: ОПЛАТА → СОХРАНЕНИЕ ────────────────────────────────────────────
@@ -233,6 +262,9 @@ async def cb_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.pop("step", None)
     session["cars"].append(car)
     save_sessions()
+    if car.get("phone"):
+        upsert_client_visit(car["phone"], "", branch, car.get("car", ""),
+                             car.get("price", 0), car_num=car["num"])
     breakdown = car.get("price_breakdown")
     if breakdown:
         percents = sorted({v["percent"] for v in breakdown.values()})
