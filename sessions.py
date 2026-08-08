@@ -26,6 +26,7 @@ ARCHIVE_FILE  = os.path.join(DATA_DIR, "carwash_archive.json")
 BRANCHES_FILE = os.path.join(DATA_DIR, "carwash_branches.json")
 USERS_FILE    = os.path.join(DATA_DIR, "carwash_users.json")
 CLIENTS_FILE  = os.path.join(DATA_DIR, "carwash_clients.json")
+ADVANCES_FILE = os.path.join(DATA_DIR, "carwash_advances.json")
 
 LOCK_TIMEOUT = 10  # секунд ожидания блокировки, прежде чем сдаться
 
@@ -705,6 +706,74 @@ def upsert_client_visit(phone: str, name: str, branch: str, car: str,
 
     _update_json_locked(CLIENTS_FILE, _update)
     return client_summary(result["client"])
+
+
+# ── АВАНСЫ СОТРУДНИКОВ ──────────────────────────────────────────────────
+# carwash_advances.json: { branch: { name: [ {"idx","date","amount","ts"} ] } }
+# Аванс не привязан к дневной кассе — выдаётся "здесь и сейчас" админом
+# филиала и вычитается из недельного/месячного заработка сотрудника
+# (см. employee_period_stats в employee_stats.py).
+
+def add_advance(branch: str, name: str, amount: int) -> dict:
+    """Записывает выдачу аванса. Возвращает добавленную запись."""
+    result = {}
+
+    def _update(data):
+        branch_data = data.setdefault(branch, {})
+        entries = branch_data.setdefault(name, [])
+        idx = (max((e.get("idx", -1) for e in entries), default=-1) + 1)
+        entry = {
+            "idx": idx,
+            "date": datetime.now().strftime("%d.%m.%Y"),
+            "amount": amount,
+            "ts": time.time(),
+        }
+        entries.append(entry)
+        result["entry"] = entry
+        return data
+
+    _update_json_locked(ADVANCES_FILE, _update)
+    return result["entry"]
+
+
+def get_employee_advances(branch: str, name: str,
+                           date_from: datetime | None = None,
+                           date_to: datetime | None = None) -> list[dict]:
+    """Список авансов сотрудника, опционально отфильтрованный по датам
+    (date_from/date_to — datetime, включительно). Без фильтра — все авансы."""
+    data = _read_json_locked(ADVANCES_FILE)
+    entries = data.get(branch, {}).get(name, [])
+    if date_from is None and date_to is None:
+        return list(entries)
+    out = []
+    for e in entries:
+        try:
+            d = datetime.strptime(e["date"], "%d.%m.%Y")
+        except (ValueError, TypeError, KeyError):
+            continue
+        if date_from is not None and d < date_from.replace(hour=0, minute=0, second=0, microsecond=0):
+            continue
+        if date_to is not None and d > date_to.replace(hour=23, minute=59, second=59, microsecond=999999):
+            continue
+        out.append(e)
+    return out
+
+
+def delete_advance(branch: str, name: str, idx: int) -> bool:
+    """Удаляет запись об авансе по её idx. True, если запись была найдена и удалена."""
+    result = {"removed": False}
+
+    def _update(data):
+        entries = data.get(branch, {}).get(name, [])
+        for i, e in enumerate(entries):
+            if e.get("idx") == idx:
+                entries.pop(i)
+                result["removed"] = True
+                break
+        return data
+
+    _update_json_locked(ADVANCES_FILE, _update)
+    return result["removed"]
 
 
 # ── ПРИВЯЗКА ПОЛЬЗОВАТЕЛЯ К ФИЛИАЛУ (на сегодняшнюю смену) ─────────────────
