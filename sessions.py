@@ -682,32 +682,98 @@ def client_summary(client: dict) -> dict:
     }
 
 
-def import_contacts(contacts: list[tuple[str, str]]) -> dict:
-    """Массово добавляет клиентов из внешнего списка (телефон, имя) — например,
-    экспорт контактов из телефона. Только ДОБАВЛЯЕТ новых клиентов: если номер
-    уже есть в базе (реальный клиент из приложения или уже импортированный
-    ранее), запись пропускается, существующие данные (визиты, авто) не трогаются.
-    Возвращает {"added": N, "skipped_existing": N, "skipped_invalid": N}."""
-    added = 0
-    skipped_existing = 0
+def import_contact_car_labels(entries: list[tuple[str, str]]) -> dict:
+    """Массово подгружает список (телефон, ярлык) из контактов телефона —
+    например экспорт из iCloud. Ярлык там обычно НЕ имя человека, а название/
+    номер машины (так исторически сохранялись контакты — «Мазда», «Соляра
+    538»...), поэтому он кладётся в список машин клиента (cars), а НЕ в имя.
+    Имя клиента остаётся пустым, пока не будет реально указано (при следующей
+    мойке через карточку клиента или вручную). Если клиент с таким телефоном
+    уже есть — ярлык лишь добавляется в его cars (если там ещё нет), имя и
+    визиты не трогаются. Возвращает {"added_new", "updated_existing", "skipped_invalid"}."""
+    added_new = 0
+    updated_existing = 0
     skipped_invalid = 0
 
     def _update(data):
-        nonlocal added, skipped_existing, skipped_invalid
-        for phone, name in contacts:
+        nonlocal added_new, updated_existing, skipped_invalid
+        for phone, label in entries:
             phone = normalize_phone(phone)
+            label = (label or "").strip()
             if not phone:
                 skipped_invalid += 1
                 continue
-            if phone in data:
-                skipped_existing += 1
-                continue
-            data[phone] = {"phone": phone, "name": (name or "").strip(), "cars": [], "visits": []}
-            added += 1
+            if phone not in data:
+                data[phone] = {"phone": phone, "name": "", "cars": [label] if label else [], "visits": []}
+                added_new += 1
+            else:
+                cars = data[phone].setdefault("cars", [])
+                if label and label not in cars:
+                    cars.append(label)
+                    updated_existing += 1
         return data
 
     _update_json_locked(CLIENTS_FILE, _update)
-    return {"added": added, "skipped_existing": skipped_existing, "skipped_invalid": skipped_invalid}
+    return {"added_new": added_new, "updated_existing": updated_existing, "skipped_invalid": skipped_invalid}
+
+
+def fix_imported_contact_names(entries: list[tuple[str, str]]) -> dict:
+    """Разовое исправление прошлой ошибки: ярлык из контактов (название машины,
+    а не имя человека) раньше по ошибке сохранялся прямо в поле name клиента.
+    Если текущее имя клиента ТОЧНО совпадает с этим ярлыком (значит, его никто
+    вручную не менял после того импорта) — переносит ярлык в cars и очищает
+    name, чтобы карточка честно показывала «Без имени» вместо названия машины."""
+    fixed = 0
+
+    def _update(data):
+        nonlocal fixed
+        by_phone = {}
+        for phone, label in entries:
+            p = normalize_phone(phone)
+            if p:
+                by_phone[p] = (label or "").strip()
+        for phone, client in data.items():
+            label = by_phone.get(phone)
+            if not label:
+                continue
+            if client.get("name") == label:
+                client["name"] = ""
+                cars = client.setdefault("cars", [])
+                if label not in cars:
+                    cars.append(label)
+                fixed += 1
+        return data
+
+    _update_json_locked(CLIENTS_FILE, _update)
+    return {"fixed": fixed}
+
+
+def update_client(phone: str, name: str | None = None, cars: list[str] | None = None) -> dict | None:
+    """Точечное обновление карточки клиента (имя и/или список машин), без
+    добавления визита — используется при ручном редактировании на вкладке
+    «Клиенты» и при простановке имени клиенту, у которого телефон уже был
+    указан ранее. Возвращает обновлённую карточку или None, если клиента
+    с таким телефоном нет."""
+    phone = normalize_phone(phone)
+    if not phone:
+        return None
+    result = {}
+
+    def _update(data):
+        client = data.get(phone)
+        if client is None:
+            result["client"] = None
+            return data
+        if name is not None:
+            client["name"] = name.strip()
+        if cars is not None:
+            client["cars"] = cars
+        result["client"] = client
+        return data
+
+    _update_json_locked(CLIENTS_FILE, _update)
+    client = result.get("client")
+    return client_summary(client) if client else None
 
 
 def upsert_client_visit(phone: str, name: str, branch: str, car: str,
