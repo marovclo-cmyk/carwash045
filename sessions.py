@@ -27,6 +27,7 @@ BRANCHES_FILE = os.path.join(DATA_DIR, "carwash_branches.json")
 USERS_FILE    = os.path.join(DATA_DIR, "carwash_users.json")
 CLIENTS_FILE  = os.path.join(DATA_DIR, "carwash_clients.json")
 ADVANCES_FILE = os.path.join(DATA_DIR, "carwash_advances.json")
+BOOKINGS_FILE = os.path.join(DATA_DIR, "carwash_bookings.json")
 
 LOCK_TIMEOUT = 10  # секунд ожидания блокировки, прежде чем сдаться
 
@@ -672,14 +673,62 @@ def search_clients(query: str, limit: int = 8) -> list[dict]:
 
 def client_summary(client: dict) -> dict:
     """Добавляет вычисляемые поля (визитов, всего потрачено, последний визит)
-    поверх сырой записи клиента."""
+    поверх сырой записи клиента. discount_percent прокидывается как есть —
+    его отсутствие в client означает "скидка не установлена"."""
     visits = client.get("visits", [])
     return {
         **client,
         "visit_count": len(visits),
         "total_spent": sum(v.get("total", 0) for v in visits),
         "last_visit": visits[-1]["date"] if visits else None,
+        "discount_percent": client.get("discount_percent"),
     }
+
+
+def set_client_discount(phone: str, percent: float) -> dict | None:
+    """Устанавливает постоянную скидку клиента (0 < percent <= 100).
+    Возвращает обновлённую карточку или None, если клиента с таким
+    телефоном нет."""
+    phone = normalize_phone(phone)
+    if not phone:
+        return None
+    result = {}
+
+    def _update(data):
+        client = data.get(phone)
+        if client is None:
+            result["client"] = None
+            return data
+        client["discount_percent"] = percent
+        result["client"] = client
+        return data
+
+    _update_json_locked(CLIENTS_FILE, _update)
+    client = result.get("client")
+    return client_summary(client) if client else None
+
+
+def clear_client_discount(phone: str) -> dict | None:
+    """Снимает постоянную скидку клиента (убирает поле полностью, а не
+    просто зануляет — чтобы отличать "скидка 0%" от "скидка не задана",
+    хотя первое сейчас нигде не создаётся)."""
+    phone = normalize_phone(phone)
+    if not phone:
+        return None
+    result = {}
+
+    def _update(data):
+        client = data.get(phone)
+        if client is None:
+            result["client"] = None
+            return data
+        client.pop("discount_percent", None)
+        result["client"] = client
+        return data
+
+    _update_json_locked(CLIENTS_FILE, _update)
+    client = result.get("client")
+    return client_summary(client) if client else None
 
 
 def import_contact_car_labels(entries: list[tuple[str, str]]) -> dict:
@@ -778,11 +827,20 @@ def update_client(phone: str, name: str | None = None, cars: list[str] | None = 
 
 def upsert_client_visit(phone: str, name: str, branch: str, car: str,
                          total: int, car_num: int | None = None,
-                         date: str | None = None) -> dict:
+                         date: str | None = None, service: str = "",
+                         time: str = "", paid: int | None = None,
+                         status: str = "done") -> dict:
     """Заводит клиента (если новый) или обновляет карточку и добавляет визит.
-    Возвращает актуальную карточку клиента (с вычисляемыми полями)."""
+    Возвращает актуальную карточку клиента (с вычисляемыми полями).
+
+    service/time/paid/status — доп. поля для отображения визита в духе
+    макета (История посещений): состав услуг, время, сколько реально
+    оплачено и статус. Необязательные — старые вызовы без них по-прежнему
+    работают, просто визит будет чуть более "голым" в выдаче."""
     phone = normalize_phone(phone)
     date = date or datetime.now().strftime("%d.%m.%Y")
+    if paid is None:
+        paid = total  # запись в кассу = деньги уже приняты
     result = {}
 
     def _update(data):
@@ -794,6 +852,7 @@ def upsert_client_visit(phone: str, name: str, branch: str, car: str,
         client["visits"].append({
             "date": date, "branch": branch, "car": car,
             "total": total, "car_num": car_num,
+            "service": service, "time": time, "paid": paid, "status": status,
         })
         result["client"] = client
         return data
@@ -868,6 +927,193 @@ def delete_advance(branch: str, name: str, idx: int) -> bool:
 
     _update_json_locked(ADVANCES_FILE, _update)
     return result["removed"]
+
+
+# ── ЗАПИСИ (ЖУРНАЛ ЗАПИСИ / BOOKINGS) ───────────────────────────────────────
+# carwash_bookings.json: { branch: { "ДД.ММ.ГГГГ": [ {запись}, ... ] } }
+# Запись — это будущий/сегодняшний слот в боксе (в отличие от "машины" в
+# sessions/cars, которая появляется в кассе по факту приезда клиента).
+# id записи уникален глобально по всему файлу (как и car.num — но
+# car.num уникален только в рамках одной смены филиала, а запись должна
+# однозначно адресоваться без указания филиала/даты — отсюда сквозной id).
+#
+# Статусы записи (BOOKING_STATUSES зеркалируется в webapp/server.py):
+#   waiting     — ожидание (по умолчанию, только создана)
+#   confirmed   — клиент подтвердил, что приедет
+#   arrived     — клиент приехал, машина в боксе
+#   no_show     — клиент не пришёл (бокс/время считаются снова свободными)
+#   in_progress — мойка в процессе
+#   done        — оплачено/завершено
+#
+# Бокс (box) — просто порядковый номер (1..N). Привязка "бокс = сотрудник
+# по порядку в списке сотрудников филиала" делается через get_branch_boxes();
+# при этом у самой записи хранится ещё и employee (снэпшот имени на момент
+# создания/редактирования записи), т.к. состав сотрудников филиала может
+# со временем меняться, а исторические записи должны показывать того, кто
+# реально был назначен.
+
+def load_bookings() -> dict:
+    return _read_json_locked(BOOKINGS_FILE)
+
+
+def get_bookings(branch: str, date: str) -> list[dict]:
+    """Все записи филиала на конкретную дату (ДД.ММ.ГГГГ), в порядке создания."""
+    return load_bookings().get(branch, {}).get(date, [])
+
+
+def get_branch_boxes(branch: str) -> list[dict]:
+    """Боксы филиала = сотрудники филиала по порядку, пронумерованные с 1.
+    Пока в проекте нет отдельной сущности "бокс" — по умолчанию бокс #N
+    соответствует N-му сотруднику в списке (см. 00-audit-i-plan.md, п.1)."""
+    return [{"box": i + 1, "employee": name} for i, name in enumerate(get_branch_workers(branch))]
+
+
+def _time_to_minutes(value: str) -> int:
+    try:
+        h, m = value.split(":")
+        return int(h) * 60 + int(m)
+    except (ValueError, AttributeError):
+        return -1
+
+
+def find_conflicting_booking(branch: str, date: str, box: int, start_time: str, end_time: str,
+                              exclude_id: int | None = None) -> dict | None:
+    """Ищет запись в том же боксе/дате, чей интервал пересекается с
+    [start_time, end_time). Записи со статусом no_show не считаются
+    занятыми — слот, на который клиент не пришёл, снова свободен."""
+    new_start, new_end = _time_to_minutes(start_time), _time_to_minutes(end_time)
+    for b in get_bookings(branch, date):
+        if b.get("box") != box or b.get("id") == exclude_id or b.get("status") == "no_show":
+            continue
+        ex_start, ex_end = _time_to_minutes(b.get("start_time", "")), _time_to_minutes(b.get("end_time", ""))
+        if new_start < ex_end and ex_start < new_end:
+            return b
+    return None
+
+
+def _find_booking(data: dict, booking_id: int):
+    """Ищет запись по id по всему файлу. Возвращает (branch, date, booking) или None."""
+    for branch, days in data.items():
+        for date, items in days.items():
+            for b in items:
+                if b.get("id") == booking_id:
+                    return branch, date, b
+    return None
+
+
+def get_booking(booking_id: int) -> dict | None:
+    found = _find_booking(load_bookings(), booking_id)
+    return found[2] if found else None
+
+
+def create_booking(branch: str, date: str, box: int, start_time: str, end_time: str,
+                    employee: str = "", body_type: str = "", car: str = "",
+                    service_keys: list[str] | None = None, custom_services: list[dict] | None = None,
+                    product_keys: list[str] | None = None, price: int = 0, price_calc: int = 0,
+                    price_override: int | None = None, payment: str = "",
+                    payment_split: dict | None = None, comment: str = "",
+                    phone: str = "", client_name: str = "", status: str = "waiting") -> dict:
+    """Создаёт запись и возвращает её. id выдаётся сквозным счётчиком
+    (максимум существующих id + 1) под той же блокировкой, что и запись —
+    чтобы параллельные создания не получили одинаковый id."""
+    result = {}
+
+    def _update(data):
+        max_id = 0
+        for days in data.values():
+            for items in days.values():
+                for b in items:
+                    max_id = max(max_id, b.get("id", 0))
+        booking = {
+            "id": max_id + 1,
+            "branch": branch,
+            "date": date,
+            "box": box,
+            "start_time": start_time,
+            "end_time": end_time,
+            "employee": employee,
+            "body_type": body_type,
+            "car": car,
+            "service_keys": service_keys or [],
+            "custom_services": custom_services or [],
+            "product_keys": product_keys or [],
+            "price": price,
+            "price_calc": price_calc,
+            "price_override": price_override,
+            "payment": payment,
+            "payment_split": payment_split,
+            "comment": comment,
+            "phone": normalize_phone(phone) if phone else "",
+            "client_name": client_name,
+            "status": status,
+            "created_at": datetime.now().isoformat(timespec="seconds"),
+            "updated_at": datetime.now().isoformat(timespec="seconds"),
+        }
+        data.setdefault(branch, {}).setdefault(date, []).append(booking)
+        result["booking"] = booking
+        return data
+
+    _update_json_locked(BOOKINGS_FILE, _update)
+    return result["booking"]
+
+
+def update_booking(booking_id: int, **fields) -> dict | None:
+    """Точечное обновление записи по id. Поддерживает перенос записи на
+    другую дату/филиал/бокс — в этом случае запись переносится в другой
+    список внутри того же файла. Ключи в fields со значением None
+    игнорируются (кроме служебных price_override/comment/phone — вызывающий
+    код должен передавать только реально изменяемые поля)."""
+    result = {"booking": None}
+
+    def _update(data):
+        found = _find_booking(data, booking_id)
+        if not found:
+            return data
+        branch, date, booking = found
+        new_branch = fields.pop("branch", None) or branch
+        new_date = fields.pop("date", None) or date
+        for k, v in fields.items():
+            if v is not None:
+                booking[k] = v
+        booking["updated_at"] = datetime.now().isoformat(timespec="seconds")
+        if new_branch != branch or new_date != date:
+            data[branch][date] = [b for b in data[branch][date] if b.get("id") != booking_id]
+            if not data[branch][date]:
+                del data[branch][date]
+            if not data[branch]:
+                del data[branch]
+            booking["branch"] = new_branch
+            booking["date"] = new_date
+            data.setdefault(new_branch, {}).setdefault(new_date, []).append(booking)
+        result["booking"] = booking
+        return data
+
+    _update_json_locked(BOOKINGS_FILE, _update)
+    return result["booking"]
+
+
+def set_booking_status(booking_id: int, status: str) -> dict | None:
+    return update_booking(booking_id, status=status)
+
+
+def delete_booking(booking_id: int) -> bool:
+    result = {"deleted": False}
+
+    def _update(data):
+        found = _find_booking(data, booking_id)
+        if not found:
+            return data
+        branch, date, booking = found
+        data[branch][date] = [b for b in data[branch][date] if b.get("id") != booking_id]
+        if not data[branch][date]:
+            del data[branch][date]
+        if not data[branch]:
+            del data[branch]
+        result["deleted"] = True
+        return data
+
+    _update_json_locked(BOOKINGS_FILE, _update)
+    return result["deleted"]
 
 
 # ── ПРИВЯЗКА ПОЛЬЗОВАТЕЛЯ К ФИЛИАЛУ (на сегодняшнюю смену) ─────────────────
