@@ -36,7 +36,7 @@ from sessions import (
     load_archive, load_users, save_users, add_user, remove_user,
     set_worker_schedule, clear_worker_schedule, get_worker_schedule,
     get_schedule_status, is_working_on,
-    normalize_phone, find_client, search_clients, upsert_client_visit, load_clients, client_summary,
+    normalize_phone, find_client, search_clients, upsert_client_visit, load_clients, client_summary, update_client,
 )
 from calculator import calculate_summary
 from pdf_generator import generate_pdf
@@ -267,6 +267,13 @@ class CarEditIn(BaseModel):
     clear_price_override: bool = False     # true → вернуть цену к расчётной по услугам
     comment: Optional[str] = None
     status: Optional[str] = None
+    phone: Optional[str] = None
+    client_name: Optional[str] = None
+
+
+class ClientUpdateIn(BaseModel):
+    name: Optional[str] = None
+    cars: Optional[list[str]] = None
 
 
 class CarStatusIn(BaseModel):
@@ -636,6 +643,17 @@ def api_list_clients(x_init_data: str = Header(default=""), x_site_token: str = 
     return {"clients": clients, "total": len(clients)}
 
 
+@app.put("/api/clients/{phone}")
+def api_update_client(phone: str, body: ClientUpdateIn, x_init_data: str = Header(default=""), x_site_token: str = Header(default="")):
+    """Редактирование карточки клиента (имя, список машин) вручную со
+    страницы «Клиенты». Визиты и телефон этим не затрагиваются."""
+    require_access(x_init_data, x_site_token)
+    client = update_client(phone, name=body.name, cars=body.cars)
+    if not client:
+        raise HTTPException(404, "Клиент не найден")
+    return client
+
+
 def _rebuild_car_breakdown(body_type: str, service_keys: list, custom_services: list) -> dict:
     breakdown = {}
     for k in service_keys:
@@ -701,6 +719,21 @@ def api_edit_car(branch: str, num: int, body: CarEditIn, x_init_data: str = Head
             raise HTTPException(400, "Итоговая сумма не может быть отрицательной")
         car["price"] = int(body.price_override)
         car["price_override"] = int(body.price_override)
+
+    # телефон/имя клиента: если номер указывается впервые — это как обычное
+    # добавление визита (с уже финальной ценой); если номер тот же — просто
+    # обновляем имя без повторной записи визита (иначе визит задвоился бы
+    # при каждой правке)
+    if body.phone is not None:
+        new_phone = normalize_phone(body.phone) if body.phone else ""
+        old_phone = car.get("phone", "")
+        car["phone"] = new_phone
+        if new_phone and new_phone != old_phone:
+            upsert_client_visit(new_phone, body.client_name or "", branch, car.get("car", ""), car["price"], car_num=num)
+        elif new_phone and body.client_name:
+            update_client(new_phone, name=body.client_name)
+    elif body.client_name and car.get("phone"):
+        update_client(car["phone"], name=body.client_name)
 
     if car.get("payment_split"):
         split_sum = sum(car["payment_split"].values())
