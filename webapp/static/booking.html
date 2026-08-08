@@ -22,6 +22,49 @@
   .filter-select{height:42px;border-radius:999px;border:1.5px solid var(--line-strong);background:var(--paper);padding:0 16px;font-size:13px;font-weight:600;color:var(--ink);font-family:var(--font-body);cursor:pointer}
   .filter-select:focus{outline:none;border-color:var(--orange)}
 
+  /* ---------- toolbar-right: попапы «Итоги дня» и «Боксы» ---------- */
+  .toolbar-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .popover-wrap{position:relative}
+  .popover-btn{display:flex;align-items:center;gap:7px}
+  .popover-btn i{font-size:15px;color:var(--muted)}
+  .popover-btn .pb-badge{background:var(--orange);color:#fff;font-size:10.5px;font-weight:700;border-radius:999px;padding:1px 7px;margin-left:2px}
+  .popover-panel{position:absolute;right:0;top:calc(100% + 8px);z-index:30;background:var(--surface-0);border:1.5px solid var(--line);border-radius:var(--r-lg);box-shadow:0 14px 34px rgba(13,13,13,.14);padding:16px;display:none}
+  .popover-panel.open{display:block}
+  .popover-panel.wide{width:340px}
+
+  /* попап «Боксы» */
+  .bf-quick{display:flex;gap:6px;margin-bottom:10px}
+  .bf-quick-btn{flex:1;height:32px;border-radius:999px;border:1.5px solid var(--line-strong);background:var(--paper);font-size:11.5px;font-weight:700;color:var(--ink);cursor:pointer;font-family:var(--font-body)}
+  .bf-quick-btn:hover{border-color:var(--orange);color:var(--orange)}
+  .bf-quick-btn.active{background:var(--ink);border-color:var(--ink);color:#fff}
+  .bf-list{display:flex;flex-direction:column;gap:6px;max-height:280px;overflow-y:auto}
+  .bf-item{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:var(--r-sm);background:var(--paper-2);border:1.5px solid var(--line);font-size:12.5px;cursor:pointer;transition:.12s}
+  .bf-item.checked{border-color:var(--orange);background:var(--orange-tint)}
+  .bf-item input{width:auto;accent-color:var(--orange)}
+  .bf-dot{width:9px;height:9px;border-radius:3px;flex-shrink:0}
+  .bf-name{flex:1;font-weight:600;color:var(--ink)}
+  .bf-off{font-size:10px;color:var(--muted-2);font-weight:700;background:var(--paper-3);padding:2px 7px;border-radius:999px}
+
+  /* попап «Итоги дня» */
+  .ds-title{font-family:var(--font-display);font-size:15px;font-weight:600}
+  .ds-sub{font-size:11.5px;color:var(--muted);font-weight:600;margin-top:1px;margin-bottom:12px}
+  .ds-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .ds-grid .mini-stat{text-align:left}
+  .ds-note{font-size:11px;color:var(--muted-2);margin-top:10px;line-height:1.4}
+  .ds-links{display:flex;gap:8px;margin-top:12px}
+  .ds-links a{flex:1;height:34px;border-radius:999px;border:1.5px solid var(--line-strong);display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;color:var(--ink);text-decoration:none}
+  .ds-links a:hover{border-color:var(--orange);color:var(--orange)}
+  .ds-links a.disabled{opacity:.4;pointer-events:none}
+
+  /* не на смене сегодня — колонка бокса приглушена, но не скрыта */
+  .gh-col.off-duty{opacity:.5}
+  .gh-col.off-duty .gh-role::after{content:" · не на смене"}
+
+  /* ---------- drag & drop записи (зажать и потянуть — перенос по времени/боксу) ---------- */
+  .appt.dragging{opacity:.35}
+  .appt-ghost{position:fixed;pointer-events:none;z-index:50;border-radius:var(--r-sm);padding:8px 10px;box-shadow:0 14px 30px rgba(13,13,13,.22);border-left-width:3px;border-style:solid;font-size:12px;font-weight:700;opacity:.96}
+  .gb-col.drop-target{background:var(--orange-tint)}
+
   /* ---------- легенда ---------- */
   .legend{display:flex;gap:16px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
   .legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);font-weight:600}
@@ -210,9 +253,28 @@
         </div>
         <button class="today-btn" id="todayBtn">Сегодня</button>
       </div>
-      <select class="filter-select" id="boxFilter">
-        <option value="all">Все боксы</option>
-      </select>
+      <div class="toolbar-right">
+        <div class="popover-wrap">
+          <button class="filter-select popover-btn" id="daySummaryBtn" type="button"><i class="ti ti-report-money"></i>Итоги дня</button>
+          <div class="popover-panel wide" id="daySummaryPanel">
+            <div class="ds-title">Итоги дня</div>
+            <div class="ds-sub" id="dsSub">—</div>
+            <div class="ds-grid" id="dsGrid"><div class="empty-note-sm">Загрузка…</div></div>
+            <div class="ds-note" id="dsNote"></div>
+            <div class="ds-links" id="dsLinks"></div>
+          </div>
+        </div>
+        <div class="popover-wrap">
+          <button class="filter-select popover-btn" id="boxFilterBtn" type="button">Все боксы</button>
+          <div class="popover-panel" id="boxFilterPanel">
+            <div class="bf-quick">
+              <button type="button" class="bf-quick-btn" id="bfAllBtn">Все боксы</button>
+              <button type="button" class="bf-quick-btn" id="bfDutyBtn">На смене сегодня</button>
+            </div>
+            <div class="bf-list" id="bfList"></div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="legend" id="legend" style="display:none"></div>
@@ -422,7 +484,9 @@ if (CW.requireAuth()) {
   function showErr(msg) { errEl.textContent = msg; errEl.style.display = "block"; }
 
   let curDate = new Date();
-  let boxFilter = "all";
+  let boxFilterSet = new Set(); // номера видимых боксов — пересобирается в buildBoxFilter()
+  let boxFilterAuto = true;     // true = следовать за «на смене сегодня» при смене даты; false = ручной выбор пользователя
+  let daySummaryOpen = false;
   let boxes = [];
   let bookings = [];
   let editingId = null;
@@ -467,18 +531,146 @@ if (CW.requireAuth()) {
       bookings = data.bookings || [];
       buildBoxFilter();
       renderGrid();
+      if (daySummaryOpen) loadDaySummary();
     } catch (e) {
       showErr(e.message);
     }
   }
 
+  // ---------- фильтр боксов: попап с чекбоксами вместо одиночного select ----------
+  // По умолчанию (boxFilterAuto=true) показываются боксы сотрудников, у которых
+  // сегодня (на выбранную дату) смена по графику (on_duty из /api/bookings).
+  // Как только пользователь вручную снял/поставил галочку или нажал «Все боксы»,
+  // включается ручной режим — выбор больше не меняется сам при смене даты, пока
+  // пользователь явно не вернётся в режим «На смене сегодня».
   function buildBoxFilter() {
-    const sel = document.getElementById("boxFilter");
-    const prev = sel.value;
-    sel.innerHTML = `<option value="all">Все боксы</option>` +
-      boxes.map(b => `<option value="${b.box}">Бокс ${b.box}</option>`).join("");
-    sel.value = boxes.some(b => String(b.box) === prev) || prev === "all" ? prev : "all";
-    boxFilter = sel.value;
+    if (boxFilterAuto) {
+      const onDuty = boxes.filter(b => b.on_duty).map(b => b.box);
+      boxFilterSet = new Set(onDuty.length ? onDuty : boxes.map(b => b.box));
+    } else {
+      // ручной режим: сохраняем прежний выбор, но выбрасываем боксы, которых
+      // больше нет (состав сотрудников филиала мог измениться)
+      const stillValid = boxes.map(b => b.box);
+      boxFilterSet = new Set([...boxFilterSet].filter(n => stillValid.includes(n)));
+      if (!boxFilterSet.size) boxFilterSet = new Set(stillValid); // не оставляем пользователя с пустой сеткой
+    }
+    renderBoxFilterPanel();
+  }
+
+  function renderBoxFilterPanel() {
+    const btn = document.getElementById("boxFilterBtn");
+    const list = document.getElementById("bfList");
+    document.getElementById("bfAllBtn").classList.toggle("active", !boxFilterAuto && boxFilterSet.size === boxes.length);
+    document.getElementById("bfDutyBtn").classList.toggle("active", boxFilterAuto);
+
+    if (!boxes.length) {
+      list.innerHTML = `<div class="empty-note-sm">Нет сотрудников на филиале</div>`;
+    } else {
+      list.innerHTML = boxes.map(b => {
+        const checked = boxFilterSet.has(b.box);
+        const col = boxColor(b.box);
+        return `
+          <label class="bf-item ${checked ? "checked" : ""}" data-box="${b.box}">
+            <input type="checkbox" ${checked ? "checked" : ""}>
+            <span class="bf-dot" style="background:${col.c}"></span>
+            <span class="bf-name">Бокс ${b.box}${b.employee ? " — " + escapeHtml(b.employee) : ""}</span>
+            ${b.on_duty ? "" : `<span class="bf-off">не на смене</span>`}
+          </label>`;
+      }).join("");
+      list.querySelectorAll(".bf-item").forEach(item => {
+        item.addEventListener("click", (e) => {
+          e.preventDefault();
+          const box = Number(item.dataset.box);
+          boxFilterAuto = false;
+          if (boxFilterSet.has(box)) {
+            if (boxFilterSet.size > 1) boxFilterSet.delete(box); // не даём снять последний бокс — сетка не может быть пустой
+          } else {
+            boxFilterSet.add(box);
+          }
+          renderBoxFilterPanel();
+          renderGrid();
+        });
+      });
+    }
+
+    if (!boxes.length) {
+      btn.innerHTML = `Все боксы`;
+    } else if (boxFilterSet.size === boxes.length) {
+      btn.innerHTML = `Все боксы`;
+    } else {
+      btn.innerHTML = `Боксы <span class="pb-badge">${boxFilterSet.size} из ${boxes.length}</span>`;
+    }
+  }
+
+  document.getElementById("bfAllBtn").addEventListener("click", () => {
+    boxFilterAuto = false;
+    boxFilterSet = new Set(boxes.map(b => b.box));
+    renderBoxFilterPanel();
+    renderGrid();
+  });
+  document.getElementById("bfDutyBtn").addEventListener("click", () => {
+    boxFilterAuto = true;
+    buildBoxFilter();
+    renderGrid();
+  });
+
+  // ---------- попапы: открытие/закрытие по клику на кнопку / клику снаружи ----------
+  function setupPopover(btnId, panelId, onOpen) {
+    const btn = document.getElementById(btnId);
+    const panel = document.getElementById(panelId);
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const willOpen = !panel.classList.contains("open");
+      document.querySelectorAll(".popover-panel.open").forEach(p => p.classList.remove("open"));
+      if (willOpen) {
+        panel.classList.add("open");
+        if (onOpen) onOpen();
+      }
+    });
+    panel.addEventListener("click", (e) => e.stopPropagation());
+  }
+  document.addEventListener("click", () => document.querySelectorAll(".popover-panel.open").forEach(p => p.classList.remove("open")));
+  setupPopover("boxFilterBtn", "boxFilterPanel");
+  setupPopover("daySummaryBtn", "daySummaryPanel", () => { daySummaryOpen = true; loadDaySummary(); });
+  document.getElementById("daySummaryPanel").addEventListener("transitionend", () => {}); // no-op, задел на будущее
+  // отслеживаем закрытие попапа «Итоги дня», чтобы не дёргать API, пока он скрыт
+  const _daySummaryPanelObserver = new MutationObserver(() => {
+    daySummaryOpen = document.getElementById("daySummaryPanel").classList.contains("open");
+  });
+  _daySummaryPanelObserver.observe(document.getElementById("daySummaryPanel"), { attributes: true, attributeFilter: ["class"] });
+
+  // ---------- попап «Итоги дня» — реальные цифры кассы + записей за день ----------
+  async function loadDaySummary() {
+    const grid = document.getElementById("dsGrid");
+    const sub = document.getElementById("dsSub");
+    const note = document.getElementById("dsNote");
+    const links = document.getElementById("dsLinks");
+    sub.textContent = `${branch} · ${dateLabel(curDate)}`;
+    grid.innerHTML = `<div class="empty-note-sm">Загрузка…</div>`;
+    note.textContent = "";
+    links.innerHTML = "";
+    try {
+      const d = await CW.authFetch(`/api/day-summary?branch=${encodeURIComponent(branch)}&date=${encodeURIComponent(dateKey(curDate))}`);
+      grid.innerHTML = `
+        <div class="mini-stat"><div class="ms-label">Поступлений в кассу</div><div class="ms-value">${CW.money(d.receipts_total)}</div></div>
+        <div class="mini-stat"><div class="ms-label">Записей на сумму</div><div class="ms-value">${CW.money(d.bookings_total)}</div></div>
+        <div class="mini-stat"><div class="ms-label">Оплата наличными</div><div class="ms-value">${CW.money(d.cash)}</div></div>
+        <div class="mini-stat"><div class="ms-label">Оплата безналом</div><div class="ms-value">${CW.money(d.noncash)}</div></div>
+        <div class="mini-stat"><div class="ms-label">Выполнено на сумму</div><div class="ms-value">${CW.money(d.done_total)}</div></div>
+        <div class="mini-stat"><div class="ms-label">Записей клиентов</div><div class="ms-value">${d.bookings_count}</div></div>
+        <div class="mini-stat"><div class="ms-label">Лояльность на сумму</div><div class="ms-value">${CW.money(d.loyalty_total)}</div></div>
+        <div class="mini-stat"><div class="ms-label">Товаров на сумму</div><div class="ms-value">${CW.money(d.products_total)}</div></div>`;
+      if (d.is_live) {
+        note.textContent = `Клиентов в кассе за смену: ${d.clients}. Данные из открытой смены — те же, что на страницах «Касса» и «Машины».`;
+        links.innerHTML = `<a href="/static/cash.html"><i class="ti ti-cash"></i>&nbsp;Касса</a><a href="/static/cars.html"><i class="ti ti-car"></i>&nbsp;Машины</a>`;
+      } else if (d.has_cash_data) {
+        note.textContent = `Клиентов в кассе за смену: ${d.clients}. Архивные данные закрытой смены за этот день (страницы «Касса»/«Машины» показывают только текущую открытую смену).`;
+      } else {
+        note.textContent = `За эту дату кассовых данных нет (смена ещё не открыта или не закрыта). Показаны только записи.`;
+      }
+    } catch (e) {
+      grid.innerHTML = `<div class="empty-note-sm">${escapeHtml(e.message)}</div>`;
+    }
   }
 
   function renderGrid() {
@@ -494,7 +686,7 @@ if (CW.requireAuth()) {
       return;
     }
 
-    const visibleBoxes = boxFilter === "all" ? boxes : boxes.filter(b => String(b.box) === String(boxFilter));
+    const visibleBoxes = boxes.filter(b => boxFilterSet.has(b.box));
     if (!visibleBoxes.length) {
       grid.style.display = "none";
       empty.style.display = "block";
@@ -519,7 +711,7 @@ if (CW.requireAuth()) {
     visibleBoxes.forEach(b => {
       const col = boxColor(b.box);
       html += `
-        <div class="gh-col">
+        <div class="gh-col${b.on_duty ? "" : " off-duty"}">
           <div class="gh-avatar" style="background:${col.t};color:${col.c}"><i class="ti ti-steering-wheel"></i></div>
           <div><div class="gh-name">Бокс ${b.box}</div><div class="gh-role">${b.employee ? "Автомойщик — " + b.employee : "Сотрудник не назначен"}</div></div>
         </div>`;
@@ -587,7 +779,12 @@ if (CW.requireAuth()) {
         <div class="appt-name">${escapeHtml(bk.client_name || bk.car || "Без имени")}</div>
         ${bk.phone ? `<div class="appt-phone">${escapeHtml(bk.phone)}</div>` : ""}
         <div class="appt-service">${svcNames}</div>`;
-      el.addEventListener("click", (e) => { e.stopPropagation(); openEditModal(bk); });
+      el.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (el.dataset.dragged === "1") { delete el.dataset.dragged; return; } // клик сразу после переноса — не открываем модалку
+        openEditModal(bk);
+      });
+      wireApptDrag(el, bk);
       col.appendChild(el);
     });
 
@@ -615,6 +812,109 @@ if (CW.requireAuth()) {
     return h * 60 + m;
   }
   function minutesToTime(min) { return `${pad2(Math.floor(min / 60))}:${pad2(min % 60)}`; }
+
+  // ---------- перенос записи: зажать и потянуть — время (вверх/вниз) и/или
+  // бокс (влево/вправо между колонками). Порог в пикселях отделяет обычный
+  // клик (открыть карточку) от начала переноса, чтобы случайное дрожание
+  // руки на клике не запускало drag. ----------
+  const DRAG_THRESHOLD = 6;
+  let dragState = null;
+
+  function wireApptDrag(el, bk) {
+    el.addEventListener("mousedown", (e) => {
+      if (e.button !== 0) return;
+      const grid = document.getElementById("bookingGrid");
+      const startMin = timeToMinutes(bk.start_time);
+      const endMin = timeToMinutes(bk.end_time);
+      const durationMin = Math.max(30, endMin - startMin);
+      dragState = {
+        bk, el, grid,
+        startX: e.clientX, startY: e.clientY,
+        origTop: el.offsetTop, origBox: bk.box,
+        durationMin,
+        dragging: false,
+        newBox: bk.box, newStartMin: startMin,
+        ghost: null,
+      };
+      e.preventDefault();
+    });
+  }
+
+  function updateApptGhost(state) {
+    const col = boxColor(state.newBox);
+    const boxInfo = boxes.find(b => b.box === state.newBox);
+    const endMin = state.newStartMin + state.durationMin;
+    state.ghost.style.width = state.el.offsetWidth + "px";
+    state.ghost.style.height = state.el.offsetHeight + "px";
+    state.ghost.style.borderLeftColor = col.c;
+    state.ghost.style.background = col.t;
+    state.ghost.innerHTML = `<div class="appt-time">${minutesToTime(state.newStartMin)}–${minutesToTime(endMin)} · Бокс ${state.newBox}${boxInfo && boxInfo.employee ? " (" + escapeHtml(boxInfo.employee) + ")" : ""}</div>`;
+  }
+
+  document.addEventListener("mousemove", (e) => {
+    if (!dragState) return;
+    const dx = e.clientX - dragState.startX;
+    const dy = e.clientY - dragState.startY;
+    if (!dragState.dragging) {
+      if (Math.abs(dx) < DRAG_THRESHOLD && Math.abs(dy) < DRAG_THRESHOLD) return;
+      dragState.dragging = true;
+      dragState.el.classList.add("dragging");
+      dragState.el.dataset.dragged = "1";
+      dragState.ghost = document.createElement("div");
+      dragState.ghost.className = "appt-ghost";
+      document.body.appendChild(dragState.ghost);
+      document.body.style.cursor = "grabbing";
+      document.body.style.userSelect = "none";
+    }
+
+    // определяем колонку под курсором (перенос между боксами)
+    const colEl = document.elementFromPoint(e.clientX, e.clientY);
+    const targetCol = colEl && colEl.closest(".gb-col");
+    document.querySelectorAll(".gb-col.drop-target").forEach(c => c.classList.remove("drop-target"));
+    if (targetCol) {
+      dragState.newBox = Number(targetCol.dataset.box);
+      targetCol.classList.add("drop-target");
+
+      // время — по вертикальной позиции курсора внутри этой колонки, с шагом 30 мин
+      const rect = targetCol.getBoundingClientRect();
+      const offsetY = e.clientY - rect.top;
+      let minutes = START_HOUR * 60 + Math.round((offsetY / PX_PER_MIN) / 30) * 30 - Math.round(dragState.durationMin / 2 / 30) * 30;
+      minutes = Math.max(START_HOUR * 60, Math.min(END_HOUR * 60 - dragState.durationMin, minutes));
+      dragState.newStartMin = minutes;
+    }
+
+    updateApptGhost(dragState);
+    dragState.ghost.style.left = (e.clientX + 14) + "px";
+    dragState.ghost.style.top = (e.clientY - 14) + "px";
+  });
+
+  document.addEventListener("mouseup", async () => {
+    if (!dragState) return;
+    const state = dragState;
+    dragState = null;
+    state.el.classList.remove("dragging");
+    document.querySelectorAll(".gb-col.drop-target").forEach(c => c.classList.remove("drop-target"));
+    if (state.ghost) state.ghost.remove();
+    document.body.style.cursor = "";
+    document.body.style.userSelect = "";
+
+    if (!state.dragging) return; // обычный клик — ничего не переносим, .appt click отработает сам
+    const changed = state.newBox !== state.origBox || state.newStartMin !== timeToMinutes(state.bk.start_time);
+    if (!changed) return;
+
+    const newStart = minutesToTime(state.newStartMin);
+    const newEnd = minutesToTime(state.newStartMin + state.durationMin);
+    try {
+      await CW.authFetch(`/api/bookings/${state.bk.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ box: state.newBox, start_time: newStart, end_time: newEnd }),
+      });
+      await loadBookings();
+    } catch (e) {
+      showErr(e.message); // например «бокс занят» — сервер отклонил перенос конфликтом
+      await loadBookings(); // откатываем визуально к тому, что реально сохранено
+    }
+  });
 
   // ---------- модалка: бокс/время/статус (лево) · услуги/товары/оплата
   // (центр, этап 4) · клиент (право) ----------
@@ -1263,7 +1563,6 @@ if (CW.requireAuth()) {
   document.getElementById("datePrev").addEventListener("click", () => { curDate.setDate(curDate.getDate() - 1); loadBookings(); });
   document.getElementById("dateNext").addEventListener("click", () => { curDate.setDate(curDate.getDate() + 1); loadBookings(); });
   document.getElementById("todayBtn").addEventListener("click", () => { curDate = new Date(); loadBookings(); });
-  document.getElementById("boxFilter").addEventListener("change", (e) => { boxFilter = e.target.value; renderGrid(); });
 }
 </script>
 </body>
