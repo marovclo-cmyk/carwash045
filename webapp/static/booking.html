@@ -576,19 +576,26 @@
       <div class="modal-col">
         <div class="col-title">Клиент</div>
 
-        <!-- состояние A: клиент ещё не выбран — поиск + последние клиенты сети -->
+        <div class="field client-search-field" style="position:relative;margin-bottom:0">
+          <i class="ti ti-search"></i>
+          <input type="text" id="fPhone" placeholder="Телефон или имя — поиск клиента" autocomplete="off">
+          <div id="clientDropdown" class="client-dropdown"></div>
+        </div>
+
+        <!-- Клиент и машина — одно поле вместо двух отдельных, чтобы не
+             плодить лишние колонки/блоки: имя и машина всегда рядом,
+             независимо от того, выбран ли клиент через поиск (состояние B)
+             или вводится новый (состояние A). -->
+        <div class="field" style="margin-top:16px;margin-bottom:0">
+          <label>Клиент и машина</label>
+          <div class="csf-row-2">
+            <input type="text" id="fClientName" placeholder="Имя клиента">
+            <input type="text" id="fCar" placeholder="Машина / госномер">
+          </div>
+        </div>
+
+        <!-- состояние A: клиент ещё не выбран — последние клиенты сети -->
         <div id="clientStateA">
-          <div class="field client-search-field" style="position:relative;margin-bottom:0">
-            <i class="ti ti-search"></i>
-            <input type="text" id="fPhone" placeholder="Телефон или имя — поиск клиента" autocomplete="off">
-            <div id="clientDropdown" class="client-dropdown"></div>
-          </div>
-
-          <div class="field" style="margin-top:16px">
-            <label>Имя клиента (если новый)</label>
-            <input type="text" id="fClientName" placeholder="Например, Дарья">
-          </div>
-
           <div class="prev-clients-title" id="prevClientsTitle" style="display:none">Предыдущие клиенты</div>
           <div class="prev-clients-list" id="prevClientsList"></div>
         </div>
@@ -612,11 +619,6 @@
             <button type="button" class="ci-tile" data-detail="messages"><i class="ti ti-message-circle"></i><span>Сообщения и звонки</span></button>
             <button type="button" class="ci-tile wide" data-detail="accounts"><i class="ti ti-wallet"></i><span>Счета клиента</span></button>
           </div>
-        </div>
-
-        <div class="field" style="margin-top:18px;margin-bottom:0">
-          <label>Машина / госномер</label>
-          <input type="text" id="fCar" placeholder="Например, Lexus RX или А000АА000">
         </div>
       </div>
     </div>
@@ -1143,7 +1145,7 @@ if (CW.requireAuth()) {
             <span class="appt-status" style="background:${statusColor};color:#fff;border:none" title="${STATUS_LABELS[status] || status}"><i class="ti ${STATUS_ICONS[status] || "ti-clock"}"></i></span>
           </span>
         </div>
-        <div class="appt-name">${escapeHtml(bk.client_name || bk.car || "Без имени")}</div>
+        <div class="appt-name">${escapeHtml([bk.client_name, bk.car].filter(Boolean).join(" — ") || "Без имени")}</div>
         ${bk.phone ? `<div class="appt-phone">${escapeHtml(bk.phone)}</div>` : ""}
         <div class="appt-service">${svcNames}</div>`;
       el.addEventListener("click", (e) => {
@@ -1390,15 +1392,23 @@ if (CW.requireAuth()) {
     statusTabs.innerHTML = STATUS_ORDER.map(s => `<button type="button" class="status-tab" data-status="${s}"${STATUS_KIND[s] ? ` data-kind="${STATUS_KIND[s]}"` : ""}><i class="ti ${STATUS_ICONS[s]}"></i>${STATUS_LABELS[s]}</button>`).join("");
     statusTabs.querySelectorAll(".status-tab").forEach(btn => btn.addEventListener("click", () => setStatusTab(btn.dataset.status)));
 
-    function wireCheckGrid(gridEl) {
+    function wireCheckGrid(gridEl, opts) {
+      const bumpToArrived = opts && opts.bumpToArrived;
       gridEl.querySelectorAll(".svc-item").forEach(el => {
         el.addEventListener("click", (e) => {
           if (e.target.tagName !== "INPUT") {
             const cb = el.querySelector("input");
             cb.checked = !cb.checked;
           }
-          el.classList.toggle("checked", el.querySelector("input").checked);
+          const checked = el.querySelector("input").checked;
+          el.classList.toggle("checked", checked);
           updateTotal();
+          // Выбрали услугу — считаем, что клиент приехал (если запись ещё
+          // просто "в ожидании"/"подтверждена"). Уже более поздние статусы
+          // (в работе/оплачено/не пришёл) автоматически не трогаем.
+          if (bumpToArrived && checked && ["waiting", "confirmed"].includes(currentStatus())) {
+            setStatusTab("arrived");
+          }
         });
       });
     }
@@ -1407,7 +1417,7 @@ if (CW.requireAuth()) {
     svcGrid.innerHTML = (cfg.services || []).map(s => `
       <label class="svc-item" data-key="${s.key}"><input type="checkbox" value="${s.key}"> ${s.name}</label>
     `).join("");
-    wireCheckGrid(svcGrid);
+    wireCheckGrid(svcGrid, { bumpToArrived: true });
 
     const prodGrid = document.getElementById("prodGrid");
     const products = cfg.products || [];
@@ -1434,7 +1444,12 @@ if (CW.requireAuth()) {
         // клик по уже выбранному способу снимает выбор (см. 01-model.../BookingIn.payment)
         const already = btn.classList.contains("active");
         payGrid.querySelectorAll(".pay-btn").forEach(b => b.classList.remove("active"));
-        if (!already) btn.classList.add("active");
+        if (!already) {
+          btn.classList.add("active");
+          // Выбрали способ оплаты — значит уже рассчитались, отмечаем запись
+          // как оплаченную.
+          if (currentStatus() !== "done") setStatusTab("done");
+        }
       });
     });
 
@@ -1455,6 +1470,7 @@ if (CW.requireAuth()) {
         splitGrid.querySelectorAll("input").forEach(i => i.value = "");
         const first = splitGrid.querySelector("input");
         if (first) first.value = parseInt(fTotalInput.value) || 0;
+        if (currentStatus() !== "done") setStatusTab("done");
       }
       updateSplitHint();
     });
@@ -2034,7 +2050,7 @@ if (CW.requireAuth()) {
       closeModal();
       await loadBookings();
       if (res && res.car_created) {
-        bkToast(`Клиент отмечен как приехавший — машина №${res.car_created} добавлена в кассу`);
+        bkToast(`Машина №${res.car_created} добавлена в кассу`);
       } else if (res && res.car_note) {
         bkToast(res.car_note, "warn");
       }
