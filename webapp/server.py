@@ -673,17 +673,21 @@ def _compose_and_add_car(session: dict, branch: str, employee: str, body_type: s
 
 
 def _maybe_convert_booking_to_car(booking: dict, x_init_data: str, x_site_token: str) -> tuple[dict, int | None, str | None]:
-    """Если запись только что переведена в статус «Пришёл» и ещё не
+    """Как только у записи выбрана хотя бы одна услуга и она ещё не
     конвертирована — создаёт машину в кассе ТЕКУЩЕЙ смены филиала на основе
-    данных записи (услуги/сумма/оплата/клиент), см. комментарий в sessions.py
-    над разделом ЗАПИСИ. Идемпотентно: если у записи уже проставлен car_num,
-    повторная машина не создаётся (повторное нажатие «Пришёл» или откат и
-    новый перевод в «Пришёл» безопасны). Вызывается и из полного PATCH записи
-    (когда статус меняют вместе с сохранением карточки), и из отдельного
-    PATCH .../status. Возвращает (актуальная_запись, car_created, car_note)."""
+    данных записи (услуги/сумма/оплата/клиент/мойщик), см. комментарий в
+    sessions.py над разделом ЗАПИСИ. Идемпотентно: если у записи уже
+    проставлен car_num, повторная машина не создаётся — дальнейшие правки
+    записи вместо этого обновляют уже созданную машину через
+    _sync_car_from_booking. Срабатывает при ЛЮБОМ статусе записи (booking,
+    cars и касса должны быть связаны с момента сохранения записи, а не
+    только при переводе в «Пришёл»). Вызывается из создания записи (POST),
+    из полного PATCH записи и из отдельного PATCH .../status. Возвращает
+    (актуальная_запись, car_created, car_note)."""
     car_created = None
     car_note = None
-    if booking.get("status") == "arrived" and not booking.get("car_num"):
+    has_services = bool(booking.get("service_keys") or booking.get("custom_services"))
+    if has_services and not booking.get("car_num"):
         session = get_session(booking["branch"])
         if booking.get("date") != session.get("date"):
             car_note = "Запись не на сегодняшнюю смену — машина в кассу не добавлена автоматически"
@@ -714,6 +718,65 @@ def _maybe_convert_booking_to_car(booking: dict, x_init_data: str, x_site_token:
     if car_created:
         booking = update_booking(booking["id"], car_num=car_created) or booking
     return booking, car_created, car_note
+
+
+def _sync_car_from_booking(booking: dict) -> str | None:
+    """Если запись уже конвертирована в машину (car_num проставлен), при
+    каждой дальнейшей правке записи подтягивает изменения (услуги/сумма/
+    оплата/мойщик/клиент) в уже созданную машину кассы — чтобы booking,
+    cars и касса оставались связаны и после первого сохранения, а не только
+    в момент создания. Молча ничего не делает, если машина не найдена (её
+    могли удалить из кассы вручную) или если из записи убрали все услуги
+    (тогда машину в кассе трогать не стоит — её можно поправить руками).
+    Возвращает car_note при ошибке синхронизации, иначе None."""
+    car_num = booking.get("car_num")
+    if not car_num:
+        return None
+    session = get_session(booking["branch"])
+    car = next((c for c in session.get("cars", []) if c["num"] == car_num), None)
+    if not car:
+        return None
+
+    breakdown = _rebuild_car_breakdown(
+        booking.get("body_type", ""), booking.get("service_keys", []), booking.get("custom_services", []))
+    if not breakdown:
+        return None
+
+    calc_price = sum(v["price"] for v in breakdown.values())
+    price_override = booking.get("price_override")
+    total_price = int(price_override) if price_override is not None else calc_price
+    payment_split = booking.get("payment_split") or None
+    if payment_split:
+        split_sum = sum(payment_split.values())
+        if split_sum != total_price:
+            return f"Сумма раздельной оплаты записи ({split_sum}₽) не совпадает со стоимостью ({total_price}₽) — машина в кассе не обновлена"
+
+    car["employee"] = booking.get("employee", car.get("employee", ""))
+    car["body_type"] = booking.get("body_type", car.get("body_type", ""))
+    car["service_keys"] = booking.get("service_keys", [])
+    car["custom_services"] = booking.get("custom_services", [])
+    car["price_breakdown"] = breakdown
+    car["service"] = " + ".join(v["name"] for v in breakdown.values())
+    car["price_calc"] = calc_price
+    car["price"] = total_price
+    car["price_override"] = total_price if total_price != calc_price else None
+    car["car"] = booking.get("car", car.get("car", ""))
+    car["payment"] = booking.get("payment") or car.get("payment", "нал")
+    car["payment_split"] = payment_split
+    car["comment"] = booking.get("comment", car.get("comment", ""))
+
+    new_phone = normalize_phone(booking.get("phone", "")) if booking.get("phone") else ""
+    old_phone = car.get("phone", "")
+    car["phone"] = new_phone
+    car["client_name"] = booking.get("client_name", car.get("client_name", ""))
+    if new_phone and new_phone != old_phone:
+        upsert_client_visit(new_phone, booking.get("client_name", ""), booking["branch"], car.get("car", ""),
+                             total_price, car_num=car_num, service=car["service"], time=car.get("time", ""))
+    elif new_phone and booking.get("client_name"):
+        update_client(new_phone, name=booking.get("client_name"))
+
+    save_sessions()
+    return None
 
 
 @app.post("/api/car")
@@ -1007,7 +1070,8 @@ def api_create_booking(body: BookingIn, x_init_data: str = Header(default=""), x
     )
     log_action(body.branch, "booking_add", current_user_id(x_init_data), current_user_name(x_init_data),
                f"бокс {body.box} · {body.start_time}–{body.end_time} · {body.client_name or body.car or 'без имени'}")
-    return {"ok": True, "booking": booking}
+    booking, car_created, car_note = _maybe_convert_booking_to_car(booking, x_init_data, x_site_token)
+    return {"ok": True, "booking": booking, "car_created": car_created, "car_note": car_note}
 
 
 @app.patch("/api/bookings/{booking_id}")
@@ -1087,6 +1151,10 @@ def api_edit_booking(booking_id: int, body: BookingEditIn, x_init_data: str = He
     log_action(updated["branch"], "booking_edit", current_user_id(x_init_data), current_user_name(x_init_data),
                f"бокс {updated['box']} · {updated['start_time']}–{updated['end_time']}")
     updated, car_created, car_note = _maybe_convert_booking_to_car(updated, x_init_data, x_site_token)
+    if not car_created:
+        sync_note = _sync_car_from_booking(updated)
+        if sync_note:
+            car_note = sync_note
     return {"ok": True, "booking": updated, "car_created": car_created, "car_note": car_note}
 
 
@@ -1100,6 +1168,10 @@ def api_set_booking_status(booking_id: int, body: BookingStatusIn, x_init_data: 
         raise HTTPException(404, "Запись не найдена")
     updated = set_booking_status(booking_id, body.status)
     updated, car_created, car_note = _maybe_convert_booking_to_car(updated, x_init_data, x_site_token)
+    if not car_created:
+        sync_note = _sync_car_from_booking(updated)
+        if sync_note:
+            car_note = sync_note
     log_action(updated["branch"], "booking_status", current_user_id(x_init_data), current_user_name(x_init_data),
                f"бокс {updated['box']} · статус → {body.status}")
     return {"ok": True, "booking": updated, "car_created": car_created, "car_note": car_note}
