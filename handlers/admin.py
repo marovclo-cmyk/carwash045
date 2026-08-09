@@ -10,13 +10,57 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 
 from sessions import (
-    get_session, save_sessions, save_to_archive, reset_session,
+    get_session, save_sessions, save_to_archive, reset_session, open_day,
     load_users, save_users, add_user, remove_user,
     get_branch_admin, is_branch_admin, is_branch_worker, get_role, set_branch_admin,
     get_branch_workers, add_branch_worker, remove_branch_worker, get_branch_admin_names,
     overwrite_archive_day, load_archive, patch_archive_fixed_rates, patch_fixed_rates,
 )
 from config import OWNER_ID, BRANCHES
+
+
+async def fix_session_date_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """/fixdate — чинит ситуацию, когда касса филиала "застряла" на вчерашней
+    (или более старой) дате: например, машины уже пробивали сегодня, а
+    session["date"] так и не обновился, потому что никто с утра не нажал
+    /newday.
+
+    В отличие от /newday на "устаревшей" смене (см. cb_branch/_is_stale),
+    эта команда НЕ архивирует и НЕ обнуляет текущую смену — она только
+    подтягивает дату к сегодняшней. Все уже помеченные машины, продукты,
+    расходы/приходы, лояльность и авансы остаются на месте. Архив за
+    предыдущий день (ARCHIVE_FILE) не создаётся и не изменяется — если
+    вчерашний день уже был закрыт раньше, он так и останется как есть.
+
+    Только владелец или админ филиала.
+    """
+    user_id = update.effective_user.id
+    branch  = get_current_branch(context)
+    if not branch:
+        await update.message.reply_text("⚠️ Сначала выбери филиал: /newday")
+        return
+    if get_role(user_id, branch) not in ("owner", "admin"):
+        await update.message.reply_text("⛔ Только администратор филиала может исправлять дату кассы.")
+        return
+
+    from datetime import datetime
+    session   = get_session(branch)
+    old_date  = session.get("date", "—")
+    today     = datetime.now().strftime("%d.%m.%Y")
+    cars_cnt  = len(session.get("cars", []))
+
+    if old_date == today:
+        await update.message.reply_text(
+            f"✅ Касса «{branch}» уже ведётся за сегодня ({today}). Менять нечего.")
+        return
+
+    open_day(branch)  # меняет только date/day_open — cars и всё остальное не трогает
+
+    await update.message.reply_text(
+        f"✅ Дата кассы «{branch}» обновлена: {old_date} → {today}.\n"
+        f"🚗 Все помеченные машины сохранены: {cars_cnt} шт.\n"
+        f"📦 День {old_date} в архиве не создан и не изменён.",
+        parse_mode=None)
 
 
 async def fix_100726_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
