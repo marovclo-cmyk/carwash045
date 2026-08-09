@@ -638,7 +638,10 @@ if (CW.requireAuth()) {
   const errEl = document.getElementById("errBanner");
   function showErr(msg) { errEl.textContent = msg; errEl.style.display = "block"; }
 
-  let curDate = new Date();
+  // Дата журнала может прийти из мини-календаря сайдбара (клик по дню на
+  // другой странице → переход сюда с ?date=YYYY-MM-DD), иначе — сегодня.
+  const urlDateParam = new URLSearchParams(window.location.search).get("date");
+  let curDate = urlDateParam ? fromIso(urlDateParam) : new Date();
   let boxFilterSet = new Set(); // номера видимых боксов — пересобирается в buildBoxFilter()
   let boxFilterAuto = true;     // true = следовать за «на смене сегодня» при смене даты; false = ручной выбор пользователя
   let statusFilterSet = new Set(STATUS_ORDER); // видимые статусы визитов — по умолчанию все
@@ -658,6 +661,16 @@ if (CW.requireAuth()) {
   function dateLabel(d) {
     return d.toLocaleDateString("ru-RU", { day: "numeric", month: "long", weekday: "long" });
   }
+
+  // Синхронизация с мини-календарём в сайдбаре: подсвечиваем в нём текущую
+  // дату журнала и перерисовываем сетку без перехода на другую страницу,
+  // если пользователь кликнул по дню в календаре, пока уже открыт журнал.
+  function syncRailDate() { CW.setCalDate(curDate); CW.renderSidebar("booking"); }
+  CW.onCalDateSelect((iso) => {
+    curDate = fromIso(iso);
+    loadBookings();
+  });
+  syncRailDate();
 
   if (!branch) {
     showErr("Филиал не выбран. Выберите филиал в сайдбаре.");
@@ -1877,9 +1890,9 @@ if (CW.requireAuth()) {
   });
 
   // ---------- навигация по датам ----------
-  document.getElementById("datePrev").addEventListener("click", () => { curDate.setDate(curDate.getDate() - 1); loadBookings(); });
-  document.getElementById("dateNext").addEventListener("click", () => { curDate.setDate(curDate.getDate() + 1); loadBookings(); });
-  document.getElementById("todayBtn").addEventListener("click", () => { curDate = new Date(); loadBookings(); });
+  document.getElementById("datePrev").addEventListener("click", () => { curDate.setDate(curDate.getDate() - 1); syncRailDate(); loadBookings(); });
+  document.getElementById("dateNext").addEventListener("click", () => { curDate.setDate(curDate.getDate() + 1); syncRailDate(); loadBookings(); });
+  document.getElementById("todayBtn").addEventListener("click", () => { curDate = new Date(); syncRailDate(); loadBookings(); });
 }
 </script>
 </body>
