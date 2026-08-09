@@ -826,9 +826,9 @@ if (CW.requireAuth()) {
       });
     });
     if (statusFilterSet.size === STATUS_ORDER.length) {
-      btn.innerHTML = `<i class="ti ti-filter"></i>Статусы`;
+      btn.innerHTML = `<i class="ti ti-filter"></i>`;
     } else {
-      btn.innerHTML = `<i class="ti ti-filter"></i>Статусы <span class="pb-badge">${statusFilterSet.size} из ${STATUS_ORDER.length}</span>`;
+      btn.innerHTML = `<i class="ti ti-filter"></i><span class="pb-badge">${statusFilterSet.size} из ${STATUS_ORDER.length}</span>`;
     }
   }
   document.getElementById("sfAllBtn").addEventListener("click", () => {
@@ -987,13 +987,9 @@ if (CW.requireAuth()) {
     grid.style.setProperty("--cols", visibleBoxes.length);
     grid.style.setProperty("--slot-px", SLOT_PX + "px");
 
-    // легенда: цвет на бокс + расшифровка статусов
-    legend.style.display = "flex";
-    legend.innerHTML = visibleBoxes.map(b => `
-      <div class="legend-item"><span class="legend-dot" style="background:${boxColor(b.box).c}"></span>Бокс ${b.box}${b.employee ? " · " + b.employee : ""}</div>
-    `).join("") + STATUS_ORDER.map(s => `
-      <div class="legend-item"><span class="legend-dot" style="background:${STATUS_ACCENT[s]}"></span>${STATUS_LABELS[s]}</div>
-    `).join("");
+    // легенда под тулбаром убрана по просьбе — иконки статусов в панели фильтра
+    // и так достаточно, дублирующая подсказка не нужна
+    legend.style.display = "none";
 
     // заголовки колонок + время
     let html = `<div class="gh-corner"></div>`;
