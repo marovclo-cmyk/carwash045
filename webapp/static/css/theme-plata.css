@@ -539,3 +539,56 @@ table.data td.num,table.data th.num{text-align:right}
   display:block;font-size:12.5px;font-weight:700;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
 .rail.expanded .rail-user-role{display:block;font-size:10.5px;color:rgba(255,255,255,.45)}
+
+/* ---------- попап выбора филиала (клик по названию в сайдбаре) ---------- */
+.rail-branch.no-click{cursor:default}
+.rail-branch.no-click:hover{background:rgba(255,255,255,.08)}
+.rail-branch-chev{display:none;font-size:13px;color:rgba(255,255,255,.45);flex-shrink:0}
+.rail.expanded .rail-branch-chev{display:inline-block;margin-left:auto}
+.rail-branch-pop{
+  position:fixed;z-index:200;width:250px;
+  background:var(--paper);color:var(--ink);border-radius:18px;padding:14px;
+  box-shadow:0 24px 60px rgba(0,0,0,.28);border:1.5px solid var(--line);
+  cursor:default;
+}
+.rail-branch-pop-title{
+  font-family:var(--font-display);font-size:14px;font-weight:600;
+  padding:2px 8px 10px;
+}
+.rail-branch-pop-list{display:flex;flex-direction:column;gap:2px;max-height:320px;overflow-y:auto}
+.rail-branch-pop-item{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:10px 10px;border-radius:12px;font-size:13px;font-weight:600;cursor:pointer;
+  transition:background .15s;
+}
+.rail-branch-pop-item:hover{background:var(--paper-2)}
+.rail-branch-pop-item.active{color:var(--orange)}
+.rail-branch-pop-item.active i{color:var(--orange);font-size:15px}
+.rail-branch-pop-empty{font-size:12.5px;color:var(--muted);font-weight:600;padding:8px 10px}
+
+/* ---------- мини-календарь в раскрытом сайдбаре (как в YCLIENTS) ---------- */
+.rail-cal{width:100%;padding:2px 2px 12px;flex-shrink:0}
+.rail-cal-head{display:flex;align-items:center;justify-content:space-between;padding:0 2px 10px}
+.rail-cal-title{
+  font-size:12.5px;font-weight:700;color:#fff;text-transform:capitalize;
+}
+.rail-cal-nav{
+  width:22px;height:22px;border-radius:7px;border:none;background:transparent;
+  color:rgba(255,255,255,.5);font-size:13px;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:background .15s,color .15s;
+}
+.rail-cal-nav:hover{background:rgba(255,255,255,.1);color:#fff}
+.rail-cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:2px}
+.rail-cal-weekdays span{
+  font-size:9.5px;font-weight:700;color:rgba(255,255,255,.35);text-align:center;
+}
+.rail-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);row-gap:2px}
+.cal-cell{
+  aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:600;color:rgba(255,255,255,.75);border-radius:8px;
+  cursor:pointer;transition:background .15s,color .15s;
+}
+.cal-cell:hover{background:rgba(255,255,255,.1)}
+.cal-cell.muted{color:rgba(255,255,255,.22);cursor:default;pointer-events:none}
+.cal-cell.today{color:var(--orange-3);font-weight:700}
+.cal-cell.selected{background:var(--orange-grad);color:#fff;box-shadow:0 4px 12px rgba(255,80,0,.35)}
