@@ -160,10 +160,42 @@
   .cdi-name{font-size:13px;font-weight:600;color:var(--text)}
   .cdi-phone{font-size:12px;color:var(--muted)}
   .cdi-meta{font-size:11px;color:var(--muted);white-space:nowrap}
-  .client-card{margin-top:8px;padding:10px 12px;border-radius:var(--r-sm);background:var(--orange-tint);border:1px solid var(--orange-tint-strong);display:flex;justify-content:space-between;align-items:center;gap:8px}
-  .client-card .cc-name{font-size:13px;font-weight:700;color:var(--text)}
-  .client-card .cc-meta{font-size:11px;color:var(--muted);margin-top:2px}
-  .client-card .cc-clear{font-size:12px;color:var(--muted);cursor:pointer;text-decoration:underline}
+
+  /* ---------- панель клиента v5 (по образцу YCLIENTS) ----------
+     Состояние A (clientStateA) — поиск + список последних клиентов сети,
+     показывается, пока клиент не выбран. Состояние B (clientStateB) —
+     карточка выбранного клиента (имя/телефон/бейдж визитов) + та же
+     сетка иконок История/Лояльность/Сообщения/Счета, что была раньше. */
+  .client-search-field{position:relative}
+  .client-search-field i{position:absolute;left:15px;top:50%;transform:translateY(-50%);color:var(--muted-2);font-size:15px;pointer-events:none}
+  .client-search-field input{padding-left:42px !important}
+
+  .prev-clients-title{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin:18px 0 8px}
+  .prev-clients-list{display:flex;flex-direction:column;gap:2px;margin-bottom:6px}
+  .pc-item{display:flex;flex-direction:column;gap:2px;padding:9px 10px;border-radius:14px;cursor:pointer}
+  .pc-item:hover{background:var(--paper-2)}
+  .pc-name{font-size:13px;font-weight:700;color:var(--ink)}
+  .pc-phone{font-size:11.5px;color:var(--muted);font-weight:600}
+
+  .client-panel-back{display:flex;align-items:center;gap:4px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;margin-bottom:16px;background:none;border:none;padding:0;font-family:var(--font-body)}
+  .client-panel-back:hover{color:var(--orange)}
+  .client-panel-back i{font-size:15px}
+
+  .client-tabs{display:flex;gap:22px;border-bottom:1.5px solid var(--line);margin-bottom:18px}
+  .client-tab{padding:0 0 12px;font-size:13px;font-weight:700;color:var(--muted);cursor:pointer;border:none;background:none;font-family:var(--font-body);position:relative}
+  .client-tab.active{color:var(--ink)}
+  .client-tab.active::after{content:"";position:absolute;left:0;right:0;bottom:-1.5px;height:2px;background:var(--orange);border-radius:2px}
+  .client-tab.stub{color:var(--muted-2);cursor:default}
+
+  .client-head-name{font-size:15px;font-weight:700;font-family:var(--font-display);margin-bottom:6px}
+  .client-head-phone{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--muted);font-weight:600;margin-bottom:14px}
+  .client-head-phone i{font-size:13px;color:var(--muted-2);cursor:pointer}
+  .client-head-phone i:hover{color:var(--orange)}
+
+  .badge-row{margin-bottom:18px}
+  .badge-returning{background:var(--green-tint);color:var(--green);font-size:11px;font-weight:700;padding:4px 11px;border-radius:999px;display:inline-block}
+  .badge-new{background:var(--purple-tint);color:var(--purple);font-size:11px;font-weight:700;padding:4px 11px;border-radius:999px;display:inline-block}
+
 
   /* ---------- модалка записи: доп. элементы ---------- */
   .field-row-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -277,7 +309,6 @@
   .ci-tile span{font-size:10.5px;font-weight:700;color:var(--ink);line-height:1.25}
   .ci-tile.wide{grid-column:span 3;flex-direction:row;justify-content:flex-start;padding:12px 14px}
   .ci-tile.wide i{margin-bottom:0}
-  .ci-hint{font-size:11.5px;color:var(--muted-2);line-height:1.4;margin:-6px 0 16px}
 
   .detail-view{display:none;padding:4px 28px 0}
   .detail-view.open{display:block}
@@ -536,30 +567,48 @@
       <div class="modal-col">
         <div class="col-title">Клиент</div>
 
-        <div class="field" style="position:relative">
-          <label>Телефон клиента (необязательно)</label>
-          <input type="text" id="fPhone" placeholder="Телефон или имя — для поиска клиента" autocomplete="off">
-          <div id="clientDropdown" class="client-dropdown"></div>
-          <div id="clientCard" class="client-card" style="display:none"></div>
+        <!-- состояние A: клиент ещё не выбран — поиск + последние клиенты сети -->
+        <div id="clientStateA">
+          <div class="field client-search-field" style="position:relative;margin-bottom:0">
+            <i class="ti ti-search"></i>
+            <input type="text" id="fPhone" placeholder="Телефон или имя — поиск клиента" autocomplete="off">
+            <div id="clientDropdown" class="client-dropdown"></div>
+          </div>
+
+          <div class="field" style="margin-top:16px">
+            <label>Имя клиента (если новый)</label>
+            <input type="text" id="fClientName" placeholder="Например, Дарья">
+          </div>
+
+          <div class="prev-clients-title" id="prevClientsTitle" style="display:none">Предыдущие клиенты</div>
+          <div class="prev-clients-list" id="prevClientsList"></div>
         </div>
 
-        <div class="field">
-          <label>Имя клиента (необязательно)</label>
-          <input type="text" id="fClientName" placeholder="Например, Дарья">
+        <!-- состояние B: клиент выбран -->
+        <div id="clientStateB" style="display:none">
+          <button type="button" class="client-panel-back" id="clientBackBtn"><i class="ti ti-chevron-left"></i>Сменить клиента</button>
+
+          <div class="client-tabs">
+            <button type="button" class="client-tab active">Клиент</button>
+            <button type="button" class="client-tab stub" title="Пока не реализовано — нет подключённого канала связи с клиентом">Чат</button>
+          </div>
+
+          <div class="client-head-name" id="chName"></div>
+          <div class="client-head-phone"><span id="chPhone"></span><i class="ti ti-copy" id="chCopyBtn" title="Скопировать номер"></i></div>
+          <div class="badge-row"><span id="chBadge"></span></div>
+
+          <div class="client-icon-grid" id="clientIconGrid">
+            <button type="button" class="ci-tile" data-detail="history"><i class="ti ti-history"></i><span>История посещений</span></button>
+            <button type="button" class="ci-tile" data-detail="loyalty"><i class="ti ti-heart"></i><span>Лояльность</span></button>
+            <button type="button" class="ci-tile" data-detail="messages"><i class="ti ti-message-circle"></i><span>Сообщения и звонки</span></button>
+            <button type="button" class="ci-tile wide" data-detail="accounts"><i class="ti ti-wallet"></i><span>Счета клиента</span></button>
+          </div>
         </div>
 
-        <div class="field" style="margin-bottom:0">
-          <label>Машина (необязательно)</label>
-          <input type="text" id="fCar" placeholder="Например, Lexus RX">
+        <div class="field" style="margin-top:18px;margin-bottom:0">
+          <label>Машина / госномер</label>
+          <input type="text" id="fCar" placeholder="Например, Lexus RX или А000АА000">
         </div>
-
-        <div class="client-icon-grid" id="clientIconGrid">
-          <button type="button" class="ci-tile" data-detail="history" disabled><i class="ti ti-history"></i><span>История посещений</span></button>
-          <button type="button" class="ci-tile" data-detail="loyalty" disabled><i class="ti ti-heart"></i><span>Лояльность</span></button>
-          <button type="button" class="ci-tile" data-detail="messages" disabled><i class="ti ti-message-circle"></i><span>Сообщения и звонки</span></button>
-          <button type="button" class="ci-tile wide" data-detail="accounts" disabled><i class="ti ti-wallet"></i><span>Счета клиента</span></button>
-        </div>
-        <div class="ci-hint" id="ciHint">Сначала выберите клиента через поиск выше — здесь появится история визитов и постоянная скидка.</div>
       </div>
     </div>
 
@@ -916,8 +965,7 @@ if (CW.requireAuth()) {
     const now = new Date();
     let minutes = Math.max(START_HOUR * 60, Math.min((END_HOUR - 1) * 60 + 30, Math.round((now.getHours() * 60 + now.getMinutes()) / 30) * 30));
     openCreateModal(duty.box, minutes);
-    fPhoneInput.value = client.phone;
-    showClientCard(client);
+    selectClient(client);
   }
   document.getElementById("daySummaryPanel").addEventListener("transitionend", () => {}); // no-op, задел на будущее
   // отслеживаем закрытие попапа «Итоги дня», чтобы не дёргать API, пока он скрыт
@@ -1211,9 +1259,12 @@ if (CW.requireAuth()) {
   // (центр, этап 4) · клиент (право) ----------
   const modalBg = document.getElementById("modalBg");
   const clientDropdown = document.getElementById("clientDropdown");
-  const clientCard = document.getElementById("clientCard");
   const fPhoneInput = document.getElementById("fPhone");
   const fTotalInput = document.getElementById("fTotal");
+  const clientStateA = document.getElementById("clientStateA");
+  const clientStateB = document.getElementById("clientStateB");
+  const prevClientsList = document.getElementById("prevClientsList");
+  const prevClientsTitle = document.getElementById("prevClientsTitle");
   let clientSearchTimer = null;
   let manualPriceEdited = false;
   let customServices = []; // [{name, price, percent}] — тот же формат, что в cars.html
@@ -1464,7 +1515,8 @@ if (CW.requireAuth()) {
     document.getElementById("fClientName").value = "";
     document.getElementById("fCar").value = "";
     document.getElementById("fComment").value = "";
-    hideClientCard();
+    resetClientSelection();
+    loadPrevClients();
     buildBoxSelect(box || (boxes[0] && boxes[0].box));
     document.getElementById("fDate").value = isoDate(curDate);
     setStatusTab("waiting");
@@ -1506,11 +1558,12 @@ if (CW.requireAuth()) {
     document.getElementById("modalTitle").textContent = "Запись";
     document.getElementById("deleteBtn").style.display = "inline-flex";
     document.getElementById("modalErr").style.display = "none";
+    resetClientSelection();
+    loadPrevClients();
     fPhoneInput.value = bk.phone || "";
     document.getElementById("fClientName").value = bk.client_name || "";
     document.getElementById("fCar").value = bk.car || "";
     document.getElementById("fComment").value = bk.comment || "";
-    hideClientCard();
     buildBoxSelect(bk.box);
     document.getElementById("fDate").value = isoDate(parseDateKey(bk.date));
     setStatusTab(bk.status || "waiting");
@@ -1558,10 +1611,10 @@ if (CW.requireAuth()) {
 
     // пассивно подтягиваем карточку клиента (визиты/скидка), но НЕ
     // применяем скидку к уже сохранённой сумме — это делает только явный
-    // выбор клиента через поиск (см. showClientCard/applyClientDiscountSuggestion).
+    // выбор клиента через поиск (см. selectClient/applyClientDiscountSuggestion).
     if (bk.phone) {
       CW.authFetch(`/api/clients/${encodeURIComponent(bk.phone)}`)
-        .then(client => { if (client) showClientCard(client, { suggestDiscount: false }); })
+        .then(client => { if (client) selectClient(client, { suggestDiscount: false }); })
         .catch(() => {});
     }
 
@@ -1578,29 +1631,50 @@ if (CW.requireAuth()) {
   document.getElementById("cancelBtn").addEventListener("click", closeModal);
   modalBg.addEventListener("click", (e) => { if (e.target.id === "modalBg") closeModal(); });
 
-  function hideClientCard() { clientCard.style.display = "none"; document.getElementById("discountHint").style.display = "none"; selectedClient = null; updateClientTiles(); }
+  // ---------- панель клиента v5: состояние A (поиск + последние клиенты сети)
+  // / состояние B (карточка выбранного клиента) — см. разметку #clientStateA/#clientStateB ----------
   function hideClientDropdown() { clientDropdown.classList.remove("open"); }
-  function showClientCard(client, opts) {
+
+  // сброс к состоянию A: снимаем выбор клиента, чистим поля, возвращаем поиск
+  function resetClientSelection() {
+    selectedClient = null;
+    fPhoneInput.value = "";
+    document.getElementById("fClientName").value = "";
+    document.getElementById("discountHint").style.display = "none";
+    clientStateB.style.display = "none";
+    clientStateA.style.display = "block";
+    hideClientDropdown();
+  }
+  document.getElementById("clientBackBtn").addEventListener("click", () => {
+    resetClientSelection();
+    fPhoneInput.focus();
+  });
+
+  function selectClient(client, opts) {
     opts = opts || {};
     selectedClient = client;
-    updateClientTiles();
     if (client.name) document.getElementById("fClientName").value = client.name;
-    clientCard.style.display = "flex";
-    clientCard.innerHTML = `
-      <div>
-        <div class="cc-name">${escapeHtml(client.name) || "Без имени"}</div>
-        <div class="cc-meta">${client.visit_count}-й визит · всего ${CW.money(client.total_spent)}${client.discount_percent ? " · скидка " + client.discount_percent + "%" : ""}</div>
-      </div>
-      <span class="cc-clear" id="clientClearBtn">Сбросить</span>`;
-    document.getElementById("clientClearBtn").addEventListener("click", () => {
-      selectedClient = null;
-      fPhoneInput.value = "";
-      document.getElementById("fClientName").value = "";
-      hideClientCard();
-      fPhoneInput.focus();
-    });
+    fPhoneInput.value = client.phone || "";
+    clientStateA.style.display = "none";
+    clientStateB.style.display = "block";
+    document.getElementById("chName").textContent = client.name || "Без имени";
+    document.getElementById("chPhone").textContent = client.phone || "";
+    const badge = document.getElementById("chBadge");
+    if (client.visit_count > 1) {
+      badge.className = "badge-returning";
+      badge.textContent = `Постоянный клиент · ${client.visit_count} визит(ов)${client.discount_percent ? " · скидка " + client.discount_percent + "%" : ""}`;
+    } else {
+      badge.className = "badge-new";
+      badge.textContent = "Новый клиент";
+    }
+    hideClientDropdown();
     if (opts.suggestDiscount !== false) applyClientDiscountSuggestion(client);
   }
+  document.getElementById("chCopyBtn").addEventListener("click", () => {
+    if (!selectedClient || !selectedClient.phone) return;
+    navigator.clipboard.writeText(selectedClient.phone).catch(() => {});
+  });
+
   function renderClientDropdown(clients) {
     if (!clients.length) { hideClientDropdown(); return; }
     clientDropdown.innerHTML = clients.map(c => `
@@ -1609,18 +1683,12 @@ if (CW.requireAuth()) {
         <div class="cdi-meta">${c.visit_count} визит(ов) · ${CW.money(c.total_spent)}</div>
       </div>`).join("");
     clientDropdown.querySelectorAll(".client-dropdown-item").forEach((el, i) => {
-      el.addEventListener("click", () => {
-        const client = clients[i];
-        fPhoneInput.value = client.phone;
-        showClientCard(client);
-        hideClientDropdown();
-      });
+      el.addEventListener("click", () => selectClient(clients[i]));
     });
     clientDropdown.classList.add("open");
   }
   fPhoneInput.addEventListener("input", () => {
     selectedClient = null;
-    hideClientCard();
     const q = fPhoneInput.value.trim();
     clearTimeout(clientSearchTimer);
     if (q.length < 3) { hideClientDropdown(); return; }
@@ -1635,6 +1703,28 @@ if (CW.requireAuth()) {
     if (!e.target.closest("#fPhone") && !e.target.closest("#clientDropdown")) hideClientDropdown();
   });
 
+  // список «Предыдущие клиенты» — последние клиенты сети (по дате визита),
+  // чтобы не набирать телефон/имя, если это постоянный посетитель
+  let prevClientsCache = null;
+  async function loadPrevClients() {
+    if (!prevClientsCache) {
+      try {
+        const data = await CW.authFetch("/api/clients");
+        prevClientsCache = (data.clients || []).slice(0, 6);
+      } catch (e) { prevClientsCache = []; }
+    }
+    if (!prevClientsCache.length) { prevClientsTitle.style.display = "none"; prevClientsList.innerHTML = ""; return; }
+    prevClientsTitle.style.display = "block";
+    prevClientsList.innerHTML = prevClientsCache.map((c, i) => `
+      <div class="pc-item" data-idx="${i}">
+        <div class="pc-name">${escapeHtml(c.name) || "Без имени"}</div>
+        <div class="pc-phone">${escapeHtml(c.phone)}</div>
+      </div>`).join("");
+    prevClientsList.querySelectorAll(".pc-item").forEach(el => {
+      el.addEventListener("click", () => selectClient(prevClientsCache[Number(el.dataset.idx)]));
+    });
+  }
+
   // ---------- клиентская панель: История / Лояльность / Сообщения / Счета (этап 5) ----------
   // История — реальные визиты клиента (carwash_clients.json, поле visits — этап 2).
   // Лояльность — реальные метрики (визитов/потрачено) + управление постоянной
@@ -1647,13 +1737,6 @@ if (CW.requireAuth()) {
   const detailTitleEl = document.getElementById("detailTitle");
   const modalColsEl = document.querySelector(".modal-cols");
   const clientIconGrid = document.getElementById("clientIconGrid");
-  const ciHint = document.getElementById("ciHint");
-
-  function updateClientTiles() {
-    const enabled = !!selectedClient;
-    clientIconGrid.querySelectorAll(".ci-tile").forEach(t => t.disabled = !enabled);
-    ciHint.style.display = enabled ? "none" : "block";
-  }
 
   function escapeHtml(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
