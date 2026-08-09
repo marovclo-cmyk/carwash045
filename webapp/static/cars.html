@@ -69,11 +69,8 @@
     <h2 id="modalTitle">Добавить машину</h2>
 
     <div class="field" style="position:relative">
-      <label>Клиент и машина</label>
-      <div class="csf-row-2">
-        <input type="text" id="fClientName" placeholder="Имя клиента, например Максим">
-        <input type="text" id="fCar" placeholder="Машина, например Lexus RX">
-      </div>
+      <label>Клиент</label>
+      <input type="text" id="fClientName" placeholder="Максим-А123ВС или Максим-без номера">
       <input type="text" id="fPhone" placeholder="Телефон — необязательно, для поиска клиента" autocomplete="off" style="margin-top:8px">
       <div id="clientDropdown" class="client-dropdown"></div>
       <div id="clientCard" class="client-card" style="display:none"></div>
@@ -359,10 +356,9 @@ if (CW.requireAuth()) {
     document.getElementById("modalTitle").textContent = car ? `Редактировать машину #${car.num}` : "Добавить машину";
     document.getElementById("saveBtn").textContent = car ? "Сохранить" : "Добавить";
     document.getElementById("modalErr").style.display = "none";
-    document.getElementById("fCar").value = car ? (car.car || "") : "";
     document.getElementById("fComment").value = car ? (car.comment || "") : "";
     document.getElementById("fPhone").value = car ? (car.phone || "") : "";
-    document.getElementById("fClientName").value = car ? (car.client_name || "") : "";
+    document.getElementById("fClientName").value = car ? (car.client_name || car.car || "") : "";
     selectedClient = null;
     hideClientCard();
     hideClientDropdown();
@@ -542,14 +538,15 @@ if (CW.requireAuth()) {
     const saveBtn = document.getElementById("saveBtn");
     saveBtn.disabled = true;
     try {
+      const clientCarValue = document.getElementById("fClientName").value.trim();
       const payload = {
         employee, body_type: bodyType,
         service_keys: serviceKeys, custom_services: customServices,
-        car: document.getElementById("fCar").value.trim(),
+        car: clientCarValue,
         payment, payment_split: split,
         comment: document.getElementById("fComment").value.trim(),
         phone: fPhoneInput.value.trim(),
-        client_name: document.getElementById("fClientName").value.trim(),
+        client_name: clientCarValue,
       };
       if (manualPriceEdited && total !== calcPrice()) {
         payload.price_override = total;
@@ -613,7 +610,7 @@ if (CW.requireAuth()) {
       const rows = cars.slice().reverse().map(c => `
         <tr>
           <td>${c.num}</td>
-          <td>${[c.client_name, c.car].filter(Boolean).join(" — ") || "—"}</td>
+          <td>${c.client_name || c.car || "—"}</td>
           <td><div class="emp-cell"><span class="emp-dot" style="background:${empColor(c.employee || "")}"></span>${c.employee || "—"}</div></td>
           <td>${c.service || "—"}</td>
           <td>${payTag(c.payment_split ? Object.keys(c.payment_split)[0] : c.payment)}</td>

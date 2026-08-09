@@ -582,16 +582,11 @@
           <div id="clientDropdown" class="client-dropdown"></div>
         </div>
 
-        <!-- Клиент и машина — одно поле вместо двух отдельных, чтобы не
-             плодить лишние колонки/блоки: имя и машина всегда рядом,
-             независимо от того, выбран ли клиент через поиск (состояние B)
-             или вводится новый (состояние A). -->
+        <!-- Клиент — единое поле в формате «Имя-Номер» / «Имя-без номера»,
+             без отдельной строки под машину (см. запрос владельца). -->
         <div class="field" style="margin-top:16px;margin-bottom:0">
-          <label>Клиент и машина</label>
-          <div class="csf-row-2">
-            <input type="text" id="fClientName" placeholder="Имя клиента">
-            <input type="text" id="fCar" placeholder="Машина / госномер">
-          </div>
+          <label>Клиент</label>
+          <input type="text" id="fClientName" placeholder="Максим-А123ВС или Максим-без номера">
         </div>
 
         <!-- состояние A: клиент ещё не выбран — последние клиенты сети -->
@@ -1145,7 +1140,7 @@ if (CW.requireAuth()) {
             <span class="appt-status" style="background:${statusColor};color:#fff;border:none" title="${STATUS_LABELS[status] || status}"><i class="ti ${STATUS_ICONS[status] || "ti-clock"}"></i></span>
           </span>
         </div>
-        <div class="appt-name">${escapeHtml([bk.client_name, bk.car].filter(Boolean).join(" — ") || "Без имени")}</div>
+        <div class="appt-name">${escapeHtml(bk.client_name || bk.car || "Без имени")}</div>
         ${bk.phone ? `<div class="appt-phone">${escapeHtml(bk.phone)}</div>` : ""}
         <div class="appt-service">${svcNames}</div>`;
       el.addEventListener("click", (e) => {
@@ -1615,7 +1610,6 @@ if (CW.requireAuth()) {
     document.getElementById("modalErr").style.display = "none";
     fPhoneInput.value = "";
     document.getElementById("fClientName").value = "";
-    document.getElementById("fCar").value = "";
     document.getElementById("fComment").value = "";
     resetClientSelection();
     loadPrevClients();
@@ -1663,8 +1657,7 @@ if (CW.requireAuth()) {
     resetClientSelection();
     loadPrevClients();
     fPhoneInput.value = bk.phone || "";
-    document.getElementById("fClientName").value = bk.client_name || "";
-    document.getElementById("fCar").value = bk.car || "";
+    document.getElementById("fClientName").value = bk.client_name || bk.car || "";
     document.getElementById("fComment").value = bk.comment || "";
     buildBoxSelect(bk.box);
     document.getElementById("fDate").value = isoDate(parseDateKey(bk.date));
@@ -2018,6 +2011,7 @@ if (CW.requireAuth()) {
     }
 
     const boxInfo = boxes.find(b => b.box === box);
+    const clientCarValue = document.getElementById("fClientName").value.trim();
     const payload = {
       branch, date: dateKey(fromIso(dateVal)), box,
       start_time: start, end_time: end,
@@ -2025,10 +2019,10 @@ if (CW.requireAuth()) {
       body_type: document.getElementById("fBodyType").value,
       service_keys: selectedServiceKeys(), custom_services: customServices,
       product_keys: selectedProductKeys(),
-      car: document.getElementById("fCar").value.trim(),
+      car: clientCarValue,
       comment: document.getElementById("fComment").value.trim(),
       phone: fPhoneInput.value.trim(),
-      client_name: document.getElementById("fClientName").value.trim(),
+      client_name: clientCarValue,
       payment, payment_split: split,
       status,
     };
