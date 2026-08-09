@@ -689,7 +689,7 @@ def _maybe_convert_booking_to_car(booking: dict, x_init_data: str, x_site_token:
     has_services = bool(booking.get("service_keys") or booking.get("custom_services"))
     if has_services and not booking.get("car_num"):
         session = get_session(booking["branch"])
-        if booking.get("date") != session.get("date"):
+        if booking.get("date") != datetime.now().strftime("%d.%m.%Y"):
             car_note = "Запись не на сегодняшнюю смену — машина в кассу не добавлена автоматически"
         elif not session.get("day_open", True):
             car_note = "Смена ещё не открыта — машина в кассу не добавлена. Откройте смену и повторите"
