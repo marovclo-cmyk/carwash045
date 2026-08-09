@@ -2034,7 +2034,7 @@ if (CW.requireAuth()) {
       closeModal();
       await loadBookings();
       if (res && res.car_created) {
-        bkToast(`Клиент отмечен как приехавший — машина №${res.car_created} добавлена в кассу`);
+        bkToast(`Машина №${res.car_created} добавлена в кассу`);
       } else if (res && res.car_note) {
         bkToast(res.car_note, "warn");
       }
