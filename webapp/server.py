@@ -604,16 +604,16 @@ def api_session(branch: str, x_init_data: str = Header(default=""), x_site_token
     return {"session": session, "summary": summary}
 
 
-@app.post("/api/car")
-def api_add_car(body: CarIn, x_init_data: str = Header(default=""), x_site_token: str = Header(default="")):
-    require_access(x_init_data, x_site_token)
-    session = get_session(body.branch)
-    if not session.get("day_open", True):
-        raise HTTPException(403, "Смена ещё не открыта. Попросите администратора нажать «Открыть смену».")
-    body_type = body.body_type
-
+def _compose_and_add_car(session: dict, branch: str, employee: str, body_type: str,
+                          service_keys: list, custom_services: list,
+                          price_override: int | None, payment: str, payment_split: dict | None,
+                          comment: str, phone: str, client_name: str, car_label: str) -> tuple[dict, dict | None]:
+    """Общая логика добавления машины в кассу смены — используется и прямым
+    добавлением машины (/api/car), и автоматической конвертацией записи в
+    машину при переводе записи в статус «Пришёл» (см. api_set_booking_status).
+    Бросает HTTPException при ошибках валидации (нет услуг, некорректная сумма и т.д.)."""
     breakdown = {}
-    for k in body.service_keys:
+    for k in service_keys:
         if k not in SERVICES:
             continue
         breakdown[k] = {
@@ -621,7 +621,7 @@ def api_add_car(body: CarIn, x_init_data: str = Header(default=""), x_site_token
             "price": get_service_price(k, body_type),
             "percent": SERVICES[k]["percent"],
         }
-    for i, c in enumerate(body.custom_services):
+    for i, c in enumerate(custom_services):
         breakdown[f"custom_{i}"] = {
             "name": c["name"], "price": int(c["price"]), "percent": float(c["percent"]) / 100,
         }
@@ -631,46 +631,104 @@ def api_add_car(body: CarIn, x_init_data: str = Header(default=""), x_site_token
 
     calc_price = sum(v["price"] for v in breakdown.values())
     total_price = calc_price
-    if body.price_override is not None:
-        if body.price_override < 0:
+    if price_override is not None:
+        if price_override < 0:
             raise HTTPException(400, "Итоговая сумма не может быть отрицательной")
-        total_price = int(body.price_override)
+        total_price = int(price_override)
 
-    if body.payment_split:
-        split_sum = sum(body.payment_split.values())
+    if payment_split:
+        split_sum = sum(payment_split.values())
         if split_sum != total_price:
             raise HTTPException(400, f"Сумма раздельной оплаты ({split_sum}₽) не совпадает со стоимостью ({total_price}₽)")
 
     num = len(session["cars"]) + 1
     car = {
         "num": num,
-        "employee": body.employee,
+        "employee": employee,
         "body_type": body_type,
-        "service_keys": body.service_keys,
-        "custom_services": body.custom_services,
+        "service_keys": service_keys,
+        "custom_services": custom_services,
         "price_breakdown": breakdown,
         "service": " + ".join(v["name"] for v in breakdown.values()),
         "price": total_price,
         "price_calc": calc_price,
         "price_override": total_price if total_price != calc_price else None,
-        "car": body.car,
-        "payment": body.payment,
-        "payment_split": body.payment_split,
-        "comment": body.comment,
+        "car": car_label,
+        "payment": payment or "нал",
+        "payment_split": payment_split,
+        "comment": comment,
         "status": "in_progress",
         "time": datetime.now().strftime("%H:%M"),
-        "phone": normalize_phone(body.phone) if body.phone else "",
-        "client_name": body.client_name,
+        "phone": normalize_phone(phone) if phone else "",
+        "client_name": client_name,
     }
     session["cars"].append(car)
     save_sessions()
-    log_action(body.branch, "add", current_user_id(x_init_data), current_user_name(x_init_data),
-               f"{car['car'] or 'машина'} · {car['service']} · {total_price}₽")
     client = None
-    if body.phone:
+    if phone:
         client = upsert_client_visit(
-            body.phone, body.client_name, body.branch, body.car,
+            phone, client_name, branch, car_label,
             total_price, car_num=num, service=car["service"], time=car["time"])
+    return car, client
+
+
+def _maybe_convert_booking_to_car(booking: dict, x_init_data: str, x_site_token: str) -> tuple[dict, int | None, str | None]:
+    """Если запись только что переведена в статус «Пришёл» и ещё не
+    конвертирована — создаёт машину в кассе ТЕКУЩЕЙ смены филиала на основе
+    данных записи (услуги/сумма/оплата/клиент), см. комментарий в sessions.py
+    над разделом ЗАПИСИ. Идемпотентно: если у записи уже проставлен car_num,
+    повторная машина не создаётся (повторное нажатие «Пришёл» или откат и
+    новый перевод в «Пришёл» безопасны). Вызывается и из полного PATCH записи
+    (когда статус меняют вместе с сохранением карточки), и из отдельного
+    PATCH .../status. Возвращает (актуальная_запись, car_created, car_note)."""
+    car_created = None
+    car_note = None
+    if booking.get("status") == "arrived" and not booking.get("car_num"):
+        session = get_session(booking["branch"])
+        if booking.get("date") != session.get("date"):
+            car_note = "Запись не на сегодняшнюю смену — машина в кассу не добавлена автоматически"
+        elif not session.get("day_open", True):
+            car_note = "Смена ещё не открыта — машина в кассу не добавлена. Откройте смену и повторите"
+        else:
+            try:
+                car, client = _compose_and_add_car(
+                    session, booking["branch"], booking.get("employee", ""), booking.get("body_type", ""),
+                    booking.get("service_keys", []), booking.get("custom_services", []),
+                    booking.get("price_override"), booking.get("payment") or "нал", booking.get("payment_split"),
+                    booking.get("comment", ""), booking.get("phone", ""), booking.get("client_name", ""),
+                    booking.get("car", ""))
+                for k in booking.get("product_keys", []):
+                    product = PRODUCTS.get(k)
+                    if not product:
+                        continue
+                    session.setdefault("products", []).append({
+                        "key": k, "name": product["name"], "price": product["price"],
+                        "payment": booking.get("payment") or "нал", "num": len(session["products"]) + 1,
+                    })
+                save_sessions()
+                car_created = car["num"]
+                log_action(booking["branch"], "add", current_user_id(x_init_data), current_user_name(x_init_data),
+                           f"{car['car'] or 'машина'} · {car['service']} · {car['price']}₽ · из записи №{booking['id']}")
+            except HTTPException as e:
+                car_note = e.detail
+    if car_created:
+        booking = update_booking(booking["id"], car_num=car_created) or booking
+    return booking, car_created, car_note
+
+
+@app.post("/api/car")
+def api_add_car(body: CarIn, x_init_data: str = Header(default=""), x_site_token: str = Header(default="")):
+    require_access(x_init_data, x_site_token)
+    session = get_session(body.branch)
+    if not session.get("day_open", True):
+        raise HTTPException(403, "Смена ещё не открыта. Попросите администратора нажать «Открыть смену».")
+    car, client = _compose_and_add_car(
+        session, body.branch, body.employee, body.body_type,
+        body.service_keys, body.custom_services,
+        body.price_override, body.payment, body.payment_split,
+        body.comment, body.phone, body.client_name, body.car)
+    log_action(body.branch, "add", current_user_id(x_init_data), current_user_name(x_init_data),
+               f"{car['car'] or 'машина'} · {car['service']} · {car['price']}₽")
     return {"ok": True, "car": car, "summary": calculate_summary(session), "client": client}
 
 
@@ -1028,7 +1086,8 @@ def api_edit_booking(booking_id: int, body: BookingEditIn, x_init_data: str = He
 
     log_action(updated["branch"], "booking_edit", current_user_id(x_init_data), current_user_name(x_init_data),
                f"бокс {updated['box']} · {updated['start_time']}–{updated['end_time']}")
-    return {"ok": True, "booking": updated}
+    updated, car_created, car_note = _maybe_convert_booking_to_car(updated, x_init_data, x_site_token)
+    return {"ok": True, "booking": updated, "car_created": car_created, "car_note": car_note}
 
 
 @app.patch("/api/bookings/{booking_id}/status")
@@ -1040,9 +1099,10 @@ def api_set_booking_status(booking_id: int, body: BookingStatusIn, x_init_data: 
     if not booking:
         raise HTTPException(404, "Запись не найдена")
     updated = set_booking_status(booking_id, body.status)
+    updated, car_created, car_note = _maybe_convert_booking_to_car(updated, x_init_data, x_site_token)
     log_action(updated["branch"], "booking_status", current_user_id(x_init_data), current_user_name(x_init_data),
                f"бокс {updated['box']} · статус → {body.status}")
-    return {"ok": True, "booking": updated}
+    return {"ok": True, "booking": updated, "car_created": car_created, "car_note": car_note}
 
 
 @app.delete("/api/bookings/{booking_id}")
