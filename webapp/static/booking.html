@@ -22,6 +22,21 @@
   .filter-select{height:42px;border-radius:999px;border:1.5px solid var(--line-strong);background:var(--paper);padding:0 16px;font-size:13px;font-weight:600;color:var(--ink);font-family:var(--font-body);cursor:pointer}
   .filter-select:focus{outline:none;border-color:var(--orange)}
 
+  /* ---------- иконки-кнопки тулбара в стиле YCLIENTS: гамбургер/шестерёнка/
+     слайдеры/добавить сотрудника — круглые, без подписи, только иконка ---------- */
+  .tb-icon-btn{width:38px;height:38px;border-radius:50%;border:none;background:transparent;color:var(--muted);display:flex;align-items:center;justify-content:center;font-size:17px;cursor:pointer;flex-shrink:0;transition:.12s}
+  .tb-icon-btn:hover{background:var(--paper-2);color:var(--ink)}
+  .tb-sep{width:1px;height:22px;background:var(--line);margin:0 2px;flex-shrink:0}
+  /* «+» — круглая акцентная кнопка быстрой продажи, как жёлтый «+» в YCLIENTS */
+  .tb-plus-btn{width:38px;height:38px;border-radius:50%;border:none;background:var(--orange-grad);color:#fff;display:flex;align-items:center;justify-content:center;font-size:19px;cursor:pointer;flex-shrink:0;box-shadow:0 4px 12px rgba(255,80,0,.3);transition:transform .12s}
+  .tb-plus-btn:hover{transform:scale(1.06)}
+  /* денежная пилюля «Итоги дня» — сумма прямо в кнопке, как «0 ₽» у них */
+  .tb-money-btn{height:38px;border-radius:999px;border:1.5px solid var(--line-strong);background:var(--paper);padding:0 14px;font-size:12.5px;font-weight:700;color:var(--ink);font-family:var(--font-display);cursor:pointer;display:flex;align-items:center;gap:6px}
+  .tb-money-btn:hover{border-color:var(--orange)}
+  .tb-money-btn i{font-size:13px;color:var(--muted)}
+  /* аватар текущего пользователя справа — тот же визуальный язык, что .rail-avatar */
+  .tb-avatar{width:38px;height:38px;border-radius:50%;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;font-family:var(--font-display);flex-shrink:0;cursor:default}
+
   /* ---------- toolbar-right: попапы «Итоги дня» и «Боксы» ---------- */
   .toolbar-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
   .popover-wrap{position:relative}
@@ -31,6 +46,7 @@
   .popover-panel{position:absolute;right:0;top:calc(100% + 8px);z-index:30;background:var(--surface-0);border:1.5px solid var(--line);border-radius:var(--r-lg);box-shadow:0 14px 34px rgba(13,13,13,.14);padding:16px;display:none}
   .popover-panel.open{display:block}
   .popover-panel.wide{width:340px}
+  .popover-panel.left0{left:0;right:auto}
 
   /* попап «Боксы» */
   .bf-quick{display:flex;gap:6px;margin-bottom:10px}
@@ -333,40 +349,12 @@
 
     <div class="toolbar">
       <div class="toolbar-left">
+        <button class="tb-icon-btn" id="railHamburgerBtn" type="button" title="Свернуть/развернуть меню"><i class="ti ti-menu-2"></i></button>
+        <button class="today-btn" id="todayBtn">Сегодня</button>
         <div class="date-nav">
           <button id="datePrev"><i class="ti ti-chevron-left"></i></button>
           <span class="date-label" id="dateLabel">—</span>
           <button id="dateNext"><i class="ti ti-chevron-right"></i></button>
-        </div>
-        <button class="today-btn" id="todayBtn">Сегодня</button>
-      </div>
-      <div class="toolbar-right">
-        <button class="filter-select popover-btn" id="quickSaleBtn" type="button"><i class="ti ti-shopping-cart-plus"></i>Продажа</button>
-        <div class="popover-wrap">
-          <button class="filter-select popover-btn" id="daySummaryBtn" type="button"><i class="ti ti-report-money"></i>Итоги дня</button>
-          <div class="popover-panel wide" id="daySummaryPanel">
-            <div class="ds-title">Итоги дня</div>
-            <div class="ds-sub" id="dsSub">—</div>
-            <div class="ds-grid" id="dsGrid"><div class="empty-note-sm">Загрузка…</div></div>
-            <div class="ds-note" id="dsNote"></div>
-            <div class="ds-links" id="dsLinks"></div>
-          </div>
-        </div>
-        <div class="popover-wrap">
-          <button class="filter-select popover-btn" id="statusFilterBtn" type="button"><i class="ti ti-filter"></i>Статусы</button>
-          <div class="popover-panel" id="statusFilterPanel">
-            <div class="bf-quick">
-              <button type="button" class="bf-quick-btn" id="sfAllBtn">Все статусы</button>
-            </div>
-            <div class="bf-list" id="sfList"></div>
-          </div>
-        </div>
-        <div class="popover-wrap">
-          <button class="filter-select popover-btn" id="zoomBtn" type="button"><i class="ti ti-arrows-vertical"></i></button>
-          <div class="popover-panel" id="zoomPanel">
-            <div class="ds-title" style="margin-bottom:10px">Масштаб журнала</div>
-            <div class="zoom-list" id="zoomList"></div>
-          </div>
         </div>
         <div class="popover-wrap">
           <button class="filter-select popover-btn" id="boxFilterBtn" type="button">Все боксы</button>
@@ -378,14 +366,46 @@
             <div class="bf-list" id="bfList"></div>
           </div>
         </div>
+        <div class="tb-sep"></div>
         <div class="popover-wrap">
-          <button class="filter-select popover-btn" id="clientSearchBtn" type="button" title="Поиск по клиентам"><i class="ti ti-search"></i></button>
-          <div class="popover-panel wide" id="clientSearchPanel">
+          <button class="tb-icon-btn" id="zoomBtn" type="button" title="Масштаб журнала"><i class="ti ti-settings"></i></button>
+          <div class="popover-panel left0" id="zoomPanel">
+            <div class="ds-title" style="margin-bottom:10px">Масштаб журнала</div>
+            <div class="zoom-list" id="zoomList"></div>
+          </div>
+        </div>
+        <div class="popover-wrap">
+          <button class="tb-icon-btn" id="statusFilterBtn" type="button" title="Фильтр по статусам"><i class="ti ti-adjustments-horizontal"></i></button>
+          <div class="popover-panel left0" id="statusFilterPanel">
+            <div class="bf-quick">
+              <button type="button" class="bf-quick-btn" id="sfAllBtn">Все статусы</button>
+            </div>
+            <div class="bf-list" id="sfList"></div>
+          </div>
+        </div>
+        <button class="tb-icon-btn" id="goWorkersBtn" type="button" title="Сотрудники и график работы"><i class="ti ti-user-plus"></i></button>
+        <div class="popover-wrap">
+          <button class="tb-icon-btn" id="clientSearchBtn" type="button" title="Поиск по клиентам"><i class="ti ti-search"></i></button>
+          <div class="popover-panel wide left0" id="clientSearchPanel">
             <div class="ds-title" style="margin-bottom:10px">Поиск по клиентам</div>
             <input type="text" id="gcsInput" placeholder="Телефон или имя" autocomplete="off" style="width:100%;height:42px;border-radius:12px;border:1.5px solid var(--line-strong);background:var(--paper);padding:0 14px;font-size:13px;font-family:var(--font-body)">
             <div id="gcsResults" style="margin-top:10px;max-height:280px;overflow-y:auto"></div>
           </div>
         </div>
+      </div>
+      <div class="toolbar-right">
+        <button class="tb-plus-btn" id="quickSaleBtn" type="button" title="Быстрая продажа"><i class="ti ti-plus"></i></button>
+        <div class="popover-wrap">
+          <button class="tb-money-btn" id="daySummaryBtn" type="button"><i class="ti ti-report-money"></i><span id="daySummaryAmount">0 ₽</span></button>
+          <div class="popover-panel wide" id="daySummaryPanel">
+            <div class="ds-title">Итоги дня</div>
+            <div class="ds-sub" id="dsSub">—</div>
+            <div class="ds-grid" id="dsGrid"><div class="empty-note-sm">Загрузка…</div></div>
+            <div class="ds-note" id="dsNote"></div>
+            <div class="ds-links" id="dsLinks"></div>
+          </div>
+        </div>
+        <div class="tb-avatar" id="tbAvatar" title="—"></div>
       </div>
     </div>
 
@@ -649,6 +669,9 @@ if (CW.requireAuth()) {
   async function init() {
     document.getElementById("dateLabel").textContent = dateLabel(curDate);
     document.getElementById("pageSub").textContent = `${branch} · ${dateLabel(curDate)}`;
+    const tbAvatar = document.getElementById("tbAvatar");
+    tbAvatar.textContent = CW.initials(CW.getName());
+    tbAvatar.title = `${CW.getName() || "—"} · ${CW.roleLabel(CW.getRole()) || ""}`;
     try {
       cfg = await CW.authFetch("/api/config");
       (cfg.services || []).forEach(s => { serviceNames[s.key] = s.name; });
@@ -668,7 +691,7 @@ if (CW.requireAuth()) {
       bookings = data.bookings || [];
       buildBoxFilter();
       renderGrid();
-      if (daySummaryOpen) loadDaySummary();
+      loadDaySummary();
     } catch (e) {
       showErr(e.message);
     }
@@ -745,6 +768,18 @@ if (CW.requireAuth()) {
     renderBoxFilterPanel();
     renderGrid();
   });
+  document.getElementById("railHamburgerBtn").addEventListener("click", () => {
+    const next = localStorage.getItem("cw_rail_expanded") !== "1";
+    localStorage.setItem("cw_rail_expanded", next ? "1" : "0");
+    CW.renderSidebar("booking");
+  });
+  // «Сотрудники» — у нас график задаётся циклом работа/отдых на странице
+  // «Сотрудники», а не разовым добавлением в конкретный день с часами, как в
+  // YCLIENTS, поэтому иконка ведёт на страницу графика, а не открывает мини-форму
+  document.getElementById("goWorkersBtn").addEventListener("click", () => {
+    window.location.href = "/static/workers.html";
+  });
+
   document.getElementById("bfDutyBtn").addEventListener("click", () => {
     boxFilterAuto = true;
     buildBoxFilter();
@@ -892,6 +927,7 @@ if (CW.requireAuth()) {
     links.innerHTML = "";
     try {
       const d = await CW.authFetch(`/api/day-summary?branch=${encodeURIComponent(branch)}&date=${encodeURIComponent(dateKey(curDate))}`);
+      document.getElementById("daySummaryAmount").textContent = CW.money(d.receipts_total || d.bookings_total || 0);
       grid.innerHTML = `
         <div class="mini-stat"><div class="ms-label">Поступлений в кассу</div><div class="ms-value">${CW.money(d.receipts_total)}</div></div>
         <div class="mini-stat"><div class="ms-label">Записей на сумму</div><div class="ms-value">${CW.money(d.bookings_total)}</div></div>
