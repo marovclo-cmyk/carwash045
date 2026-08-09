@@ -277,7 +277,7 @@ const CW = (() => {
       <div class="rail-toggle" id="railToggle" title="${expanded ? "Свернуть меню" : "Развернуть меню"}">
         <i class="ti ${expanded ? "ti-layout-sidebar-left-collapse" : "ti-menu-2"}"></i>
       </div>
-      <div class="rail-logo" title="CarWash Cloud">CW</div>
+      <div class="rail-logo" title="CarWash Cloud"><span class="rail-logo-mark">CW</span><span class="rail-logo-full">CarWash</span></div>
 
       <div class="rail-branch${role === "владелец" ? "" : " no-click"}" id="branchSelect" title="Филиал: ${branch || "не выбран"}">
         <span id="bsValue">${initials(branch || "—")}</span>
