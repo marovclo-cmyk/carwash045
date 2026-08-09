@@ -92,7 +92,8 @@
   .appt-status-dot.progress{background:var(--orange-tint);color:var(--orange)}
   .appt-status-dot.done{background:var(--green);color:#fff}
   .appt-status-dot.noshow{background:var(--red-tint);color:var(--red)}
-  .appt-cash-flag{position:absolute;right:9px;top:9px;width:16px;height:16px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-size:9px;z-index:1}
+  .appt-top-right{display:flex;align-items:center;gap:5px;flex-shrink:0}
+  .appt-cash-flag{width:18px;height:18px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-size:9px;flex-shrink:0}
   .appt-price{position:absolute;right:11px;bottom:8px;font-size:11px;font-weight:700;font-family:var(--font-display);color:var(--ink)}
   .appt.compact .appt-service,.appt.compact .appt-price{display:none}
   .appt.compact .appt-name{margin-top:3px}
@@ -1180,10 +1181,12 @@ if (CW.requireAuth()) {
       el.style.borderLeftColor = col_.c;
       el.title = `${STATUS_LABELS[status] || status} · Открыть запись`;
       el.innerHTML = `
-        ${bk.car_num ? `<div class="appt-cash-flag" title="В кассе — машина №${bk.car_num}"><i class="ti ti-cash"></i></div>` : ""}
         <div class="appt-top">
           <span class="appt-time">${bk.start_time}–${bk.end_time}</span>
-          <span class="appt-status-dot ${dotCls}"><i class="ti ${STATUS_ICONS[status] || "ti-clock"}"></i>${compact ? "" : (STATUS_LABELS[status] || status)}</span>
+          <span class="appt-top-right">
+            ${bk.car_num && status !== "done" ? `<span class="appt-cash-flag" title="В кассе — машина №${bk.car_num}"><i class="ti ti-cash"></i></span>` : ""}
+            <span class="appt-status-dot ${dotCls}"><i class="ti ${STATUS_ICONS[status] || "ti-clock"}"></i>${compact ? "" : (STATUS_LABELS[status] || status)}</span>
+          </span>
         </div>
         <div class="appt-name">${escapeHtml(bk.client_name || bk.car || "Без имени")}</div>
         ${bk.phone ? `<div class="appt-phone"><i class="ti ti-phone"></i>${escapeHtml(bk.phone)}</div>` : ""}
