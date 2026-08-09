@@ -13,6 +13,7 @@ from handlers.admin import (
     select_branch, get_current_branch, cb_approve_deny, cb_branch, cb_force_newday,
     fix_100726_command,
     fix_day_rates_command,
+    fix_session_date_command,
 )
 from handlers.cars import (
     edit_car_command, delete_car_command, handle_text_step, parse_car_from_text,
@@ -258,6 +259,7 @@ def main():
         ("app",            app_command),
         ("fix100726",      fix_100726_command),
         ("fix",            fix_day_rates_command),
+        ("fixdate",        fix_session_date_command),
     ]:
         app.add_handler(CommandHandler(cmd, fn))
 
