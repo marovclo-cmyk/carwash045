@@ -74,9 +74,28 @@
 
   /* карточка записи, у которой статус «Клиент не пришёл» — приглушаем, как в YCLIENTS */
   .appt.no-show{opacity:.5}
+  .appt.no-show .appt-name{text-decoration:line-through;text-decoration-color:var(--muted-2)}
 
-  /* верхняя полоска карточки записи теперь тоже кодирует статус (низ — цвет бокса слева, верх — статус) */
-  .appt-status-strip{position:absolute;left:4px;right:4px;top:0;height:3px;border-radius:3px 3px 0 0}
+  /* ---------- статус-пилюля записи (редизайн) ----------
+     Было: заливка всей карточки пастельным цветом бокса + верхняя полоска
+     статуса — два сигнала (чей бокс / какой статус) конкурировали друг
+     с другом на одной поверхности.
+     Стало: карточка всегда белая, цвет бокса — тонкая полоска слева
+     (задаётся инлайн через borderLeftColor в JS), а статус — отдельная
+     пилюля с иконкой и подписью справа сверху (подпись скрывается в
+     compact-режиме для коротких записей). Два сигнала читаются раздельно. */
+  .appt-status-dot{display:flex;align-items:center;gap:5px;font-size:10px;font-weight:700;padding:3px 8px 3px 6px;border-radius:999px;flex-shrink:0}
+  .appt-status-dot i{font-size:10px}
+  .appt-status-dot.wait{background:var(--paper-3);color:var(--muted)}
+  .appt-status-dot.confirm{background:var(--purple-tint);color:var(--purple)}
+  .appt-status-dot.arrived{background:var(--green-tint);color:var(--green)}
+  .appt-status-dot.progress{background:var(--orange-tint);color:var(--orange)}
+  .appt-status-dot.done{background:var(--green);color:#fff}
+  .appt-status-dot.noshow{background:var(--red-tint);color:var(--red)}
+  .appt-cash-flag{position:absolute;right:9px;top:9px;width:16px;height:16px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-size:9px;z-index:1}
+  .appt-price{position:absolute;right:11px;bottom:8px;font-size:11px;font-weight:700;font-family:var(--font-display);color:var(--ink)}
+  .appt.compact .appt-service,.appt.compact .appt-price{display:none}
+  .appt.compact .appt-name{margin-top:3px}
 
   /* попап «Итоги дня» */
   .ds-title{font-family:var(--font-display);font-size:15px;font-weight:600}
@@ -104,6 +123,19 @@
   .appt.dragging{opacity:.35}
   .appt-ghost{position:fixed;top:0;left:0;pointer-events:none;z-index:50;border-radius:var(--r-sm);padding:8px 10px;box-shadow:0 14px 30px rgba(13,13,13,.22);border-left-width:3px;border-style:solid;font-size:12px;font-weight:700;opacity:.96;will-change:transform}
   .gb-col.drop-target{background:var(--orange-tint)}
+  /* перенос упирается в занятый слот — подсвечиваем красным ещё ДО отпускания,
+     а не только после ответа сервера (см. processDragMove/updateApptGhost) */
+  .gb-col.drop-target.conflict{background:var(--red-tint)}
+  .appt-ghost.conflict{border-left-color:var(--red) !important;background:var(--red-tint) !important;color:var(--red)}
+
+  /* ---------- изменение длительности (тянуть за нижний край карточки) ---------- */
+  .appt-resize-handle{position:absolute;left:0;right:0;bottom:0;height:10px;cursor:ns-resize;z-index:3;touch-action:none}
+  .appt-resize-handle::after{content:"";position:absolute;left:50%;bottom:3px;width:26px;height:3px;border-radius:2px;background:rgba(13,13,13,.20);transform:translateX(-50%);opacity:0;transition:opacity .12s}
+  .appt:hover .appt-resize-handle::after{opacity:1}
+  .appt.resizing{z-index:6;box-shadow:0 10px 24px rgba(13,13,13,.16)}
+  .appt.resizing .appt-resize-handle::after{opacity:1;background:var(--orange)}
+  .appt.resize-conflict{border-color:var(--red) !important}
+  .appt.resize-conflict .appt-resize-handle::after{background:var(--red)}
 
   /* ---------- легенда ---------- */
   .legend{display:flex;gap:16px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
@@ -119,6 +151,7 @@
   .gh-avatar{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
   .gh-name{font-size:13.5px;font-weight:700}
   .gh-role{font-size:11px;color:var(--muted);font-weight:600}
+  .gh-count{margin-left:auto;font-size:11px;color:var(--muted-2);font-weight:700;background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:3px 9px;flex-shrink:0}
 
   .gt-col{position:relative}
   .gt-slot{height:var(--slot-px,34px);border-top:1px solid var(--line);position:relative}
@@ -136,17 +169,14 @@
   .now-line.no-label::before{content:""}
   .now-line::after{content:"";position:absolute;right:-3px;top:-3.5px;width:7px;height:7px;border-radius:50%;background:var(--orange)}
 
-  .appt{position:absolute;left:4px;right:4px;border-radius:var(--r-sm);padding:8px 10px;overflow:hidden;cursor:pointer;border:1.5px solid transparent;border-left-width:3px;background:var(--paper);box-shadow:0 1px 2px rgba(13,13,13,.04);transition:box-shadow .12s,transform .12s;z-index:2;touch-action:none}
-  .appt:hover{box-shadow:0 8px 18px rgba(13,13,13,.10);transform:translateY(-1px)}
-  .appt-top{display:flex;justify-content:space-between;align-items:flex-start;gap:6px}
+  .appt{position:absolute;left:4px;right:4px;border-radius:var(--r-sm);padding:9px 11px 8px;overflow:hidden;cursor:pointer;border:1px solid var(--line);border-left-width:3px;background:var(--paper);box-shadow:0 1px 2px rgba(13,13,13,.05);transition:box-shadow .14s,transform .14s,border-color .14s;z-index:2;touch-action:none}
+  .appt:hover{box-shadow:0 10px 22px rgba(13,13,13,.10);transform:translateY(-1px);border-color:var(--line-strong)}
+  .appt-top{display:flex;justify-content:space-between;align-items:center;gap:6px}
   .appt-time{font-size:10.5px;font-weight:700;color:var(--muted);letter-spacing:.01em}
-  .appt-top-icons{display:flex;align-items:center;gap:3px;flex-shrink:0}
-  .appt-status{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0}
-  .appt-status.done{background:var(--green);color:#fff}
-  .appt-status.progress{background:var(--paper);color:var(--muted);border:1.5px solid var(--line-strong)}
-  .appt-name{font-size:13px;font-weight:700;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .appt-phone{font-size:11px;color:var(--muted);font-weight:600;margin-top:1px}
-  .appt-service{font-size:11px;color:var(--muted);margin-top:4px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .appt-name{font-size:13px;font-weight:700;margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .appt-phone{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);font-weight:600;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .appt-phone i{font-size:10px;color:var(--muted-2);flex-shrink:0}
+  .appt-service{font-size:11px;color:var(--muted);margin-top:5px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
 
   .empty-slot-hint{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .12s;pointer-events:none}
   .gb-col:hover .empty-slot-hint{opacity:1}
@@ -688,6 +718,17 @@ if (CW.requireAuth()) {
     waiting: "#83817D", confirmed: "#7A5CFF", arrived: "#1B8A57",
     no_show: "#D63A2E", in_progress: "#FF5000", done: "#1B8A57",
   };
+  // класс модификатора для пилюли статуса на карточке записи (.appt-status-dot)
+  const STATUS_DOT_CLASS = {
+    waiting: "wait", confirmed: "confirm", arrived: "arrived",
+    in_progress: "progress", done: "done", no_show: "noshow",
+  };
+  // легенда над сеткой: порядок и цвет точки под каждый статус
+  const LEGEND_ORDER = ["waiting", "confirmed", "arrived", "in_progress", "done", "no_show"];
+  const LEGEND_DOT_COLOR = {
+    waiting: "var(--muted-2)", confirmed: "var(--purple)", arrived: "var(--green)",
+    in_progress: "var(--orange)", done: "var(--ink)", no_show: "var(--red)",
+  };
 
   const branch = CW.getActiveBranch();
   const errEl = document.getElementById("errBanner");
@@ -1047,6 +1088,7 @@ if (CW.requireAuth()) {
     const visibleBoxes = boxes.filter(b => boxFilterSet.has(b.box));
     if (!visibleBoxes.length) {
       grid.style.display = "none";
+      legend.style.display = "none";
       empty.style.display = "block";
       empty.textContent = "Нет боксов, подходящих под выбранный фильтр.";
       return;
@@ -1057,19 +1099,24 @@ if (CW.requireAuth()) {
     grid.style.setProperty("--cols", visibleBoxes.length);
     grid.style.setProperty("--slot-px", SLOT_PX + "px");
 
-    // легенда под тулбаром убрана по просьбе — иконки статусов в панели фильтра
-    // и так достаточно, дублирующая подсказка не нужна
-    legend.style.display = "none";
+    // компактная легенда статусов над сеткой (редизайн) — короткие подписи
+    // в одну строку, не занимает пол-экрана
+    legend.innerHTML = LEGEND_ORDER.map(s =>
+      `<div class="legend-item"><span class="legend-dot" style="background:${LEGEND_DOT_COLOR[s]}"></span>${STATUS_LABELS[s]}</div>`
+    ).join("");
+    legend.style.display = "flex";
 
     // заголовки колонок + время
     let html = `<div class="gh-corner"></div>`;
     visibleBoxes.forEach(b => {
       const col = boxColor(b.box);
       const initials = b.employee ? initialsOf(b.employee) : "?";
+      const boxBookingCount = bookings.filter(bk => String(bk.box) === String(b.box)).length;
       html += `
         <div class="gh-col${b.on_duty ? "" : " off-duty"}">
           <div class="gh-avatar" style="background:${col.t};color:${col.c}">${initials}</div>
           <div><div class="gh-name">Бокс ${b.box}</div><div class="gh-role">${b.employee ? "Автомойщик — " + b.employee : "Сотрудник не назначен"}</div></div>
+          <div class="gh-count">${boxBookingCount}</div>
         </div>`;
     });
 
@@ -1118,37 +1165,39 @@ if (CW.requireAuth()) {
       const height = Math.max(28, (endMin - startMin) * PX_PER_MIN);
       const col_ = boxColor(bk.box);
       const status = bk.status || "waiting";
-      const statusColor = STATUS_ACCENT[status] || STATUS_ACCENT.waiting;
       const svcList = [
         ...(bk.service_keys || []).map(k => serviceNames[k] || k),
         ...(bk.custom_services || []).map(s => s.name),
       ];
       const svcNames = svcList.length ? svcList.map(escapeHtml).join(", ") : (STATUS_LABELS[bk.status] || bk.status);
+      const compact = height < SLOT_PX * 1.7;
+      const dotCls = STATUS_DOT_CLASS[status] || "wait";
+      const priceVal = bk.price_override != null ? bk.price_override : bk.price;
       const el = document.createElement("div");
-      el.className = "appt" + (status === "no_show" ? " no-show" : "");
+      el.className = "appt" + (status === "no_show" ? " no-show" : "") + (compact ? " compact" : "");
       el.style.top = top + "px";
       el.style.height = height + "px";
       el.style.borderLeftColor = col_.c;
-      el.style.background = col_.t;
       el.title = `${STATUS_LABELS[status] || status} · Открыть запись`;
       el.innerHTML = `
-        <div class="appt-status-strip" style="background:${statusColor}"></div>
+        ${bk.car_num ? `<div class="appt-cash-flag" title="В кассе — машина №${bk.car_num}"><i class="ti ti-cash"></i></div>` : ""}
         <div class="appt-top">
           <span class="appt-time">${bk.start_time}–${bk.end_time}</span>
-          <span class="appt-top-icons">
-            ${bk.car_num ? `<span class="appt-status" style="background:var(--green);color:#fff;border:none" title="В кассе — машина №${bk.car_num}"><i class="ti ti-cash"></i></span>` : ""}
-            <span class="appt-status" style="background:${statusColor};color:#fff;border:none" title="${STATUS_LABELS[status] || status}"><i class="ti ${STATUS_ICONS[status] || "ti-clock"}"></i></span>
-          </span>
+          <span class="appt-status-dot ${dotCls}"><i class="ti ${STATUS_ICONS[status] || "ti-clock"}"></i>${compact ? "" : (STATUS_LABELS[status] || status)}</span>
         </div>
         <div class="appt-name">${escapeHtml(bk.client_name || bk.car || "Без имени")}</div>
-        ${bk.phone ? `<div class="appt-phone">${escapeHtml(bk.phone)}</div>` : ""}
-        <div class="appt-service">${svcNames}</div>`;
+        ${bk.phone ? `<div class="appt-phone"><i class="ti ti-phone"></i>${escapeHtml(bk.phone)}</div>` : ""}
+        <div class="appt-service">${svcNames}</div>
+        ${priceVal != null ? `<div class="appt-price">${CW.money(priceVal)}</div>` : ""}
+        <div class="appt-resize-handle" title="Потянуть — изменить длительность"></div>`;
       el.addEventListener("click", (e) => {
         e.stopPropagation();
         if (el.dataset.dragged === "1") { delete el.dataset.dragged; return; } // клик сразу после переноса — не открываем модалку
+        if (el.dataset.resized === "1") { delete el.dataset.resized; return; } // клик сразу после resize — не открываем модалку
         openEditModal(bk);
       });
       wireApptDrag(el, bk);
+      wireApptResize(el, bk);
       col.appendChild(el);
     });
 
@@ -1176,6 +1225,22 @@ if (CW.requireAuth()) {
     return h * 60 + m;
   }
   function minutesToTime(min) { return `${pad2(Math.floor(min / 60))}:${pad2(min % 60)}`; }
+
+  // Проверка пересечения на клиенте — тот же принцип, что find_conflicting_booking
+  // на бэкенде (sessions.py): «не пришёл» слот снова свободен, сравниваем
+  // только с записями в ТОМ ЖЕ боксе. Используется для живой подсветки во
+  // время drag/resize, ещё до похода на сервер — сервер всё равно перепроверит
+  // при сохранении (это просто UX-подсказка, а не замена валидации).
+  function hasLocalConflict(box, startMin, endMin, excludeId) {
+    return bookings.some(b => {
+      if (b.box !== box && String(b.box) !== String(box)) return false;
+      if (b.id === excludeId) return false;
+      if (b.status === "no_show") return false;
+      const exStart = timeToMinutes(b.start_time), exEnd = timeToMinutes(b.end_time);
+      if (exStart < 0 || exEnd < 0) return false;
+      return startMin < exEnd && exStart < endMin;
+    });
+  }
 
   // ---------- перенос записи: зажать и потянуть — время (вверх/вниз) и/или
   // бокс (влево/вправо между колонками). Порог в пикселях отделяет обычный
@@ -1226,9 +1291,13 @@ if (CW.requireAuth()) {
     const endMin = state.newStartMin + state.durationMin;
     state.ghost.style.width = state.el.offsetWidth + "px";
     state.ghost.style.height = state.el.offsetHeight + "px";
-    state.ghost.style.borderLeftColor = col.c;
-    state.ghost.style.background = col.t;
-    state.ghost.innerHTML = `<div class="appt-time">${minutesToTime(state.newStartMin)}–${minutesToTime(endMin)} · Бокс ${state.newBox}${boxInfo && boxInfo.employee ? " (" + escapeHtml(boxInfo.employee) + ")" : ""}</div>`;
+    state.ghost.classList.toggle("conflict", !!state.conflict);
+    if (!state.conflict) {
+      state.ghost.style.borderLeftColor = col.c;
+      state.ghost.style.background = col.t;
+    }
+    const warn = state.conflict ? ` · <i class="ti ti-alert-triangle"></i> занято` : "";
+    state.ghost.innerHTML = `<div class="appt-time">${minutesToTime(state.newStartMin)}–${minutesToTime(endMin)} · Бокс ${state.newBox}${boxInfo && boxInfo.employee ? " (" + escapeHtml(boxInfo.employee) + ")" : ""}${warn}</div>`;
   }
 
   // Обработка перетаскивания вынесена из обработчика события и вызывается
@@ -1260,7 +1329,7 @@ if (CW.requireAuth()) {
       if (clientX >= c.rect.left && clientX <= c.rect.right) { targetCol = c; break; }
     }
     if (dragStateRef._dropEl && dragStateRef._dropEl !== (targetCol && targetCol.el)) {
-      dragStateRef._dropEl.classList.remove("drop-target");
+      dragStateRef._dropEl.classList.remove("drop-target", "conflict");
       dragStateRef._dropEl = null;
     }
     if (targetCol) {
@@ -1274,6 +1343,13 @@ if (CW.requireAuth()) {
       minutes = Math.max(START_HOUR * 60, Math.min(END_HOUR * 60 - dragStateRef.durationMin, minutes));
       dragStateRef.newStartMin = minutes;
     }
+
+    // живая проверка пересечения — красим цель ДО отпускания, а не только
+    // после того, как сервер отклонит перенос (см. hasLocalConflict выше)
+    dragStateRef.conflict = hasLocalConflict(
+      dragStateRef.newBox, dragStateRef.newStartMin,
+      dragStateRef.newStartMin + dragStateRef.durationMin, dragStateRef.bk.id);
+    if (dragStateRef._dropEl) dragStateRef._dropEl.classList.toggle("conflict", dragStateRef.conflict);
 
     updateApptGhost(dragStateRef);
     // transform вместо left/top — не форсирует layout на каждый кадр,
@@ -1319,6 +1395,15 @@ if (CW.requireAuth()) {
     const changed = state.newBox !== state.origBox || state.newStartMin !== timeToMinutes(state.bk.start_time);
     if (!changed) return;
 
+    // конфликт был виден ещё во время переноса (см. processDragMove) — раз он
+    // подтверждён на момент отпускания, не ходим на сервер зря: карточка и
+    // так никуда не двигалась визуально (двигался только ghost), достаточно
+    // просто показать причину отказа.
+    if (state.conflict) {
+      showErr("Этот бокс в это время уже занят другой записью.");
+      return;
+    }
+
     const newStart = minutesToTime(state.newStartMin);
     const newEnd = minutesToTime(state.newStartMin + state.durationMin);
     try {
@@ -1328,7 +1413,7 @@ if (CW.requireAuth()) {
       });
       await loadBookings();
     } catch (e) {
-      showErr(e.message); // например «бокс занят» — сервер отклонил перенос конфликтом
+      showErr(e.message); // например сервер увидел то, чего не было в локальных данных (гонка) — отклонил перенос
       await loadBookings(); // откатываем визуально к тому, что реально сохранено
     }
   }
@@ -1336,6 +1421,118 @@ if (CW.requireAuth()) {
   document.addEventListener("mouseup", () => { const s = finishDrag(); if (s) commitDrag(s); });
   document.addEventListener("touchend", () => { const s = finishDrag(); if (s) commitDrag(s); });
   document.addEventListener("touchcancel", () => { finishDrag(); });
+
+  // ---------- изменение длительности: тянуть за нижний край карточки.
+  // В отличие от переноса, здесь не создаём ghost — сама карточка и так уже
+  // стоит в нужном месте (бокс/начало не меняются), поэтому просто растягиваем
+  // её высоту в реальном времени и подсвечиваем красным, если новая
+  // длительность упирается в следующую запись того же бокса. ----------
+  const RESIZE_THRESHOLD = 4;
+  const MIN_DURATION_MIN = 30;
+  let resizeState = null;
+
+  function wireApptResize(el, bk) {
+    const handle = el.querySelector(".appt-resize-handle");
+    if (!handle) return;
+    const start = (clientY) => {
+      const startMin = timeToMinutes(bk.start_time);
+      const origDurationMin = Math.max(MIN_DURATION_MIN, timeToMinutes(bk.end_time) - startMin);
+      resizeState = {
+        bk, el, startY: clientY, startMin,
+        origDurationMin, newDurationMin: origDurationMin,
+        origHeight: el.style.height,
+        dragging: false, conflict: false,
+        pendingY: clientY, rafScheduled: false,
+      };
+    };
+    handle.addEventListener("mousedown", (e) => {
+      if (e.button !== 0) return;
+      e.stopPropagation(); e.preventDefault(); // не путать с переносом всей карточки
+      start(e.clientY);
+    });
+    handle.addEventListener("touchstart", (e) => {
+      e.stopPropagation();
+      const t = e.touches[0];
+      start(t.clientY);
+    }, { passive: true });
+  }
+
+  function processResizeMove(clientY) {
+    const s = resizeState;
+    if (!s) return;
+    const dy = clientY - s.startY;
+    if (!s.dragging) {
+      if (Math.abs(dy) < RESIZE_THRESHOLD) return;
+      s.dragging = true;
+      s.el.classList.add("resizing");
+      s.el.dataset.resized = "1";
+      document.body.style.cursor = "ns-resize";
+      document.body.style.userSelect = "none";
+    }
+    const deltaMin = dy / PX_PER_MIN;
+    let durMin = Math.round((s.origDurationMin + deltaMin) / 30) * 30;
+    durMin = Math.max(MIN_DURATION_MIN, Math.min(durMin, END_HOUR * 60 - s.startMin));
+    s.newDurationMin = durMin;
+    s.el.style.height = Math.max(28, durMin * PX_PER_MIN) + "px";
+    s.conflict = hasLocalConflict(s.bk.box, s.startMin, s.startMin + durMin, s.bk.id);
+    s.el.classList.toggle("resize-conflict", s.conflict);
+  }
+
+  function onResizePointerMove(clientY) {
+    if (!resizeState) return;
+    resizeState.pendingY = clientY;
+    if (resizeState.rafScheduled) return;
+    resizeState.rafScheduled = true;
+    requestAnimationFrame(() => {
+      if (!resizeState) return;
+      resizeState.rafScheduled = false;
+      processResizeMove(resizeState.pendingY);
+    });
+  }
+
+  function finishResize() {
+    if (!resizeState) return;
+    const s = resizeState;
+    resizeState = null;
+    s.el.classList.remove("resizing", "resize-conflict");
+    document.body.style.cursor = "";
+    document.body.style.userSelect = "";
+    return s;
+  }
+
+  document.addEventListener("mousemove", (e) => { onResizePointerMove(e.clientY); });
+  document.addEventListener("touchmove", (e) => {
+    if (!resizeState) return;
+    if (resizeState.dragging) e.preventDefault();
+    onResizePointerMove(e.touches[0].clientY);
+  }, { passive: false });
+
+  async function commitResize(s) {
+    if (!s.dragging) return; // обычный тап по хендлу — ничего не меняем
+    if (s.newDurationMin === s.origDurationMin) return;
+
+    if (s.conflict) {
+      s.el.style.height = s.origHeight; // визуально возвращаем как было
+      showErr("Новая длительность упирается в следующую запись этого бокса.");
+      return;
+    }
+
+    const newEnd = minutesToTime(s.startMin + s.newDurationMin);
+    try {
+      await CW.authFetch(`/api/bookings/${s.bk.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ end_time: newEnd }),
+      });
+      await loadBookings();
+    } catch (e) {
+      showErr(e.message);
+      await loadBookings();
+    }
+  }
+
+  document.addEventListener("mouseup", () => { const s = finishResize(); if (s) commitResize(s); });
+  document.addEventListener("touchend", () => { const s = finishResize(); if (s) commitResize(s); });
+  document.addEventListener("touchcancel", () => { finishResize(); });
 
 
   // ---------- модалка: бокс/время/статус (лево) · услуги/товары/оплата
