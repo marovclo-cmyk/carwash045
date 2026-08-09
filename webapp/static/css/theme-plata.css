@@ -99,8 +99,10 @@ h1,h2,h3,.font-display{font-family:var(--font-display)}
   width:40px;height:40px;border-radius:12px;background:var(--orange-grad);
   display:flex;align-items:center;justify-content:center;margin-bottom:26px;
   font-family:var(--font-display);font-weight:700;color:#fff;font-size:16px;
-  box-shadow:0 6px 16px rgba(255,80,0,.35);
+  box-shadow:0 6px 16px rgba(255,80,0,.35);flex-shrink:0;
+  transition:width .18s ease,padding .18s ease,justify-content .18s ease;
 }
+.rail-logo-full{display:none}
 .rail-items{display:flex;flex-direction:column;gap:4px;flex:1;width:100%;align-items:center}
 .rail-item{
   width:52px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;
@@ -512,7 +514,9 @@ table.data td.num,table.data th.num{text-align:right}
 .rail-user-name{display:none}
 
 .rail.expanded{align-items:stretch;padding-left:14px;padding-right:14px}
-.rail.expanded .rail-logo{align-self:flex-start}
+.rail.expanded .rail-logo{align-self:flex-start;width:auto;padding:0 14px;justify-content:flex-start}
+.rail.expanded .rail-logo-mark{display:none}
+.rail.expanded .rail-logo-full{display:inline;font-size:15px;letter-spacing:.2px;white-space:nowrap}
 .rail.expanded .rail-toggle{align-self:flex-start}
 .rail.expanded .rail-items{align-items:stretch}
 .rail.expanded .rail-item{
