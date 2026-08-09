@@ -36,6 +36,9 @@
   .tb-money-btn i{font-size:13px;color:var(--muted)}
   /* аватар текущего пользователя справа — тот же визуальный язык, что .rail-avatar */
   .tb-avatar{width:38px;height:38px;border-radius:50%;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;font-family:var(--font-display);flex-shrink:0;cursor:default}
+  .add-menu-item{display:flex;align-items:center;gap:10px;padding:10px 11px;border-radius:var(--r-sm);font-size:13px;font-weight:600;color:var(--ink);cursor:pointer;transition:.12s}
+  .add-menu-item:hover{background:var(--paper-2)}
+  .add-menu-item i{font-size:16px;color:var(--muted);width:18px;text-align:center}
 
   /* ---------- toolbar-right: попапы «Итоги дня» и «Боксы» ---------- */
   .toolbar-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
@@ -336,17 +339,6 @@
   <div class="main">
     <div class="err-banner" id="errBanner"></div>
 
-    <div class="page-head">
-      <div>
-        <div class="page-title">Запись</div>
-        <div class="page-sub" id="pageSub">—</div>
-      </div>
-      <div class="head-actions">
-        <button class="btn secondary" id="refreshBtn"><i class="ti ti-refresh"></i>Обновить</button>
-        <button class="btn accent" id="newBookingBtn"><i class="ti ti-plus"></i>Новая запись</button>
-      </div>
-    </div>
-
     <div class="toolbar">
       <div class="toolbar-left">
         <button class="tb-icon-btn" id="railHamburgerBtn" type="button" title="Свернуть/развернуть меню"><i class="ti ti-menu-2"></i></button>
@@ -392,9 +384,16 @@
             <div id="gcsResults" style="margin-top:10px;max-height:280px;overflow-y:auto"></div>
           </div>
         </div>
+        <button class="tb-icon-btn" id="refreshBtn" type="button" title="Обновить"><i class="ti ti-refresh"></i></button>
       </div>
       <div class="toolbar-right">
-        <button class="tb-plus-btn" id="quickSaleBtn" type="button" title="Быстрая продажа"><i class="ti ti-plus"></i></button>
+        <div class="popover-wrap">
+          <button class="tb-plus-btn" id="addMenuBtn" type="button" title="Добавить"><i class="ti ti-plus"></i></button>
+          <div class="popover-panel" id="addMenuPanel" style="width:200px;padding:8px">
+            <div class="add-menu-item" id="newBookingBtn"><i class="ti ti-calendar-plus"></i>Новая запись</div>
+            <div class="add-menu-item" id="quickSaleBtn"><i class="ti ti-shopping-cart-plus"></i>Быстрая продажа</div>
+          </div>
+        </div>
         <div class="popover-wrap">
           <button class="tb-money-btn" id="daySummaryBtn" type="button"><i class="ti ti-report-money"></i><span id="daySummaryAmount">0 ₽</span></button>
           <div class="popover-panel wide" id="daySummaryPanel">
@@ -668,7 +667,6 @@ if (CW.requireAuth()) {
 
   async function init() {
     document.getElementById("dateLabel").textContent = dateLabel(curDate);
-    document.getElementById("pageSub").textContent = `${branch} · ${dateLabel(curDate)}`;
     const tbAvatar = document.getElementById("tbAvatar");
     tbAvatar.textContent = CW.initials(CW.getName());
     tbAvatar.title = `${CW.getName() || "—"} · ${CW.roleLabel(CW.getRole()) || ""}`;
@@ -684,7 +682,6 @@ if (CW.requireAuth()) {
     if (!branch) return;
     errEl.style.display = "none";
     document.getElementById("dateLabel").textContent = dateLabel(curDate);
-    document.getElementById("pageSub").textContent = `${branch} · ${dateLabel(curDate)}`;
     try {
       const data = await CW.authFetch(`/api/bookings?branch=${encodeURIComponent(branch)}&date=${encodeURIComponent(dateKey(curDate))}`);
       boxes = data.boxes || [];
@@ -869,6 +866,7 @@ if (CW.requireAuth()) {
   setupPopover("statusFilterBtn", "statusFilterPanel");
   setupPopover("zoomBtn", "zoomPanel");
   setupPopover("clientSearchBtn", "clientSearchPanel", () => { document.getElementById("gcsInput").focus(); });
+  setupPopover("addMenuBtn", "addMenuPanel");
   setupPopover("daySummaryBtn", "daySummaryPanel", () => { daySummaryOpen = true; loadDaySummary(); });
 
   // ---------- поиск по клиентам прямо из тулбара журнала (как значок лупы в YCLIENTS) ----------
@@ -1486,7 +1484,10 @@ if (CW.requireAuth()) {
     document.getElementById("fEnd").value = minutesToTime(Math.min(END_HOUR * 60, minutes + 20));
     setStatusTab("done");
   }
-  document.getElementById("quickSaleBtn").addEventListener("click", openQuickSaleModal);
+  document.getElementById("quickSaleBtn").addEventListener("click", () => {
+    document.getElementById("addMenuPanel").classList.remove("open");
+    openQuickSaleModal();
+  });
 
   function openEditModal(bk) {
     editingId = bk.id;
@@ -1783,7 +1784,10 @@ if (CW.requireAuth()) {
   });
   document.getElementById("detailBackBtn").addEventListener("click", closeDetail);
 
-  document.getElementById("newBookingBtn").addEventListener("click", () => openCreateModal());
+  document.getElementById("newBookingBtn").addEventListener("click", () => {
+    document.getElementById("addMenuPanel").classList.remove("open");
+    openCreateModal();
+  });
   document.getElementById("refreshBtn").addEventListener("click", loadBookings);
 
   document.getElementById("saveBtn").addEventListener("click", async () => {
