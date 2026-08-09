@@ -1057,6 +1057,7 @@ def create_booking(branch: str, date: str, box: int, start_time: str, end_time: 
             "phone": normalize_phone(phone) if phone else "",
             "client_name": client_name,
             "status": status,
+            "car_num": None,   # номер машины в кассе смены, если запись уже конвертирована (статус arrived)
             "created_at": datetime.now().isoformat(timespec="seconds"),
             "updated_at": datetime.now().isoformat(timespec="seconds"),
         }
