@@ -147,6 +147,13 @@ const CW = (() => {
     root.classList.add("rail");
     const role = getRole();
 
+    // состояние «свёрнут/развёрнут» — сохраняется между страницами (обычные
+    // переходы по <a>, не SPA), поэтому применяем класс/CSS-переменную сразу,
+    // до отрисовки, чтобы не было «мигания» ширины при загрузке страницы
+    const expanded = localStorage.getItem("cw_rail_expanded") === "1";
+    root.classList.toggle("expanded", expanded);
+    document.documentElement.style.setProperty("--rail-w", expanded ? "232px" : "84px");
+
     const groupsHtml = NAV.map(group => {
       const items = group.items.filter(it =>
         (!it.ownerOnly || role === "владелец") &&
@@ -155,7 +162,7 @@ const CW = (() => {
       if (!items.length) return "";
       return items.map(it => `
         <a class="rail-item ${it.key === activeKey ? "active" : ""}" data-href="${it.href}" title="${it.label}">
-          <i class="ti ${it.icon}"></i>
+          <i class="ti ${it.icon}"></i><span class="rail-item-label">${it.label}</span>
         </a>`).join("") + `<div class="rail-div"></div>`;
     }).filter(Boolean).join("");
     // убираем последний лишний разделитель после последней группы
@@ -164,22 +171,38 @@ const CW = (() => {
     const branch = getActiveBranch();
 
     root.innerHTML = `
+      <div class="rail-toggle" id="railToggle" title="${expanded ? "Свернуть меню" : "Развернуть меню"}">
+        <i class="ti ${expanded ? "ti-layout-sidebar-left-collapse" : "ti-menu-2"}"></i>
+      </div>
       <div class="rail-logo" title="CarWash Cloud">CW</div>
 
       <div class="rail-branch" id="branchSelect" title="Филиал: ${branch || "не выбран"}">
         <span id="bsValue">${initials(branch || "—")}</span>
+        <span class="rail-branch-name" id="bsValueFull">${branch || "Филиал не выбран"}</span>
         <select id="bsSelect" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;${role === 'владелец' ? 'cursor:pointer' : 'pointer-events:none'}"></select>
       </div>
 
       <div class="rail-items">${itemsHtml}</div>
 
       <div class="rail-bottom">
-        <div class="rail-item" id="logoutBtn" title="Выйти"><i class="ti ti-logout"></i></div>
-        <div class="rail-avatar" title="${getName() || "—"} · ${roleLabel(role)}">${initials(getName())}</div>
+        <div class="rail-item" id="logoutBtn" title="Выйти"><i class="ti ti-logout"></i><span class="rail-item-label">Выйти</span></div>
+        <div class="rail-avatar-row">
+          <div class="rail-avatar" title="${getName() || "—"} · ${roleLabel(role)}">${initials(getName())}</div>
+          <div style="min-width:0">
+            <div class="rail-user-name">${getName() || "—"}</div>
+            <div class="rail-user-role">${roleLabel(role) || ""}</div>
+          </div>
+        </div>
       </div>
     `;
 
     document.getElementById("branchSelect").style.position = "relative";
+
+    document.getElementById("railToggle").addEventListener("click", () => {
+      const next = !root.classList.contains("expanded");
+      localStorage.setItem("cw_rail_expanded", next ? "1" : "0");
+      renderSidebar(activeKey);
+    });
 
     root.querySelectorAll(".rail-item[data-href]").forEach(el => {
       el.addEventListener("click", () => { window.location.href = el.dataset.href; });
@@ -194,6 +217,7 @@ const CW = (() => {
         sel.value = current;
         if (!getActiveBranch()) setActiveBranch(current);
         document.getElementById("bsValue").textContent = initials(current);
+        document.getElementById("bsValueFull").textContent = current;
         document.getElementById("branchSelect").title = "Филиал: " + current;
         sel.addEventListener("change", () => {
           setActiveBranch(sel.value);
