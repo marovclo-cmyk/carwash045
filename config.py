@@ -141,7 +141,7 @@ PRODUCTS = {
     "whitevanila": {"name": "Духи White Vanila Blackline",             "price": 1500},
 }
 
-PAYMENT_TYPES = ["нал", "visa", "безнал"]
+PAYMENT_TYPES = ["нал", "visa", "безнал", "онлайн"]
 
 
 def get_product_price(product_key: str) -> int:

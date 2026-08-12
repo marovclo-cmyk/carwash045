@@ -52,7 +52,7 @@ def calculate_summary(session: dict) -> dict:
 
     raw_cash   = sum_method(cars, ["нал", "наличка"])
     raw_visa   = sum_method(cars, ["visa", "виза"])
-    raw_beznal = sum_method(cars, ["безнал", "петрон", "petron"])
+    raw_beznal = sum_method(cars, ["безнал", "петрон", "petron", "онлайн", "online"])
 
     # Для отображения — сколько скидок пришлось на какой тип оплаты
     # (для машин с раздельной оплатой скидка относится к оплате наличными по умолчанию)
@@ -67,7 +67,7 @@ def calculate_summary(session: dict) -> dict:
 
     loyalty_cash   = sum(loyalty_by_car.get(c["num"], 0) for c in cars if loyalty_method(c) in ["нал","наличка"])
     loyalty_visa   = sum(loyalty_by_car.get(c["num"], 0) for c in cars if loyalty_method(c) in ["visa","виза"])
-    loyalty_beznal = sum(loyalty_by_car.get(c["num"], 0) for c in cars if loyalty_method(c) in ["безнал","петрон","petron"])
+    loyalty_beznal = sum(loyalty_by_car.get(c["num"], 0) for c in cars if loyalty_method(c) in ["безнал","петрон","petron","онлайн","online"])
 
     # Реально поступившие деньги (после вычета скидки)
     cash   = raw_cash   - loyalty_cash
@@ -76,7 +76,7 @@ def calculate_summary(session: dict) -> dict:
 
     products_cash   = sum(p["price"] for p in products if p["payment"].lower() in ["нал","наличка"])
     products_visa   = sum(p["price"] for p in products if p["payment"].lower() in ["visa","виза"])
-    products_beznal = sum(p["price"] for p in products if p["payment"].lower() in ["безнал","петрон","petron"])
+    products_beznal = sum(p["price"] for p in products if p["payment"].lower() in ["безнал","петрон","petron","онлайн","online"])
     total_products  = products_cash + products_visa + products_beznal
 
     cash   += products_cash
@@ -167,7 +167,7 @@ def calculate_summary(session: dict) -> dict:
 
     income_cash   = sum_income_method(incomes, ["нал", "наличка"])
     income_visa   = sum_income_method(incomes, ["visa", "виза"])
-    income_beznal = sum_income_method(incomes, ["безнал", "петрон", "petron"])
+    income_beznal = sum_income_method(incomes, ["безнал", "петрон", "petron", "онлайн", "online"])
 
     cash   += income_cash
     visa   += income_visa
