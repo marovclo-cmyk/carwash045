@@ -483,8 +483,111 @@ table.data td.num,table.data th.num{text-align:right}
   .shell{grid-template-columns:1fr}
   .rail{display:none}
   .stat-row{grid-template-columns:1fr 1fr}
-  .main{padding:22px 18px 48px}
+  .main{padding:78px 18px 48px}
+
+  .mobile-topbar{
+    display:flex;align-items:center;gap:12px;
+    position:fixed;top:0;left:0;right:0;height:56px;padding:0 16px;
+    background:#0D0D0D;z-index:40;
+  }
+  .mobile-nav-backdrop.open{display:block}
+  .mobile-nav-drawer.open{transform:translateX(0)}
 }
+
+/* ---------- мобильная навигация (гамбургер + drawer, <=980px) ----------
+   Ниже .rail скрывается (см. правило выше) — без этого блока сайт был
+   не навигируем на телефоне/планшете. Топбар/backdrop/drawer — один
+   набор элементов на body, создаётся один раз в site-common.js
+   (ensureMobileNavEl) и переиспользуется всеми 12 страницами сайта без
+   правки самих HTML-файлов. Стилистика продолжает язык .rail выше
+   (тот же тёмный фон, оранжевый акцент активного пункта). */
+.mobile-topbar{display:none} /* показывается только в @media выше */
+.mobile-menu-btn{
+  width:36px;height:36px;border-radius:10px;border:none;background:rgba(255,255,255,.08);
+  color:#fff;font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer;
+  flex-shrink:0;
+}
+.mobile-menu-btn:hover{background:rgba(255,255,255,.14)}
+.mobile-topbar-logo{color:#fff;font-family:var(--font-display);font-weight:600;font-size:14.5px;letter-spacing:.01em}
+
+.mobile-nav-backdrop{
+  display:none;position:fixed;inset:0;background:rgba(13,13,13,.55);z-index:250;
+}
+.mobile-nav-drawer{
+  display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;width:min(82vw,300px);
+  background:#0D0D0D;z-index:260;transform:translateX(-100%);transition:transform .22s ease;
+  padding:16px 14px;overflow-y:auto;
+}
+.mobile-nav-head{display:flex;align-items:center;justify-content:space-between;padding:2px 4px 14px}
+.mobile-nav-head-logo{color:#fff;font-family:var(--font-display);font-weight:600;font-size:15px}
+.mobile-nav-close{
+  width:32px;height:32px;border-radius:9px;border:none;background:rgba(255,255,255,.08);
+  color:rgba(255,255,255,.75);font-size:15px;display:flex;align-items:center;justify-content:center;cursor:pointer;
+}
+.mobile-nav-close:hover{background:rgba(255,255,255,.14);color:#fff}
+
+.mobile-nav-branch{
+  display:flex;align-items:center;gap:9px;padding:9px 12px;margin-bottom:12px;
+  background:rgba(255,255,255,.06);border-radius:12px;color:rgba(255,255,255,.85);
+  font-size:12.5px;font-weight:600;
+}
+.mobile-nav-branch i{color:var(--orange-3);font-size:15px}
+.mobile-nav-branch span#mobileBranchName{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ---------- смена филиала (владелец) — раскрывающийся аккордеон ---------- */
+.mobile-nav-branch.clickable{cursor:pointer;transition:background .15s}
+.mobile-nav-branch.clickable:hover{background:rgba(255,255,255,.1)}
+.mobile-nav-branch-chev{
+  margin-left:auto;font-size:13px;color:rgba(255,255,255,.45);flex-shrink:0;
+  transition:transform .18s ease;
+}
+.mobile-nav-branch.open .mobile-nav-branch-chev{transform:rotate(180deg)}
+.mobile-nav-branch-list{
+  display:none;flex-direction:column;gap:2px;margin:-6px 0 12px;padding:6px;
+  background:rgba(255,255,255,.04);border-radius:12px;max-height:220px;overflow-y:auto;
+}
+.mobile-nav-branch-list.open{display:flex}
+.mobile-nav-branch-item{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:9px 10px;border-radius:9px;font-size:12.5px;font-weight:600;
+  color:rgba(255,255,255,.75);cursor:pointer;transition:background .15s,color .15s;
+}
+.mobile-nav-branch-item:hover{background:rgba(255,255,255,.08);color:#fff}
+.mobile-nav-branch-item.active{color:var(--orange-3)}
+.mobile-nav-branch-item.active i{color:var(--orange-3);font-size:14px}
+.mobile-nav-branch-empty{font-size:12px;color:rgba(255,255,255,.4);font-weight:600;padding:8px 10px}
+
+/* ---------- мини-календарь в мобильном drawer (аккордеон) ---------- */
+.mobile-nav-cal-toggle{
+  display:flex;align-items:center;gap:9px;padding:9px 12px;margin-bottom:2px;
+  border-radius:12px;color:rgba(255,255,255,.72);font-size:12.5px;font-weight:600;
+  cursor:pointer;transition:background .15s,color .15s;
+}
+.mobile-nav-cal-toggle:hover{background:rgba(255,255,255,.06);color:#fff}
+.mobile-nav-cal-toggle i:first-child{color:var(--orange-3);font-size:15px}
+.mobile-nav-cal-toggle .mobile-nav-branch-chev{margin-left:auto}
+.mobile-nav-cal-toggle.open .mobile-nav-branch-chev{transform:rotate(180deg)}
+.mobile-nav-cal-wrap{display:none;padding:4px 4px 2px;margin-bottom:10px}
+.mobile-nav-cal-wrap.open{display:block}
+.mobile-nav-cal-wrap .rail-cal{padding:2px 2px 4px}
+
+.mobile-nav-groups{display:flex;flex-direction:column;gap:14px;flex:1}
+.mobile-nav-group{display:flex;flex-direction:column;gap:2px}
+.mobile-nav-item{
+  display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:11px;
+  color:rgba(255,255,255,.72);font-size:13.5px;font-weight:600;text-decoration:none;cursor:pointer;
+  transition:background .15s,color .15s;
+}
+.mobile-nav-item i{font-size:17px;width:20px;text-align:center;flex-shrink:0}
+.mobile-nav-item:hover{background:rgba(255,255,255,.06);color:#fff}
+.mobile-nav-item.active{background:var(--orange-grad);color:#fff;box-shadow:0 4px 14px rgba(255,80,0,.35)}
+
+.mobile-nav-bottom{border-top:1px solid rgba(255,255,255,.1);margin-top:10px;padding-top:12px}
+.mobile-nav-user{display:flex;align-items:center;gap:10px;padding:4px 8px 10px}
+.mobile-nav-user-name{font-size:12.5px;font-weight:700;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mobile-nav-user-role{font-size:10.5px;color:rgba(255,255,255,.45)}
+
+body.mobile-nav-locked{overflow:hidden}
 
 /* ============================================================
    Merge-доп: элементы, которых не было в визуальном макете
