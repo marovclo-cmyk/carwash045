@@ -10,7 +10,10 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 
-from sessions import get_session, save_sessions, get_branch_workers, find_client, upsert_client_visit
+from sessions import (
+    get_session, save_sessions, get_branch_workers, find_client, upsert_client_visit,
+    apply_client_loyalty_discount,
+)
 from config import (
     SERVICES, PAYMENT_TYPES, BODY_TYPES, BODY_TYPE_ORDER,
     services_label, services_display_name, get_service_price, get_service_percent,
@@ -261,6 +264,12 @@ async def cb_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
     car["num"]     = len(session["cars"]) + 1
     context.user_data.pop("step", None)
     session["cars"].append(car)
+    loyalty_applied = 0
+    if car.get("phone"):
+        # GAP-M12: единая модель скидок — та же логика, что и в Mini App
+        # (webapp/server.py:_compose_and_add_car): постоянная скидка клиента
+        # не трогает car["price"], а добавляется отдельной строкой «Лояльность».
+        loyalty_applied = apply_client_loyalty_discount(session, car["phone"], car["num"], car.get("price", 0))
     save_sessions()
     if car.get("phone"):
         upsert_client_visit(car["phone"], "", branch, car.get("car", ""),
@@ -272,12 +281,14 @@ async def cb_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         pct = services_label(car.get("service_keys") or [])
     body_label = BODY_TYPES.get(car.get("body_type"), "")
+    loyalty_line = f"\n💜 Постоянная скидка клиента: −{loyalty_applied}₽ (учтена в «Лояльности»)" if loyalty_applied else ""
     await query.message.reply_text(
         f"✅ *#{car['num']} добавлена*\n"
         f"🚗 {car['car']} ({body_label}) | 👷 {car['employee']}\n"
         f"🔧 {car['service']} ({pct})\n"
         f"💰 {car['price']}₽ | 💳 {payment}\n"
-        f"Всего: {car['num']}",
+        f"Всего: {car['num']}"
+        f"{loyalty_line}",
         parse_mode="Markdown")
 
 
