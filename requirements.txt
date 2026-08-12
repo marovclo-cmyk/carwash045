@@ -1,0 +1,9 @@
+python-telegram-bot[job-queue]
+python-dotenv
+reportlab
+pytz
+httpx[socks]
+fastapi
+uvicorn
+openpyxl
+pdfplumber

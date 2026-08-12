@@ -1,0 +1,9 @@
+.env
+__pycache__/
+*.pyc
+*.pyo
+carwash_sessions.json
+carwash_archive.json
+carwash_branches.json
+carwash_users.json
+*.lock
