@@ -31,6 +31,7 @@
   .client-card .cc-name{ font-size:13px; font-weight:700; color:var(--text); }
   .client-card .cc-meta{ font-size:11px; color:var(--muted); margin-top:2px; }
   .client-card .cc-clear{ font-size:12px; color:var(--muted); cursor:pointer; text-decoration:underline; }
+  .price-hint{ font-size:11.5px; color:var(--muted); margin-top:6px; }
 </style>
 </head>
 <body>
@@ -74,6 +75,7 @@
       <input type="text" id="fPhone" placeholder="Телефон — необязательно, для поиска клиента" autocomplete="off" style="margin-top:8px">
       <div id="clientDropdown" class="client-dropdown"></div>
       <div id="clientCard" class="client-card" style="display:none"></div>
+      <div class="price-hint" id="discountHint" style="display:none"></div>
     </div>
 
     <div class="field">
@@ -156,6 +158,7 @@ if (CW.requireAuth()) {
   function payTag(method) {
     const m = (method || "").toLowerCase();
     if (m.includes("виз") || m === "visa") return `<span class="pay-tag card">Visa</span>`;
+    if (m.includes("онлайн") || m === "online") return `<span class="pay-tag online">Онлайн</span>`;
     if (m.includes("безнал") || m === "transfer") return `<span class="pay-tag transfer">Безнал</span>`;
     if (m.includes("нал") || m === "cash") return `<span class="pay-tag cash">Нал</span>`;
     return `<span class="pay-tag transfer">${method || "—"}</span>`;
@@ -362,6 +365,7 @@ if (CW.requireAuth()) {
     selectedClient = null;
     hideClientCard();
     hideClientDropdown();
+    hideDiscountHint();
     if (car && car.phone && !car.client_name) {
       CW.authFetch(`/api/clients/${encodeURIComponent(car.phone)}`)
         .then(client => { if (client && client.name) document.getElementById("fClientName").value = client.name; })
@@ -422,6 +426,7 @@ if (CW.requireAuth()) {
     document.getElementById("modalBg").classList.remove("open");
     editingNum = null;
     manualPriceEdited = false;
+    hideDiscountHint();
   }
 
   // ── Клиент: автодополнение по телефону/имени ─────────────────────────
@@ -433,14 +438,32 @@ if (CW.requireAuth()) {
 
   function hideClientDropdown() { clientDropdown.classList.remove("open"); clientDropdown.innerHTML = ""; }
   function hideClientCard() { clientCard.style.display = "none"; clientCard.innerHTML = ""; }
+  function hideDiscountHint() { document.getElementById("discountHint").style.display = "none"; }
 
-  function showClientCard(client) {
+  // Постоянная скидка клиента (GAP-M12, единая модель скидок): при явном
+  // выборе клиента из выпадающего списка поиска только показываем
+  // подсказку — «Итого» не трогаем. Скидка применяется автоматически на
+  // бэкенде при сохранении машины (см. sessions.apply_client_loyalty_discount):
+  // цена машины остаётся полной (зарплата мойщика и база % администратора
+  // считаются от неё), а скидка появится отдельной строкой «Лояльность» —
+  // как и разовая ручная скидка.
+  function applyClientDiscountSuggestion(client) {
+    const hint = document.getElementById("discountHint");
+    if (!client || !client.discount_percent) { hint.style.display = "none"; return; }
+    const base = calcPrice();
+    const discountAmount = Math.round(base * client.discount_percent / 100);
+    hint.textContent = `Постоянная скидка клиента ${client.discount_percent}% (−${CW.money(discountAmount)}) применится автоматически отдельной строкой «Лояльность» после сохранения. Сумму менять не нужно.`;
+    hint.style.display = "block";
+  }
+
+  function showClientCard(client, opts) {
+    opts = opts || {};
     selectedClient = client;
     if (client.name) document.getElementById("fClientName").value = client.name;
     clientCard.style.display = "flex";
     clientCard.innerHTML = `
       <div>
-        <div class="cc-name">${client.name || "Без имени"}</div>
+        <div class="cc-name">${client.name || "Без имени"}${client.discount_percent ? ` · скидка ${client.discount_percent}%` : ""}</div>
         <div class="cc-meta">${client.visit_count}-й визит · всего ${CW.money(client.total_spent)} · машины: ${(client.cars || []).join(", ") || "—"}</div>
       </div>
       <span class="cc-clear" id="clientClearBtn">Сбросить</span>`;
@@ -449,8 +472,10 @@ if (CW.requireAuth()) {
       fPhoneInput.value = "";
       document.getElementById("fClientName").value = "";
       hideClientCard();
+      hideDiscountHint();
       fPhoneInput.focus();
     });
+    if (opts.suggestDiscount !== false) applyClientDiscountSuggestion(client);
   }
 
   function renderClientDropdown(clients) {
@@ -467,7 +492,7 @@ if (CW.requireAuth()) {
       el.addEventListener("click", () => {
         const client = clients[i];
         fPhoneInput.value = client.phone;
-        showClientCard(client);
+        showClientCard(client, { suggestDiscount: true });
         hideClientDropdown();
       });
     });
@@ -591,6 +616,47 @@ if (CW.requireAuth()) {
   window.CW_toggleStatus = toggleStatus;
   window.CW_deleteCar = deleteCar;
 
+  // GAP-PAY1 (часть 2): онлайн-оплата "Итого" прямо из кассы. Провайдер
+  // (мок/боевой) подобран бэкендом сам — фронтенд только запрашивает
+  // ссылку и показывает её; в mock-режиме дополнительно предлагает
+  // тестовое подтверждение (см. payment_provider.is_mock_active()).
+  async function payOnline(num) {
+    const car = currentCars.find(c => c.num === num);
+    if (!car) return;
+    if (car.payment_split) { showErr("У машины уже раздельная оплата — онлайн-доплату можно оформить только через редактирование"); return; }
+    const amountStr = prompt("Сумма к оплате онлайн (₽):", String(car.price));
+    if (amountStr === null) return;
+    const amount = parseInt(amountStr, 10);
+    if (!amount || amount <= 0) { showErr("Некорректная сумма"); return; }
+    let payment, mock;
+    try {
+      const cfg = await CW.authFetch("/api/config");
+      mock = cfg.payment_mock;
+      const r = await CW.authFetch("/api/payments", {
+        method: "POST",
+        body: JSON.stringify({
+          branch, purpose: "car", amount, car_num: num,
+          client_name: car.client_name || "", phone: car.phone || "",
+          description: `Оплата машины №${num}`,
+        }),
+      });
+      payment = r.payment;
+    } catch (e) { showErr(e.message); return; }
+    window.open(payment.confirmation_url, "_blank");
+    const msg = mock
+      ? "Ссылка на оплату открыта в новой вкладке.\nOK — тестовое подтверждение оплаты (мок-режим).\nОтмена — просто закрыть."
+      : "Ссылка на оплату открыта в новой вкладке. Отправьте её клиенту — статус обновится автоматически после оплаты.";
+    if (mock && confirm(msg)) {
+      try {
+        await CW.authFetch(`/api/payments/${payment.id}/mock-confirm`, { method: "POST" });
+        await loadCars();
+      } catch (e) { showErr(e.message); }
+    } else if (!mock) {
+      alert(msg);
+    }
+  }
+  window.CW_payOnline = payOnline;
+
   async function loadCars() {
     if (!branch) return;
     errEl.style.display = "none";
@@ -623,6 +689,7 @@ if (CW.requireAuth()) {
           <td>
             <div class="row-actions">
               <div class="icon-btn" title="Редактировать" onclick="CW_editCar(${c.num})"><i class="ti ti-pencil"></i></div>
+              ${!c.payment_split ? `<div class="icon-btn" title="Оплатить онлайн" onclick="CW_payOnline(${c.num})"><i class="ti ti-credit-card"></i></div>` : ""}
               <div class="icon-btn danger" onclick="CW_deleteCar(${c.num})"><i class="ti ti-trash"></i></div>
             </div>
           </td>

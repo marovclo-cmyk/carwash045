@@ -81,7 +81,8 @@ const CW = (() => {
   // просто переходит на /static/booking.html?date=...
   function onCalDateSelect(fn) { calSelectCallback = fn; }
 
-  function buildCalendarHtml() {
+  function buildCalendarHtml(idPrefix) {
+    const p = idPrefix || "";
     const selected = getCalDate();
     if (!calViewDate) calViewDate = new Date(selected.getFullYear(), selected.getMonth(), 1);
     const y = calViewDate.getFullYear(), m = calViewDate.getMonth();
@@ -110,11 +111,11 @@ const CW = (() => {
     }).join("");
 
     return `
-      <div class="rail-cal" id="railCal">
+      <div class="rail-cal" id="${p}railCal">
         <div class="rail-cal-head">
-          <button type="button" class="rail-cal-nav" id="calPrevM"><i class="ti ti-chevron-left"></i></button>
+          <button type="button" class="rail-cal-nav" id="${p}calPrevM"><i class="ti ti-chevron-left"></i></button>
           <span class="rail-cal-title">${MONTHS_RU[m]} ${y}</span>
-          <button type="button" class="rail-cal-nav" id="calNextM"><i class="ti ti-chevron-right"></i></button>
+          <button type="button" class="rail-cal-nav" id="${p}calNextM"><i class="ti ti-chevron-right"></i></button>
         </div>
         <div class="rail-cal-weekdays">${WEEKDAYS_RU.map(w => `<span>${w}</span>`).join("")}</div>
         <div class="rail-cal-grid">${cellsHtml}</div>
@@ -373,6 +374,194 @@ const CW = (() => {
           if (calSelectCallback) {
             calSelectCallback(iso);
             renderSidebar(activeKey);
+          } else {
+            window.location.href = "/static/booking.html?date=" + iso;
+          }
+        });
+      });
+    }
+
+    renderMobileNav(activeKey);
+  }
+
+  // ---------- мобильная навигация (гамбургер + выезжающий drawer) ----------
+  // Ниже 980px .rail скрывается через CSS (theme-plata.css), но раньше
+  // ничего не появлялось взамен — сайт становился НЕ навигируемым на
+  // телефоне/планшете (только кнопка «назад» браузера). Это отдельный,
+  // всегда существующий на body слой (топбар + backdrop + drawer), не
+  // связанный с #sidebarRoot/.rail — поэтому создаётся один раз и не
+  // мешает существующей десктопной раскладке. Использует тот же NAV и ту
+  // же логику ролей/активного пункта, что и renderSidebar(), — второго
+  // источника правды по пунктам меню нет.
+  let mobileNavEl = null;
+  function ensureMobileNavEl() {
+    if (mobileNavEl) return mobileNavEl;
+    const topbar = document.createElement("div");
+    topbar.className = "mobile-topbar";
+    topbar.innerHTML = `
+      <button type="button" class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Меню"><i class="ti ti-menu-2"></i></button>
+      <span class="mobile-topbar-logo">CarWash Cloud</span>
+    `;
+    const backdrop = document.createElement("div");
+    backdrop.className = "mobile-nav-backdrop";
+    const drawer = document.createElement("div");
+    drawer.className = "mobile-nav-drawer";
+    document.body.appendChild(topbar);
+    document.body.appendChild(backdrop);
+    document.body.appendChild(drawer);
+
+    function close() {
+      backdrop.classList.remove("open");
+      drawer.classList.remove("open");
+      document.body.classList.remove("mobile-nav-locked");
+    }
+    function open() {
+      backdrop.classList.add("open");
+      drawer.classList.add("open");
+      document.body.classList.add("mobile-nav-locked");
+    }
+    topbar.querySelector("#mobileMenuBtn").addEventListener("click", open);
+    backdrop.addEventListener("click", close);
+
+    mobileNavEl = { topbar, backdrop, drawer, open, close };
+    return mobileNavEl;
+  }
+
+  function renderMobileNav(activeKey) {
+    const { drawer, close } = ensureMobileNavEl();
+    const role = getRole();
+    const branch = getActiveBranch();
+    const canSwitchBranch = role === "владелец";
+    const calOpen = localStorage.getItem("cw_mobile_cal_open") === "1";
+
+    const groupsHtml = NAV.map(group => {
+      const items = group.items.filter(it =>
+        (!it.ownerOnly || role === "владелец") &&
+        (!it.adminOnly || role === "админ" || role === "владелец")
+      );
+      if (!items.length) return "";
+      const itemsHtml = items.map(it => `
+        <a class="mobile-nav-item ${it.key === activeKey ? "active" : ""}" data-href="${it.href}">
+          <i class="ti ${it.icon}"></i><span>${it.label}</span>
+        </a>`).join("");
+      return `<div class="mobile-nav-group">${itemsHtml}</div>`;
+    }).filter(Boolean).join("");
+
+    drawer.innerHTML = `
+      <div class="mobile-nav-head">
+        <span class="mobile-nav-head-logo">CarWash Cloud</span>
+        <button type="button" class="mobile-nav-close" id="mobileNavClose" aria-label="Закрыть"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="mobile-nav-branch${canSwitchBranch ? " clickable" : ""}" id="mobileBranchSelect">
+        <i class="ti ti-building-store"></i>
+        <span id="mobileBranchName">${branch || "Филиал не выбран"}</span>
+        ${canSwitchBranch ? `<i class="ti ti-chevron-down mobile-nav-branch-chev"></i>` : ""}
+      </div>
+      ${canSwitchBranch ? `<div class="mobile-nav-branch-list" id="mobileBranchList">
+        <div class="mobile-nav-branch-empty">Загрузка…</div>
+      </div>` : ""}
+      <div class="mobile-nav-cal-toggle${calOpen ? " open" : ""}" id="mobileCalToggle">
+        <i class="ti ti-calendar-event"></i><span>Календарь</span>
+        <i class="ti ti-chevron-down mobile-nav-branch-chev"></i>
+      </div>
+      <div class="mobile-nav-cal-wrap${calOpen ? " open" : ""}" id="mobileCalWrap">
+        ${calOpen ? buildCalendarHtml("mobile") : ""}
+      </div>
+      <div class="mobile-nav-groups">${groupsHtml}</div>
+      <div class="mobile-nav-bottom">
+        <div class="mobile-nav-user">
+          <div class="rail-avatar" title="${getName() || "—"} · ${roleLabel(role)}">${initials(getName())}</div>
+          <div style="min-width:0">
+            <div class="mobile-nav-user-name">${getName() || "—"}</div>
+            <div class="mobile-nav-user-role">${roleLabel(role) || ""}</div>
+          </div>
+        </div>
+        <a class="mobile-nav-item" id="mobileLogoutBtn"><i class="ti ti-logout"></i><span>Выйти</span></a>
+      </div>
+    `;
+
+    drawer.querySelector("#mobileNavClose").addEventListener("click", close);
+    drawer.querySelectorAll(".mobile-nav-item[data-href]").forEach(el => {
+      el.addEventListener("click", () => { window.location.href = el.dataset.href; });
+    });
+    drawer.querySelector("#mobileLogoutBtn").addEventListener("click", logout);
+
+    // ---------- смена филиала из мобильного drawer (владелец) ----------
+    // Тот же источник данных (/api/config) и тот же паттерн (setActiveBranch
+    // + перезагрузка страницы), что и десктопный rail-branch-pop — но без
+    // fixed-позиционированного попапа: в узком drawer список просто
+    // раскрывается по месту, аккордеоном, это надёжнее на touch-экране.
+    if (canSwitchBranch) {
+      const branchBtn = drawer.querySelector("#mobileBranchSelect");
+      const branchList = drawer.querySelector("#mobileBranchList");
+      branchBtn.addEventListener("click", () => {
+        branchBtn.classList.toggle("open");
+        branchList.classList.toggle("open");
+      });
+
+      authFetch("/api/config").then(cfg => {
+        const current = getActiveBranch() || cfg.branches[0];
+        if (!getActiveBranch()) setActiveBranch(current);
+        drawer.querySelector("#mobileBranchName").textContent = current;
+        branchList.innerHTML = cfg.branches.map(b => `
+          <div class="mobile-nav-branch-item ${b === current ? "active" : ""}" data-branch="${b}">
+            <span>${b}</span>
+            ${b === current ? `<i class="ti ti-check"></i>` : ""}
+          </div>
+        `).join("");
+        branchList.querySelectorAll(".mobile-nav-branch-item").forEach(el => {
+          el.addEventListener("click", () => {
+            setActiveBranch(el.dataset.branch);
+            window.location.reload();
+          });
+        });
+      }).catch(() => {
+        branchList.innerHTML = `<div class="mobile-nav-branch-empty">Не удалось загрузить филиалы</div>`;
+      });
+    }
+
+    // ---------- мини-календарь в мобильном drawer ----------
+    // Тот же buildCalendarHtml(), что и в раскрытом десктопном сайдбаре
+    // (см. renderSidebar → expanded), с уникальным префиксом id
+    // ("mobile"), чтобы не конфликтовать с id десктопного календаря —
+    // оба контейнера присутствуют в DOM одновременно (десктопный .rail
+    // просто скрыт через CSS на узких экранах, а не удалён), и без
+    // префикса document.getElementById("calPrevM") находил бы не тот
+    // элемент. В отличие от десктопа, где календарь виден только при
+    // раскрытом (широком) сайдбаре, здесь ширина drawer'а фиксирована
+    // и всегда достаточна — поэтому календарь сворачиваемый (аккордеон,
+    // как и филиал выше), а не завязан на состояние "expanded"
+    // десктопного рейла (это разные, не связанные переключатели —
+    // раскрытие рейла меняет его ширину на десктопе, к drawer'у
+    // отношения не имеет). Состояние открыт/закрыт запоминается в
+    // localStorage (тот же паттерн, что и cw_rail_expanded), клик по
+    // дню и стрелки месяца используют тот же calSelectCallback/
+    // calViewDate/getCalDate/setCalDate, что и десктопный календарь —
+    // второго набора состояния календаря не заведено.
+    const calToggle = drawer.querySelector("#mobileCalToggle");
+    const calWrap = drawer.querySelector("#mobileCalWrap");
+    calToggle.addEventListener("click", () => {
+      const next = !calToggle.classList.contains("open");
+      localStorage.setItem("cw_mobile_cal_open", next ? "1" : "0");
+      renderMobileNav(activeKey);
+    });
+    if (calOpen) {
+      drawer.querySelector("#mobileCalPrevM").addEventListener("click", () => {
+        calViewDate = new Date(calViewDate.getFullYear(), calViewDate.getMonth() - 1, 1);
+        renderMobileNav(activeKey);
+      });
+      drawer.querySelector("#mobileCalNextM").addEventListener("click", () => {
+        calViewDate = new Date(calViewDate.getFullYear(), calViewDate.getMonth() + 1, 1);
+        renderMobileNav(activeKey);
+      });
+      calWrap.querySelectorAll(".rail-cal-grid .cal-cell[data-date]").forEach(el => {
+        el.addEventListener("click", () => {
+          const iso = el.dataset.date;
+          setCalDate(iso);
+          calViewDate = null;
+          if (calSelectCallback) {
+            calSelectCallback(iso);
+            renderMobileNav(activeKey);
           } else {
             window.location.href = "/static/booking.html?date=" + iso;
           }

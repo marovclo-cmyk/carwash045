@@ -73,12 +73,12 @@ input,select{
 }
 input:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-tint)}
 
-.roles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:7px}
-.role-btn{
-  height:42px;border-radius:100px;background:var(--surface-2);border:1px solid var(--border-strong);
-  color:var(--text-secondary);font-size:12.5px;font-weight:700;cursor:pointer;transition:all .12s;
+.owner-check{
+  display:flex;align-items:center;gap:8px;margin-top:16px;
+  font-size:12.5px;color:var(--text-secondary);font-weight:600;
+  text-transform:none;letter-spacing:0;cursor:pointer;
 }
-.role-btn.active{background:var(--accent-gradient);color:#fff;border-color:transparent;box-shadow:0 6px 16px -6px rgba(255,80,0,.45)}
+.owner-check input{width:16px;height:16px;accent-color:var(--accent);cursor:pointer}
 
 .btn-submit{
   width:100%;height:46px;border-radius:100px;border:none;
@@ -94,7 +94,6 @@ input:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 
   margin-top:12px;background:var(--red-tint);color:var(--red);font-size:12.5px;font-weight:600;
   padding:10px 13px;border-radius:12px;display:none;
 }
-.branch-field{display:none}
 
 @media(max-width:720px){ .side{display:none} .card{padding:32px 26px} }
 </style>
@@ -111,25 +110,24 @@ input:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 
   <div class="card">
     <div class="brand-row"><span class="dot"></span><span>Система на связи</span></div>
     <h1>Вход</h1>
-    <div class="sub">Общий пароль компании + ваше имя и должность</div>
+    <div class="sub">Общий пароль компании + ваше имя, как в списке сотрудников филиала</div>
 
     <label>Пароль</label>
     <input type="password" id="password" placeholder="Общий пароль">
 
     <label>Ваше имя</label>
-    <input type="text" id="name" placeholder="Например, Иван">
+    <input type="text" id="name" placeholder="Как в списке сотрудников, например Иван">
 
-    <label>Должность</label>
-    <div class="roles">
-      <button type="button" class="role-btn" data-role="мойщик">Мойщик</button>
-      <button type="button" class="role-btn" data-role="админ">Админ</button>
-      <button type="button" class="role-btn" data-role="владелец">Владелец</button>
-    </div>
-
-    <div class="branch-field" id="branchField">
+    <div class="branch-field" id="branchField" style="display:block">
       <label>Филиал</label>
       <select id="branch"><option value="">Загрузка…</option></select>
     </div>
+
+    <label class="owner-check">
+      <input type="checkbox" id="ownerToggle"> Я владелец (вход без филиала)
+    </label>
+
+    <div class="sub" style="margin-top:10px;margin-bottom:0">Роль определяется автоматически — по тому, в каком списке филиала (мойщики/администраторы) числится ваше имя. Свободно выбрать роль при входе больше нельзя.</div>
 
     <button class="btn-submit" id="submitBtn">Войти</button>
     <div class="error" id="err"></div>
@@ -138,16 +136,6 @@ input:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 
 
 <script>
 const API = ""; // тот же хост, что и сайт (FastAPI отдаёт и статику, и API)
-let role = "";
-
-document.querySelectorAll(".role-btn").forEach(btn=>{
-  btn.addEventListener("click", ()=>{
-    document.querySelectorAll(".role-btn").forEach(b=>b.classList.remove("active"));
-    btn.classList.add("active");
-    role = btn.dataset.role;
-    document.getElementById("branchField").style.display = role === "владелец" ? "none" : "block";
-  });
-});
 
 // подгружаем список филиалов для выбора (публичный справочник)
 fetch(API + "/api/config").then(r=>r.json()).then(cfg=>{
@@ -155,15 +143,20 @@ fetch(API + "/api/config").then(r=>r.json()).then(cfg=>{
   sel.innerHTML = cfg.branches.map(b=>`<option value="${b}">${b}</option>`).join("");
 }).catch(()=>{});
 
+document.getElementById("ownerToggle").addEventListener("change", (e)=>{
+  document.getElementById("branchField").style.display = e.target.checked ? "none" : "block";
+});
+
 document.getElementById("submitBtn").addEventListener("click", async ()=>{
   const password = document.getElementById("password").value;
   const name = document.getElementById("name").value.trim();
-  const branch = document.getElementById("branch").value;
+  const isOwner = document.getElementById("ownerToggle").checked;
+  const branch = isOwner ? "" : document.getElementById("branch").value;
   const errEl = document.getElementById("err");
   errEl.style.display = "none";
 
-  if(!password || !name || !role){
-    errEl.textContent = "Заполните пароль, имя и выберите должность";
+  if(!password || !name || (!isOwner && !branch)){
+    errEl.textContent = "Заполните пароль, имя и филиал (или отметьте «Я владелец»)";
     errEl.style.display = "block";
     return;
   }
@@ -172,7 +165,7 @@ document.getElementById("submitBtn").addEventListener("click", async ()=>{
     const res = await fetch(API + "/api/site/login", {
       method:"POST",
       headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({password, name, role, branch})
+      body: JSON.stringify({password, name, branch})
     });
     const data = await res.json();
     if(!res.ok){

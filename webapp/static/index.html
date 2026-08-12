@@ -52,8 +52,8 @@
 
   --radius-xl:28px;
   --radius-lg:20px;
-  --radius-md:16px;
-  --radius-sm:12px;
+  --radius-md:14px;
+  --radius-sm:10px;
 
   --font-display:'Clash Display','General Sans',-apple-system,sans-serif;
   --font-body:'General Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
@@ -88,8 +88,11 @@ html[data-theme="light"]{
   --good:#1B8A57;
 }
 
-/* ── decor: орбы/стеклянные размытия убраны — плоские карточки, как на сайте */
-.orb-bg{display:none}
+/* ── decor: старый слой орбов/стеклянных размытий из Glass/Orb v2
+   полностью убран (и из CSS, и из разметки) — плоские карточки, как
+   на сайте. Это правило раньше скрывало ещё оставшуюся в теле разметку
+   орбов; теперь и разметки нет, оставлено как явное подтверждение
+   отсутствия орбов в этом файле. */
 
 .glass-card{
   background:var(--surface-1);
@@ -124,6 +127,30 @@ html[data-theme="light"]{
 .pill{ display:inline-block; font-size:10.5px; font-weight:700; padding:2.5px 8px; border-radius:100px; }
 .pill.ok{ background:var(--green-tint); color:var(--green); }
 .pill.wip{ background:var(--accent-tint); color:var(--accent); }
+.pill.muted{ background:var(--surface-3); color:var(--text-muted); }
+.pill.bad{ background:var(--red-tint); color:var(--red); }
+
+/* ── Запись (booking) — агенда дня ──────────────────────────────────────── */
+.bk-daynav{ display:flex; align-items:center; justify-content:space-between; padding:2px 16px 14px; }
+.bk-daynav-btn{ width:36px; height:36px; border-radius:12px; background:var(--surface-1); border:0.5px solid var(--border); display:flex; align-items:center; justify-content:center; color:var(--text); }
+.bk-daynav-btn:active{ background:var(--surface-2); }
+.bk-daynav-date{ font-family:var(--font-display); font-size:15px; font-weight:600; text-align:center; position:relative; }
+.bk-daynav-date input{ position:absolute; inset:0; opacity:0; width:100%; height:100%; }
+.bk-box-head{ display:flex; align-items:center; gap:8px; padding:14px 16px 8px; }
+.bk-box-head .n{ width:24px; height:24px; border-radius:8px; background:var(--accent-tint); color:var(--accent); font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; }
+.bk-box-head .name{ font-size:13px; font-weight:600; color:var(--text); }
+.bk-box-head .off{ font-size:11px; color:var(--text-muted); margin-left:auto; }
+.bk-appt{ display:flex; align-items:flex-start; gap:12px; padding:12px 16px; cursor:pointer; }
+.bk-appt:active{ background:var(--surface-2); }
+.bk-appt+.bk-appt{ border-top:1px solid var(--border); }
+.bk-appt-time{ font-family:var(--font-mono,monospace); font-size:12.5px; font-weight:600; color:var(--text-secondary); white-space:nowrap; padding-top:1px; min-width:38px; }
+.bk-appt-body{ flex:1; min-width:0; }
+.bk-appt-title{ font-size:14px; font-weight:600; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.bk-appt-sub{ font-size:12px; color:var(--text-muted); margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.bk-appt-status{ padding-top:1px; }
+.bk-empty-box{ padding:10px 16px 16px; font-size:13px; color:var(--text-muted); }
+.bk-fab{ position:fixed; right:16px; bottom:86px; width:52px; height:52px; border-radius:18px; background:var(--accent-gradient); color:#fff; display:flex; align-items:center; justify-content:center; font-size:22px; box-shadow:0 12px 24px -8px rgba(255,80,0,0.5); z-index:40; }
+.bk-fab:active{ transform:scale(0.94); }
 
 .action-tile{
   display:flex; flex-direction:column; align-items:center; gap:9px;
@@ -489,6 +516,11 @@ textarea{resize:none;min-height:72px}
 .row-price{font-family:var(--font-display);font-size:15px;font-weight:600}
 .chevron{color:var(--text-muted);font-size:15px}
 
+/* ── CLIENTS (GAP-C1) ────────────────────────────────────────────────────── */
+.cl-av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12.5px;flex-shrink:0}
+.cl-discount-badge{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;color:var(--accent);background:var(--accent-tint);padding:4px 10px;border-radius:100px}
+.cl-discount-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:14px 16px}
+
 /* ── ICON BADGE ──────────────────────────────────────────────────────────── */
 .ib{
   width:30px;height:30px;border-radius:9px;
@@ -846,6 +878,11 @@ textarea{resize:none;min-height:72px}
 }
 .total-card .tl{font-size:14px;color:var(--text-secondary)}
 .total-card .tr{font-family:var(--font-display);font-size:24px;font-weight:600}
+.total-card .tr-input{font-family:var(--font-display);font-size:24px;font-weight:600;background:none;border:0;text-align:right;color:var(--text);width:130px;padding:0}
+.total-card .tr-input:focus{outline:none}
+.total-reset-link{font-size:12px;color:var(--accent);margin-right:8px;cursor:pointer;display:none}
+.total-reset-link.show{display:inline}
+.price-hint{font-size:12px;color:var(--text-secondary);padding:8px 16px 0;line-height:1.4}
 
 /* ── МЕНЮ «ЕЩЁ» — иконка пункта (qb-icon) ─────────────────────────────────── */
 .qb-icon{background:var(--accent-tint);color:var(--accent)}
@@ -859,8 +896,7 @@ textarea{resize:none;min-height:72px}
 }
 </style>
 </head>
-<body class="v2-page">
-<div class="orb-bg"><div class="orb orb-a"></div><div class="orb orb-b"></div><div class="orb orb-c"></div></div>
+<body>
 <div class="container">
   <div id="view-home"></div>
   <div id="view-add" class="hidden"></div>
@@ -1325,15 +1361,30 @@ window.uiWorkerQuick=async(name)=>{
   const stats=await api(`/api/employee-stats?branch=${encodeURIComponent(BRANCH)}&name=${encodeURIComponent(name)}&period=today`).catch(()=>null);
   const cnt=stats?.cars||0;
   const sal=stats?.total||0;
+  const advance=stats?.advance||0;
+  const remaining=stats?.remaining!==undefined?stats.remaining:sal-advance;
   const roleLine=stats?.roles?.length?stats.roles.join(", "):"";
   const sched=schedule?.[name]?.schedule;
   const working=schedule?.[name]?.working!==false;
   const schedLine=sched?`График: ${sched.work}/${sched.rest} · ${working?"работает":"отдыхает 🌙"}`:"График не задан";
+  const advanceLine=advance?`\nАванс сегодня: -${fmt(advance)} · остаток ${fmt(remaining)}`:"";
   tg.showPopup({
     title:name,
-    message:`${roleLine?roleLine+"\n":""}${cnt} машин · к выплате ${fmt(sal)}\n${schedLine}`,
-    buttons:[{id:"schedule",type:"default",text:"График работы"},{id:"cancel",type:"cancel"}],
-  },(id)=>{if(id==="schedule") uiSetSchedule(name);});
+    message:`${roleLine?roleLine+"\n":""}${cnt} машин · к выплате ${fmt(sal)}${advanceLine}\n${schedLine}`,
+    buttons:[{id:"schedule",type:"default",text:"График работы"},{id:"advance",type:"default",text:"Выдать аванс"},{id:"cancel",type:"cancel"}],
+  },(id)=>{
+    if(id==="schedule") uiSetSchedule(name);
+    if(id==="advance") uiGiveAdvance(name);
+  });
+};
+window.uiGiveAdvance=(name)=>{
+  const amountStr=window.prompt(`Сумма аванса для ${name} (₽):`,"2000");
+  if(!amountStr) return;
+  const amount=parseInt(amountStr.replace(/[^\d]/g,""),10);
+  if(!amount) return tg.showAlert("Введи корректную сумму");
+  api("/api/advance",{method:"POST",body:JSON.stringify({branch:BRANCH,name,amount})})
+    .then(()=>{haptic("medium");toast("Аванс выдан");})
+    .catch(()=>{tg.showAlert("Не удалось выдать аванс. Проверь права администратора филиала.");});
 };
 window.uiCarQuick=(num)=>{
   tg.showConfirm("Удалить эту машину?",async(ok)=>{
@@ -1433,6 +1484,8 @@ window.delCar=async(num)=>{
 
 /* ─── ДОБАВЛЕНИЕ МАШИНЫ ──────────────────────────────────────────────────── */
 let EDIT_CAR_NUM=null;
+let manualTotalEdited=false;   // GAP-M12: ручная правка "Стоимости" (в т.ч. применённая скидка клиента)
+let addCarSelectedClient=null; // клиент, найденный по телефону при добавлении/редактировании машины
 async function renderAdd(editNum){
   const el=document.getElementById("view-add");
   if(!BRANCH){el.innerHTML=`<div class="px" style="padding-top:20px"><p class="empty">Сначала выбери филиал</p></div>`;return;}
@@ -1442,6 +1495,8 @@ async function renderAdd(editNum){
     api(`/api/presets?branch=${encodeURIComponent(BRANCH)}`).catch(()=>({presets:[]})),
   ]);
   EDIT_CAR_NUM=editNum||null;
+  manualTotalEdited=false;
+  addCarSelectedClient=null;
   let editCar=null;
   if(EDIT_CAR_NUM){
     const {session}=await api(`/api/session?branch=${encodeURIComponent(BRANCH)}`);
@@ -1465,6 +1520,7 @@ async function renderAdd(editNum){
         </div>`:""}
       <div class="field-wrap"><div class="field-label">Марка машины</div><input id="f-car" placeholder="Camry" value="${editCar?.car||""}"></div>
       <div class="field-wrap"><div class="field-label">Телефон клиента (необязательно)</div><input id="f-phone" placeholder="+7..." value="${editCar?.phone||""}"></div>
+      <div class="price-hint" id="f-discount-hint" style="display:none"></div>
       <div class="field-wrap"><div class="field-label">Имя клиента (необязательно)</div><input id="f-client-name" placeholder="Например, Дарья" value=""></div>
       <div class="field-wrap"><div class="field-label">Тип кузова</div><div class="field-select"><select id="f-body">${CFG.body_types.map(b=>`<option value="${b.key}" ${editCar?.body_type===b.key?"selected":""}>${b.name}</option>`).join("")}</select></div></div>
       <div class="field-wrap" style="padding-bottom:6px"><div class="field-label">Услуги</div></div>
@@ -1486,19 +1542,66 @@ async function renderAdd(editNum){
       <div class="field-wrap"><div class="field-label">Комментарий</div><textarea id="f-comment" placeholder="Комментарий (необязательно)">${editCar?.comment||""}</textarea></div>
       <div class="total-card">
         <span class="tl">Стоимость</span>
-        <span class="tr" id="f-total">0 ₽</span>
+        <span><span class="total-reset-link" id="f-total-reset" onclick="resetTotalOverride()">Сбросить</span><input class="tr-input" id="f-total" type="number" inputmode="numeric" oninput="onTotalManualInput()"></span>
       </div>
       <div class="btn-wrap" style="margin-top:4px"><button class="btn" id="f-submit" onclick="submitCar()">${EDIT_CAR_NUM?"Сохранить изменения":"Добавить машину"}</button></div>
     </div>`;
   renderServiceChips();
   document.getElementById("f-body").addEventListener("change",renderServiceChips);
-  if(editCar?.payment_split){renderSplitInputs();Object.entries(editCar.payment_split).forEach(([method,val])=>{const inp=document.querySelector(`.split-input[data-method="${method}"]`);if(inp) inp.value=val;});updateTotal();}
-  if(editCar?.phone){
-    api(`/api/clients/${encodeURIComponent(editCar.phone)}`).then(c=>{
-      if(c&&c.name){const el=document.getElementById("f-client-name");if(el) el.value=c.name;}
-    }).catch(()=>{});
-  }
+  if(editCar?.payment_split){renderSplitInputs();Object.entries(editCar.payment_split).forEach(([method,val])=>{const inp=document.querySelector(`.split-input[data-method="${method}"]`);if(inp) inp.value=val;});}
+  manualTotalEdited=!!(editCar&&editCar.price_override!=null);
+  updateTotal();
+  if(editCar) document.getElementById("f-total").value=editCar.price; // updateTotal мог перезаписать при manualTotalEdited=false
+  const phoneInp=document.getElementById("f-phone");
+  let phoneLookupTimer=null;
+  phoneInp.addEventListener("input",()=>{
+    addCarSelectedClient=null;
+    clearTimeout(phoneLookupTimer);
+    const phone=phoneInp.value.trim();
+    if(phone.replace(/\D/g,"").length<10){hideDiscountHint();return;}
+    phoneLookupTimer=setTimeout(()=>{
+      api(`/api/clients/${encodeURIComponent(phone)}`).then(c=>{
+        if(phoneInp.value.trim()!==phone) return; // телефон уже поменяли, ответ устарел
+        if(c){
+          addCarSelectedClient=c;
+          const nameEl=document.getElementById("f-client-name");
+          if(c.name&&nameEl&&!nameEl.value) nameEl.value=c.name;
+          applyClientDiscountSuggestion(c);
+        }else{
+          hideDiscountHint();
+        }
+      }).catch(()=>{});
+    },400);
+  });
+  if(editCar?.phone) phoneInp.dispatchEvent(new Event("input"));
 }
+function hideDiscountHint(){const h=document.getElementById("f-discount-hint");if(h) h.style.display="none";}
+// Постоянная скидка клиента (GAP-M12, единая модель скидок): при
+// обнаружении клиента по телефону с discount_percent просто показываем
+// подсказку — сумму не трогаем. Скидка применяется автоматически на
+// бэкенде при сохранении машины (см. sessions.apply_client_loyalty_discount):
+// "Стоимость" остаётся полной ценой (от неё считается зарплата мойщика и
+// база % администратора), а сама скидка появится отдельной строкой
+// «Лояльность» в кассе — как и разовая ручная скидка.
+function applyClientDiscountSuggestion(client){
+  const hint=document.getElementById("f-discount-hint");
+  if(!hint) return;
+  if(!client||!client.discount_percent){hint.style.display="none";return;}
+  const base=calcCarTotal();
+  const discountAmount=Math.round(base*client.discount_percent/100);
+  hint.textContent=`Постоянная скидка клиента ${client.discount_percent}% (−${fmt(discountAmount)}₽) применится автоматически отдельной строкой «Лояльность» после сохранения. Сумму менять не нужно.`;
+  hint.style.display="block";
+}
+window.resetTotalOverride=()=>{
+  manualTotalEdited=false;
+  document.getElementById("f-total-reset").classList.remove("show");
+  updateTotal();
+};
+window.onTotalManualInput=()=>{
+  manualTotalEdited=true;
+  document.getElementById("f-total-reset").classList.toggle("show",parseInt(document.getElementById("f-total").value||"0",10)!==calcCarTotal());
+  updateSplitHintM12();
+};
 window.applyPreset=(name)=>{
   api(`/api/presets?branch=${encodeURIComponent(BRANCH)}`).then(({presets})=>{
     const p=presets.find(x=>x.name===name);if(!p) return;
@@ -1569,15 +1672,25 @@ function getSplitValues(){
     const v=parseInt(inp.value||"0",10);if(v) acc[inp.dataset.method]=v;return acc;
   },{});
 }
-function updateTotal(){
+function calcCarTotal(){
   const bodyType=document.getElementById("f-body")?.value;
   let total=selectedServices.reduce((sum,k)=>{
     const s=CFG.services.find(s=>s.key===k);
     return sum+(s.prices[bodyType]??Object.values(s.prices)[0]);
   },0);
   total+=customServices.reduce((sum,c)=>sum+c.price,0);
+  return total;
+}
+function updateTotal(){
+  const calc=calcCarTotal();
   const totalEl=document.getElementById("f-total");
-  if(totalEl) totalEl.textContent=fmt(total);
+  if(totalEl&&!manualTotalEdited) totalEl.value=calc;
+  const resetLink=document.getElementById("f-total-reset");
+  if(resetLink) resetLink.classList.toggle("show",manualTotalEdited&&parseInt(totalEl?.value||"0",10)!==calc);
+  updateSplitHintM12();
+}
+function updateSplitHintM12(){
+  const total=parseInt(document.getElementById("f-total")?.value||"0",10);
   const hint=document.getElementById("f-split-hint");
   if(document.getElementById("f-split-toggle")?.checked&&hint){
     const sum=Object.values(getSplitValues()).reduce((a,b)=>a+b,0);
@@ -1592,10 +1705,11 @@ window.submitCar=async()=>{
   const emp=document.getElementById("f-emp").value;
   if(!emp) return tg.showAlert("Сначала добавь сотрудника");
   const isSplit=document.getElementById("f-split-toggle").checked;
+  const total=parseInt(document.getElementById("f-total").value||"0",10);
+  if(total<0) return tg.showAlert("Итоговая сумма не может быть отрицательной");
   let paymentSplit=null;
   if(isSplit){
     paymentSplit=getSplitValues();
-    const total=parseInt((document.getElementById("f-total").textContent||"0").replace(/\D/g,""),10);
     const sum=Object.values(paymentSplit).reduce((a,b)=>a+b,0);
     if(!Object.keys(paymentSplit).length) return tg.showAlert("Укажи суммы по способам оплаты");
     if(sum!==total) return tg.showAlert(`Сумма оплаты (${sum}₽) ≠ стоимости (${total}₽)`);
@@ -1612,6 +1726,11 @@ window.submitCar=async()=>{
       payment_split:paymentSplit,
       comment:document.getElementById("f-comment").value,
     };
+    if(manualTotalEdited&&total!==calcCarTotal()){
+      body.price_override=total;
+    }else if(EDIT_CAR_NUM){
+      body.clear_price_override=true;
+    }
     if(EDIT_CAR_NUM){
       await api(`/api/car/${encodeURIComponent(BRANCH)}/${EDIT_CAR_NUM}`,{method:"PUT",body:JSON.stringify(body)});
       haptic("medium");toast("Изменения сохранены");switchTab("all-cars");
@@ -2080,10 +2199,21 @@ async function renderMyStats(){
       <div class="home-stat-box"><span><i class="ti ti-calendar"></i>Смен</span><b>${data.shifts}</b></div>
       <div class="home-stat-box"><span><i class="ti ti-chart-bar"></i>Средняя за смену</span><b>${fmt(data.avg_per_shift)}</b></div>
     </div>`:""}
+    ${data.advance?`<div class="home-stat-row">
+      <div class="home-stat-box"><span><i class="ti ti-cash-banknote"></i>Аванс</span><b style="color:var(--red,#e33)">-${fmt(data.advance)}</b></div>
+      <div class="home-stat-box"><span><i class="ti ti-wallet"></i>Остаток к выплате</span><b>${fmt(data.remaining)}</b></div>
+    </div>`:""}
     <div class="section-label">Разбивка по ролям</div>
     <div class="card">${roleRowsHtml||`<p class="empty">За этот период данных нет</p>`}</div>
     <div class="section-label">По дням</div>
     <div class="card">${dayRowsHtml||`<p class="empty">За этот период данных нет</p>`}</div>
+    ${(data.advances&&data.advances.length)?`
+    <div class="section-label">Авансы за период</div>
+    <div class="card">${data.advances.slice().reverse().map(a=>`
+      <div class="worker-card"><div class="wc-top">
+        <div class="wc-info"><div><div class="wc-name">${a.date}</div></div></div>
+        <div class="wc-sal" style="color:var(--red,#e33)">-${fmt(a.amount)}</div>
+      </div></div>`).join("")}</div>`:""}
     <div style="height:20px"></div>
   `;
   attachPullToRefresh("view-my-stats",renderMyStats);
@@ -2457,10 +2587,489 @@ async function renderBranchesAdmin(){
 }
 
 /* ─── ЕЩЁ (меню остальных разделов) ──────────────────────────────────────── */
+/* ─── ЗАПИСЬ (BOOKING) ────────────────────────────────────────────────────
+   Мобильная агенда дня (не полная сетка/drag-n-drop, как на сайте —
+   на телефоне это неудобно). Переиспользует те же /api/bookings*
+   эндпоинты, что и booking.html на сайте. См. GAP-B1 в PROJECT_BRAIN. */
+const BK_STATUS_LABEL={waiting:"Ожидание",confirmed:"Подтверждено",arrived:"Клиент приехал",no_show:"Не пришёл",in_progress:"В работе",done:"Оплачено"};
+const BK_STATUS_PILL={waiting:"muted",confirmed:"wip",arrived:"ok",no_show:"bad",in_progress:"wip",done:"ok"};
+let BK_DATE=null, BK_BOXES=[], BK_LIST=[], BK_EDIT_ID=null, bkServices=[];
+function bkTodayStr(){ const d=new Date(); return `${String(d.getDate()).padStart(2,"0")}.${String(d.getMonth()+1).padStart(2,"0")}.${d.getFullYear()}`; }
+function bkDateToInput(ddmmyyyy){ const [d,m,y]=ddmmyyyy.split("."); return `${y}-${m}-${d}`; }
+function bkInputToDate(yyyymmdd){ const [y,m,d]=yyyymmdd.split("-"); return `${d}.${m}.${y}`; }
+function bkShiftDate(ddmmyyyy,days){ const [d,m,y]=ddmmyyyy.split(".").map(Number); const dt=new Date(y,m-1,d); dt.setDate(dt.getDate()+days); return `${String(dt.getDate()).padStart(2,"0")}.${String(dt.getMonth()+1).padStart(2,"0")}.${dt.getFullYear()}`; }
+function bkDateLabel(ddmmyyyy){
+  if(ddmmyyyy===bkTodayStr()) return "Сегодня, "+ddmmyyyy.slice(0,5);
+  const [d,m,y]=ddmmyyyy.split(".").map(Number);
+  return new Date(y,m-1,d).toLocaleDateString("ru-RU",{day:"numeric",month:"long",weekday:"short"});
+}
+function bkServiceSummary(b){
+  const names=(b.service_keys||[]).map(k=>CFG?.services?.find(s=>s.key===k)?.name).filter(Boolean);
+  const custom=(b.custom_services||[]).map(c=>c.name);
+  const all=[...names,...custom];
+  return all.length?all.join(", "):"Без услуг";
+}
+async function renderBooking(){
+  const el=document.getElementById("view-booking");
+  if(!BRANCH){el.innerHTML=`<div class="px" style="padding-top:20px"><p class="empty">Сначала выбери филиал</p></div>`;return;}
+  if(!BK_DATE) BK_DATE=bkTodayStr();
+  CFG=CFG||await api("/api/config");
+  el.innerHTML=`
+    <div class="back-header">
+      <div class="back-btn" onclick="switchTab('more')"><i class="ti ti-chevron-left"></i></div>
+      <span class="back-header-title">Запись</span>
+      ${(ME.is_owner||ME.is_branch_admin)?`<div class="back-btn" style="margin-left:auto" onclick="uiBoxesMenu()"><i class="ti ti-settings"></i></div>`:""}
+    </div>
+    <div class="bk-daynav">
+      <div class="bk-daynav-btn" onclick="bkGoDate(-1)"><i class="ti ti-chevron-left"></i></div>
+      <div class="bk-daynav-date">${bkDateLabel(BK_DATE)}<input type="date" id="bk-date-input" value="${bkDateToInput(BK_DATE)}" onchange="bkPickDate(this.value)"></div>
+      <div class="bk-daynav-btn" onclick="bkGoDate(1)"><i class="ti ti-chevron-right"></i></div>
+    </div>
+    <div id="bk-list">${skeleton(3)}</div>
+    <div class="bk-fab" onclick="bkOpenForm(null)"><i class="ti ti-plus"></i></div>`;
+  try{
+    const r=await api(`/api/bookings?branch=${encodeURIComponent(BRANCH)}&date=${encodeURIComponent(BK_DATE)}`);
+    BK_BOXES=r.boxes||[]; BK_LIST=r.bookings||[];
+  }catch(e){ BK_BOXES=[]; BK_LIST=[]; }
+  const wrap=document.getElementById("bk-list");
+  if(!wrap) return;
+  if(!BK_BOXES.length){
+    wrap.innerHTML=(ME.is_owner||ME.is_branch_admin)
+      ?emptyState("ti-door","Нет ни одного бокса — добавь первый через значок настроек вверху")
+      :emptyState("ti-door","Боксы ещё не настроены");
+    return;
+  }
+  wrap.innerHTML=BK_BOXES.map(box=>{
+    const items=BK_LIST.filter(b=>b.box===box.box).sort((a,b)=>a.start_time.localeCompare(b.start_time));
+    return `
+      <div class="card" style="padding:2px 0 4px">
+        <div class="bk-box-head"><div class="n">${box.box}</div><div class="name">${box.name}</div></div>
+        ${items.length?items.map(b=>`
+          <div class="bk-appt" onclick="bkOpenSheet(${b.id})">
+            <div class="bk-appt-time">${b.start_time}</div>
+            <div class="bk-appt-body">
+              <div class="bk-appt-title">${b.client_name||b.car||"Без имени"}</div>
+              <div class="bk-appt-sub">${b.employee?b.employee+" · ":""}${bkServiceSummary(b)}${b.phone?" · "+b.phone:""}${b.prepayment?.status==="paid"?" · Предоплата ✅":""}</div>
+            </div>
+            <div class="bk-appt-status"><span class="pill ${BK_STATUS_PILL[b.status]||"muted"}">${BK_STATUS_LABEL[b.status]||b.status}</span></div>
+          </div>`).join(""):`<div class="bk-empty-box">Свободно</div>`}
+      </div>`;
+  }).join("");
+}
+window.bkGoDate=(delta)=>{ haptic(); BK_DATE=bkShiftDate(BK_DATE,delta); renderBooking(); };
+window.bkPickDate=(val)=>{ BK_DATE=bkInputToDate(val); renderBooking(); };
+window.bkOpenForm=(id)=>{ haptic("medium"); BK_EDIT_ID=id; switchTab("booking-form"); };
+window.bkOpenSheet=(id)=>{
+  const b=BK_LIST.find(x=>x.id===id); if(!b) return;
+  haptic();
+  const actions=[{icon:"ti-pencil",label:"Изменить",fn:"()=>bkOpenForm("+id+")"}];
+  if(["waiting"].includes(b.status)) actions.push({icon:"ti-circle-check",label:"Подтвердить",fn:"()=>bkSetStatus("+id+",'confirmed')"});
+  if(["waiting","confirmed"].includes(b.status)){
+    actions.push({icon:"ti-car",label:"Клиент приехал",fn:"()=>bkSetStatus("+id+",'arrived')"});
+    actions.push({icon:"ti-user-x",label:"Не пришёл",fn:"()=>bkSetStatus("+id+",'no_show')"});
+  }
+  // GAP-PAY1: предоплата доступна, пока запись не оплачена и не отменена,
+  // и уже подтверждённую предоплату повторно не предлагаем.
+  if(!["done","no_show"].includes(b.status) && b.prepayment?.status!=="paid"){
+    actions.push({icon:"ti-credit-card",label:"Оплатить онлайн (предоплата)",fn:"()=>bkPayOnline("+id+")"});
+  }
+  actions.push({icon:"ti-trash",label:"Удалить запись",destructive:true,fn:"()=>bkDelete("+id+")"});
+  const prepaidNote=b.prepayment?.status==="paid"?` · Предоплата ${fmt(b.prepayment.amount)} ✅`:"";
+  openSheet(`${b.start_time}–${b.end_time} · ${b.client_name||b.car||"Без имени"}${prepaidNote}`,actions);
+};
+window.bkSetStatus=async(id,status)=>{
+  try{
+    const r=await api(`/api/bookings/${id}/status`,{method:"PATCH",body:JSON.stringify({status})});
+    haptic("medium");
+    if(r.car_created) toast(`Машина №${r.car_created} добавлена в кассу`);
+    else if(r.car_note) toast(r.car_note,"error");
+    else toast("Статус обновлён");
+    renderBooking();
+  }catch(e){}
+};
+window.bkDelete=async(id)=>{
+  tg.showConfirm("Удалить запись?",async(ok)=>{
+    if(!ok) return;
+    try{ await api(`/api/bookings/${id}`,{method:"DELETE"}); haptic("medium"); toast("Запись удалена"); renderBooking(); }catch(e){}
+  });
+};
+/* ─── ОНЛАЙН-ОПЛАТА / ПРЕДОПЛАТА ЗАПИСИ (GAP-PAY1) ──────────────────────────
+   По прецеденту авансов/скидок (GAP-A1/GAP-M12) — сумма через window.prompt,
+   дальнейшие действия через tg.showPopup. Провайдер (боевой/мок) выбирается
+   бэкендом автоматически — фронтенд просто получает ссылку и показывает её. */
+window.bkPayOnline=async(id)=>{
+  const b=BK_LIST.find(x=>x.id===id); if(!b) return;
+  const amountStr=window.prompt("Сумма предоплаты (₽):",String(b.price||""));
+  if(amountStr===null) return;
+  const amount=parseInt(amountStr,10);
+  if(!amount||amount<=0) return tg.showAlert("Некорректная сумма");
+  let payment;
+  try{
+    const r=await api("/api/payments",{method:"POST",body:JSON.stringify({
+      branch:BRANCH, purpose:"advance", amount, booking_id:id,
+      phone:b.phone||"", client_name:b.client_name||"",
+      description:`Предоплата записи ${b.client_name||b.car||""}`.trim(),
+    })});
+    payment=r.payment;
+  }catch(e){ return; }
+  bkShowPaymentSheet(payment);
+};
+window.bkShowPaymentSheet=(payment)=>{
+  const buttons=[{id:"open",type:"default",text:"Открыть ссылку на оплату"}];
+  buttons.push(CFG.payment_mock
+    ?{id:"confirm",type:"default",text:"✅ Я получил оплату (тест)"}
+    :{id:"check",type:"default",text:"Проверить статус"});
+  buttons.push({id:"cancel",type:"cancel"});
+  tg.showPopup({title:`Оплата ${fmt(payment.amount)}`,
+    message:"Отправьте ссылку клиенту любым способом (мессенджер/звонок)",buttons},async(choice)=>{
+    if(choice==="open") window.open(payment.confirmation_url,"_blank");
+    else if(choice==="confirm"){
+      try{ await api(`/api/payments/${payment.id}/mock-confirm`,{method:"POST"}); haptic("medium"); toast("Оплата подтверждена (тест)"); renderBooking(); }catch(e){}
+    }else if(choice==="check"){
+      try{
+        const fresh=await api(`/api/payments/${payment.id}`);
+        if(fresh.status==="succeeded"){ haptic("medium"); toast("Оплачено"); renderBooking(); }
+        else{ toast("Пока не оплачено"); bkShowPaymentSheet(payment); }
+      }catch(e){}
+    }
+  });
+};
+async function renderBookingForm(id){
+  const el=document.getElementById("view-booking-form");
+  CFG=CFG||await api("/api/config");
+  let editing=null;
+  if(id){ editing=BK_LIST.find(b=>b.id===id)||null; }
+  bkServices=editing?[...(editing.service_keys||[])]:[];
+  const date=editing?.date||BK_DATE||bkTodayStr();
+  const now=new Date();
+  const defStart=`${String(now.getHours()).padStart(2,"0")}:${String(Math.ceil(now.getMinutes()/15)*15%60).padStart(2,"0")}`;
+  let workers=[];
+  try{ workers=(await api(`/api/workers?branch=${encodeURIComponent(BRANCH)}`)).workers||[]; }catch(e){}
+  el.innerHTML=`
+    <div class="back-header">
+      <div class="back-btn" onclick="switchTab('booking')"><i class="ti ti-chevron-left"></i></div>
+      <span class="back-header-title">${editing?"Изменить запись":"Новая запись"}</span>
+    </div>
+    <div style="padding:0 0 20px">
+      <div class="field-wrap"><div class="field-label">Бокс</div><div class="field-select"><select id="bk-f-box">
+        ${BK_BOXES.map(bx=>`<option value="${bx.box}" ${(editing?editing.box:BK_BOXES[0]?.box)===bx.box?"selected":""}>${bx.name}</option>`).join("")}
+      </select></div></div>
+      <div class="field-wrap"><div class="field-label">Сотрудник (необязательно)</div><div class="field-select"><select id="bk-f-employee">
+        <option value="">— не выбран —</option>
+        ${workers.map(w=>`<option value="${w}" ${editing?.employee===w?"selected":""}>${w}</option>`).join("")}
+      </select></div></div>
+      <div class="field-wrap" style="display:flex;gap:10px">
+        <div style="flex:1"><div class="field-label">Начало</div><input type="time" id="bk-f-start" step="900" value="${editing?.start_time||defStart}"></div>
+        <div style="flex:1"><div class="field-label">Окончание</div><input type="time" id="bk-f-end" step="900" value="${editing?.end_time||""}"></div>
+      </div>
+      <div class="field-wrap"><div class="field-label">Тип кузова</div><div class="field-select"><select id="bk-f-body">${CFG.body_types.map(bt=>`<option value="${bt.key}" ${editing?.body_type===bt.key?"selected":""}>${bt.name}</option>`).join("")}</select></div></div>
+      <div class="field-wrap" style="padding-bottom:6px"><div class="field-label">Услуги</div></div>
+      <div class="card" id="bk-f-services"></div>
+      <div class="field-wrap" style="margin-top:4px"><div class="field-label">Имя клиента (необязательно)</div><input id="bk-f-name" placeholder="Например, Дарья" value="${editing?.client_name||""}"></div>
+      <div class="field-wrap"><div class="field-label">Телефон клиента (необязательно)</div><input id="bk-f-phone" placeholder="+7..." value="${editing?.phone||""}"></div>
+      <div class="field-wrap"><div class="field-label">Комментарий</div><textarea id="bk-f-comment" placeholder="Комментарий (необязательно)">${editing?.comment||""}</textarea></div>
+      <div class="btn-wrap" style="margin-top:4px"><button class="btn" id="bk-f-submit" onclick="bkSubmit(${id||"null"},'${date}')">${editing?"Сохранить изменения":"Добавить запись"}</button></div>
+      ${editing?`<div class="btn-wrap" style="padding-top:0"><button class="btn ghost btn-sm" style="color:var(--red)" onclick="bkDelete(${id});switchTab('booking')"><i class="ti ti-trash"></i>Удалить запись</button></div>`:""}
+    </div>`;
+  bkRenderServiceChips();
+  document.getElementById("bk-f-body").addEventListener("change",bkRenderServiceChips);
+  if(!editing){
+    const startInp=document.getElementById("bk-f-start");
+    startInp.addEventListener("change",()=>{
+      const endInp=document.getElementById("bk-f-end");
+      if(!endInp.value && startInp.value){
+        const [h,m]=startInp.value.split(":").map(Number);
+        const total=h*60+m+30;
+        endInp.value=`${String(Math.floor(total/60)%24).padStart(2,"0")}:${String(total%60).padStart(2,"0")}`;
+      }
+    });
+  }
+}
+function bkRenderServiceChips(){
+  const bodyType=document.getElementById("bk-f-body").value;
+  const wrap=document.getElementById("bk-f-services");
+  if(!wrap) return;
+  wrap.innerHTML=CFG.services.map(s=>{
+    const price=s.prices[bodyType]??Object.values(s.prices)[0];
+    const active=bkServices.includes(s.key);
+    return `<div class="chip-label ${active?"active":""}" data-key="${s.key}" onclick="bkToggleService('${s.key}')">
+      <span class="chip-l">${s.name}</span>
+      <span class="chip-r"><span class="chip-p">${price}₽</span><span class="tick ${active?"on":""}"><i class="ti ti-check" style="font-size:12px"></i></span></span>
+    </div>`;
+  }).join("");
+}
+window.bkToggleService=(key)=>{ haptic(); bkServices=bkServices.includes(key)?bkServices.filter(k=>k!==key):[...bkServices,key]; bkRenderServiceChips(); };
+window.bkSubmit=async(id,date)=>{
+  const box=parseInt(document.getElementById("bk-f-box").value,10);
+  const start_time=document.getElementById("bk-f-start").value;
+  const end_time=document.getElementById("bk-f-end").value;
+  if(!start_time||!end_time) return tg.showAlert("Укажи время начала и окончания");
+  const payload={
+    branch:BRANCH, date, box, start_time, end_time,
+    employee:document.getElementById("bk-f-employee").value, body_type:document.getElementById("bk-f-body").value,
+    service_keys:bkServices,
+    phone:document.getElementById("bk-f-phone").value.trim(),
+    client_name:document.getElementById("bk-f-name").value.trim(),
+    comment:document.getElementById("bk-f-comment").value.trim(),
+  };
+  const btn=document.getElementById("bk-f-submit"); if(btn){btn.disabled=true;}
+  try{
+    const r=id?await api(`/api/bookings/${id}`,{method:"PATCH",body:JSON.stringify(payload)}):await api("/api/bookings",{method:"POST",body:JSON.stringify(payload)});
+    haptic("medium");
+    if(r.car_created) toast(`Машина №${r.car_created} добавлена в кассу`);
+    else toast(id?"Запись изменена":"Запись добавлена");
+    switchTab("booking");
+  }catch(e){ if(btn) btn.disabled=false; }
+};
+
+/* ─── БОКСЫ (независимая сущность, GAP-BOX1) ────────────────────────────────
+   Управление списком боксов филиала — доступно только владельцу/админу
+   филиала. По прецеденту GAP-A1/GAP-C1 ввод названия — через
+   window.prompt(), без отдельной модалки. */
+window.uiBoxesMenu=()=>{
+  haptic();
+  const buttons=BK_BOXES.map(bx=>({id:"box_"+bx.box,type:"default",text:bx.name}));
+  buttons.push({id:"add",type:"default",text:"+ Добавить бокс"});
+  buttons.push({id:"cancel",type:"cancel"});
+  tg.showPopup({title:"Боксы",message:"Выбери бокс или добавь новый",buttons},(id)=>{
+    if(id==="add") uiAddBox();
+    else if(id&&id.startsWith("box_")) uiBoxRow(parseInt(id.slice(4),10));
+  });
+};
+window.uiAddBox=async()=>{
+  const name=window.prompt("Название бокса:","Бокс "+(BK_BOXES.length+1));
+  if(name===null) return;
+  try{ await api("/api/boxes",{method:"POST",body:JSON.stringify({branch:BRANCH,name})}); haptic("medium"); toast("Бокс добавлен"); renderBooking(); }
+  catch(e){}
+};
+window.uiBoxRow=(boxId)=>{
+  const box=BK_BOXES.find(b=>b.box===boxId); if(!box) return;
+  tg.showPopup({
+    title:box.name,message:"Что сделать с боксом?",
+    buttons:[
+      {id:"rename",type:"default",text:"Переименовать"},
+      {id:"remove",type:"destructive",text:"Удалить"},
+      {id:"cancel",type:"cancel"},
+    ],
+  },async(id)=>{
+    if(id==="rename"){
+      const name=window.prompt("Новое название:",box.name); if(!name) return;
+      try{ await api(`/api/boxes/${encodeURIComponent(BRANCH)}/${boxId}`,{method:"PATCH",body:JSON.stringify({name})}); haptic("medium"); toast("Бокс переименован"); renderBooking(); }
+      catch(e){}
+    }else if(id==="remove"){
+      try{ await api(`/api/boxes/${encodeURIComponent(BRANCH)}/${boxId}`,{method:"DELETE"}); haptic("medium"); toast("Бокс удалён"); renderBooking(); }
+      catch(e){}
+    }
+  });
+};
+
+/* ─── КЛИЕНТЫ (CRM-лайт, GAP-C1) ───────────────────────────────────────────
+   Директория клиентов сети, доступная сотруднику из mini app — то же,
+   что даёт clients.html на сайте. Переиспользует те же эндпоинты без
+   изменений бэкенда: GET /api/clients (список), GET/PUT /api/clients/{phone}
+   (карточка/редактирование), PUT|DELETE /api/clients/{phone}/discount
+   (постоянная скидка). С GAP-M12 (10.08.2026) постоянная скидка сведена
+   в одну модель с разовой скидкой на машину (/api/loyalty, доступна в
+   «Все машины») — при добавлении машины клиенту с discount_percent
+   бэкенд сам создаёт запись в session["loyalty"], см.
+   sessions.apply_client_loyalty_discount(). */
+let CL_LIST=[], CL_DETAIL_PHONE=null, CL_DETAIL=null;
+// Сегменты (GAP-CRM1, паритет с сайтом — clients.html; та же формулировка,
+// тот же принцип "чистая фильтрация уже загруженного /api/clients,
+// без нового бэкенда"). Рассылки по-прежнему не входят — ждут решения
+// владельца по каналу уведомлений, см. GAP-NOTIFY1.
+const CL_SEGMENTS=[
+  {id:"all",label:"Все"},
+  {id:"inactive30",label:"Не были 30+ дней"},
+  {id:"new",label:"Новые (1 визит)"},
+  {id:"no_visits",label:"Без визитов"},
+  {id:"discount",label:"Постоянная скидка"},
+  {id:"top10",label:"Топ-10 по чеку"},
+];
+let CL_SEGMENT="all";
+function clParseRuDate(s){
+  if(!s) return null;
+  const parts=s.split(".");
+  if(parts.length!==3) return null;
+  const [d,m,y]=parts.map(Number);
+  if(!d||!m||!y) return null;
+  return new Date(y,m-1,d);
+}
+function clApplySegment(list,segment){
+  switch(segment){
+    case "inactive30":{
+      const now=new Date();
+      return list.filter(c=>{ const d=clParseRuDate(c.last_visit); return d&&(now-d)/86400000>=30; });
+    }
+    case "new": return list.filter(c=>c.visit_count===1);
+    case "no_visits": return list.filter(c=>c.visit_count===0);
+    case "discount": return list.filter(c=>c.discount_percent!=null);
+    case "top10": return list.slice().sort((a,b)=>(b.total_spent||0)-(a.total_spent||0)).slice(0,10);
+    default: return list;
+  }
+}
+window.setClSegment=(id)=>{haptic();CL_SEGMENT=id;renderClSegmentChips();renderClientsList();};
+function clFormatPhone(phone){
+  if(phone && phone.length===11) return `+${phone[0]} ${phone.slice(1,4)} ${phone.slice(4,7)}-${phone.slice(7,9)}-${phone.slice(9,11)}`;
+  return phone||"—";
+}
+async function renderClients(){
+  const el=document.getElementById("view-clients");
+  el.innerHTML=`<div class="back-header"><div class="back-btn" onclick="switchTab('more')"><i class="ti ti-chevron-left"></i></div><span class="back-header-title">Клиенты</span></div>${skeleton(4)}`;
+  try{
+    const r=await api("/api/clients");
+    CL_LIST=r.clients||[];
+  }catch(e){ CL_LIST=[]; }
+  el.innerHTML=`
+    <div class="back-header"><div class="back-btn" onclick="switchTab('more')"><i class="ti ti-chevron-left"></i></div><span class="back-header-title">Клиенты</span></div>
+    <div style="padding:0 0 20px">
+      <div class="search-wrap">
+        <i class="ti ti-search"></i>
+        <input id="cl-search" placeholder="Поиск по телефону или имени" oninput="clFilter()">
+        <i class="ti ti-x clear-btn" onclick="clClearSearch()"></i>
+      </div>
+      <div class="filter-chips" id="cl-filter-chips"></div>
+      <div id="cl-list" style="padding:0 16px"></div>
+    </div>`;
+  renderClSegmentChips();
+  renderClientsList();
+  attachPullToRefresh("view-clients",renderClients);
+}
+window.clClearSearch=()=>{ document.getElementById("cl-search").value=""; clFilter(); };
+window.clFilter=()=>renderClientsList();
+function renderClSegmentChips(){
+  const wrap=document.getElementById("cl-filter-chips");
+  if(!wrap) return;
+  wrap.innerHTML=CL_SEGMENTS.map(s=>
+    `<div class="filter-chip ${s.id===CL_SEGMENT?"active":""}" onclick="setClSegment('${s.id}')">${s.label}</div>`
+  ).join("");
+}
+function renderClientsList(){
+  const wrap=document.getElementById("cl-list");
+  const searchWrap=document.querySelector(".search-wrap");
+  const q=(document.getElementById("cl-search")?.value||"").trim().toLowerCase();
+  if(searchWrap) searchWrap.classList.toggle("has-value",!!q);
+  const qDigits=q.replace(/\D/g,"");
+  let list=clApplySegment(CL_LIST,CL_SEGMENT);
+  if(q) list=list.filter(c=>(qDigits&&c.phone.includes(qDigits))||(c.name||"").toLowerCase().includes(q));
+  if(!list.length){
+    wrap.innerHTML=(CL_SEGMENT==="all"&&!q)
+      ?emptyState("ti-address-book","Клиенты появятся сами, как только при добавлении машины укажут телефон")
+      :emptyState("ti-search-off","Никого не найдено — попробуйте другой сегмент или запрос");
+    return;
+  }
+  wrap.innerHTML=`<div class="card" style="padding:0">${list.map(c=>{
+    const col=avatarColor(c.name||c.phone);
+    return `<div class="row" onclick="clOpenDetail('${c.phone}')">
+      <div class="row-name">
+        <span class="cl-av" style="background:${col}22;color:${col}">${initials(c.name)}</span>
+        <div><div>${c.name||"Без имени"}</div><div class="row-sub" style="margin-top:2px">${clFormatPhone(c.phone)}${c.discount_percent?` · скидка ${c.discount_percent}%`:""}</div></div>
+      </div>
+      <div class="row-right"><p class="row-price" style="color:var(--green)">${fmt(c.total_spent)}</p><p class="row-sub">${c.visit_count} визит(ов)</p></div>
+    </div>`;
+  }).join("")}</div>`;
+}
+window.clOpenDetail=(phone)=>{ haptic(); CL_DETAIL_PHONE=phone; switchTab("client-detail"); };
+async function renderClientDetail(phone){
+  const el=document.getElementById("view-client-detail");
+  if(!phone){ switchTab("clients"); return; }
+  el.innerHTML=`<div class="back-header"><div class="back-btn" onclick="switchTab('clients')"><i class="ti ti-chevron-left"></i></div><span class="back-header-title">Клиент</span></div>${skeleton(3)}`;
+  let c;
+  try{ c=await api(`/api/clients/${encodeURIComponent(phone)}`); }
+  catch(e){ switchTab("clients"); return; }
+  CL_DETAIL=c;
+  const col=avatarColor(c.name||c.phone);
+  const cars=(c.cars||[]).join(", ")||"—";
+  const visits=(c.visits||[]).slice().reverse();
+  el.innerHTML=`
+    <div class="back-header">
+      <div class="back-btn" onclick="switchTab('clients')"><i class="ti ti-chevron-left"></i></div>
+      <span class="back-header-title">Клиент</span>
+      <div class="back-btn" style="margin-left:auto" onclick="clOpenMenu('${phone}')"><i class="ti ti-dots"></i></div>
+    </div>
+    <div style="padding:0 16px 4px;display:flex;align-items:center;gap:12px">
+      <span class="cl-av" style="width:52px;height:52px;font-size:18px;background:${col}22;color:${col}">${initials(c.name)}</span>
+      <div><div style="font-size:17px;font-weight:600">${c.name||"Без имени"}</div><div class="row-sub">${clFormatPhone(c.phone)}</div></div>
+    </div>
+    <div class="rstat-grid" style="grid-template-columns:repeat(3,1fr)">
+      <div class="rstat-box"><p>Визитов</p><p>${c.visit_count}</p></div>
+      <div class="rstat-box"><p>Потрачено</p><p>${fmt(c.total_spent)}</p></div>
+      <div class="rstat-box"><p>Посл. визит</p><p style="font-size:14px">${c.last_visit||"—"}</p></div>
+    </div>
+    <div class="section-label"><span>Постоянная скидка</span></div>
+    <div class="card">
+      <div class="cl-discount-row">
+        ${c.discount_percent
+          ?`<span class="cl-discount-badge"><i class="ti ti-discount-2"></i>${c.discount_percent}% на все услуги</span><span style="color:var(--red);font-size:13px;font-weight:700;cursor:pointer" onclick="clRemoveDiscount('${phone}')">Удалить</span>`
+          :`<span class="row-sub">Не установлена</span><span style="color:var(--accent);font-size:13px;font-weight:700;cursor:pointer" onclick="clSetDiscount('${phone}')">Установить</span>`}
+      </div>
+    </div>
+    <div class="section-label"><span>Машины</span></div>
+    <div class="card card-pad" style="font-size:13px;color:var(--text-secondary)">${cars}</div>
+    <div class="section-label"><span>История визитов</span></div>
+    <div class="card">
+      ${visits.length?visits.map(v=>`
+        <div class="row" style="cursor:default">
+          <div><p class="row-name" style="font-size:13px;font-weight:500">${v.date} · ${v.branch}</p><p class="row-sub">${v.car||"—"}</p></div>
+          <p class="row-price" style="color:var(--green)">${fmt(v.total)}</p>
+        </div>`).join(""):`<p class="empty" style="padding:16px">Визитов пока нет</p>`}
+    </div>`;
+}
+window.clOpenMenu=(phone)=>{
+  haptic();
+  openSheet("Клиент",[
+    {icon:"ti-pencil",label:"Изменить имя/машины",fn:`()=>clEditInfo('${phone}')`},
+    {icon:"ti-discount-2",label:CL_DETAIL?.discount_percent?"Изменить скидку":"Установить скидку",fn:`()=>clSetDiscount('${phone}')`},
+    ...(CL_DETAIL?.discount_percent?[{icon:"ti-discount-off",label:"Удалить скидку",destructive:true,fn:`()=>clRemoveDiscount('${phone}')`}]:[]),
+  ]);
+};
+window.clEditInfo=async(phone)=>{
+  const name=window.prompt("Имя клиента:",CL_DETAIL?.name||"");
+  if(name===null) return;
+  const carsStr=window.prompt("Машины клиента (через запятую):",(CL_DETAIL?.cars||[]).join(", "));
+  if(carsStr===null) return;
+  const cars=carsStr.split(",").map(s=>s.trim()).filter(Boolean);
+  haptic("medium");
+  try{
+    await api(`/api/clients/${encodeURIComponent(phone)}`,{method:"PUT",body:JSON.stringify({name:name.trim(),cars})});
+    toast("Карточка клиента обновлена");
+    renderClientDetail(phone);
+  }catch(e){}
+};
+window.clSetDiscount=async(phone)=>{
+  const valStr=window.prompt("Постоянная скидка клиента, % (1–100):",CL_DETAIL?.discount_percent?String(CL_DETAIL.discount_percent):"");
+  if(valStr===null) return;
+  const val=parseFloat(valStr);
+  if(!val||val<=0||val>100){ tg.showAlert("Укажите скидку от 1 до 100%"); return; }
+  haptic("medium");
+  try{
+    await api(`/api/clients/${encodeURIComponent(phone)}/discount`,{method:"PUT",body:JSON.stringify({percent:val})});
+    toast("Скидка сохранена");
+    renderClientDetail(phone);
+  }catch(e){}
+};
+window.clRemoveDiscount=(phone)=>{
+  tg.showConfirm("Убрать постоянную скидку клиента?",async(ok)=>{
+    if(!ok) return;
+    haptic("medium");
+    try{
+      await api(`/api/clients/${encodeURIComponent(phone)}/discount`,{method:"DELETE"});
+      toast("Скидка удалена");
+      renderClientDetail(phone);
+    }catch(e){}
+  });
+};
+
 function renderMore(){
   const el=document.getElementById("view-more");
   const isOwner=!!ME?.is_owner;
   const groups=[
+    {title:"Расписание",items:[
+      {icon:"ti-calendar-event",label:"Запись",tab:"booking"},
+    ]},
+    {title:"Клиенты",items:[
+      {icon:"ti-address-book",label:"Клиенты",tab:"clients"},
+    ]},
     {title:"Аналитика",items:[
       {icon:"ti-chart-bar",label:"Отчёты",tab:"reports"},
       {icon:"ti-history",label:"История изменений",tab:"history"},
@@ -2491,7 +3100,7 @@ function renderMore(){
 
 /* ─── ДОПОЛНИТЕЛЬНЫЕ ЭКРАНЫ (виртуальные роуты новой навигации) ──────────── */
 document.getElementById("view-home").insertAdjacentHTML("afterend",
-  `<div id="view-cash" class="hidden"></div><div id="view-day-report" class="hidden"></div><div id="view-all-cars" class="hidden"></div><div id="view-history" class="hidden"></div><div id="view-schedule" class="hidden"></div><div id="view-my-stats" class="hidden"></div><div id="view-my-day-cars" class="hidden"></div><div id="view-employees" class="hidden"></div><div id="view-finance" class="hidden"></div><div id="view-more" class="hidden"></div><div id="view-branches" class="hidden"></div>`
+  `<div id="view-cash" class="hidden"></div><div id="view-day-report" class="hidden"></div><div id="view-all-cars" class="hidden"></div><div id="view-history" class="hidden"></div><div id="view-schedule" class="hidden"></div><div id="view-my-stats" class="hidden"></div><div id="view-my-day-cars" class="hidden"></div><div id="view-employees" class="hidden"></div><div id="view-finance" class="hidden"></div><div id="view-more" class="hidden"></div><div id="view-branches" class="hidden"></div><div id="view-booking" class="hidden"></div><div id="view-booking-form" class="hidden"></div><div id="view-clients" class="hidden"></div><div id="view-client-detail" class="hidden"></div>`
 );
 const _switchTab=switchTab;
 // Виртуальные роуты: экран не в основном наборе switchTab, но должен
@@ -2510,6 +3119,10 @@ const VIRTUAL_ROUTES={
   "finance":{view:"view-finance",render:()=>renderFinance(),activeTab:"finance"},
   "branches":{view:"view-branches",render:()=>renderBranchesAdmin(),activeTab:"more"},
   "more":{view:"view-more",render:()=>renderMore(),activeTab:"more"},
+  "booking":{view:"view-booking",render:()=>renderBooking(),activeTab:"more"},
+  "booking-form":{view:"view-booking-form",render:()=>renderBookingForm(BK_EDIT_ID),activeTab:"more"},
+  "clients":{view:"view-clients",render:()=>renderClients(),activeTab:"more"},
+  "client-detail":{view:"view-client-detail",render:()=>renderClientDetail(CL_DETAIL_PHONE),activeTab:"more"},
 };
 switchTab=function(name,editNum){
   const route=VIRTUAL_ROUTES[name];

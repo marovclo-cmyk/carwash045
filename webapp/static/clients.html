@@ -24,6 +24,15 @@
   .client-visits{ font-size:11px; color:var(--muted); }
   .detail-back{ display:flex; align-items:center; gap:6px; color:var(--muted); font-size:13px; cursor:pointer; margin-bottom:14px; }
   .detail-back:hover{ color:var(--ink); }
+  /* ── СЕГМЕНТЫ (GAP-CRM1, этап 1 — сегментация) ──────────────────────────── */
+  .filter-chips{ display:flex; gap:8px; overflow-x:auto; padding:2px 2px 4px; margin-bottom:14px; }
+  .filter-chips::-webkit-scrollbar{ display:none; }
+  .filter-chip{
+    flex-shrink:0; background:var(--paper); border-radius:20px;
+    padding:7px 14px; font-size:12px; font-weight:500; color:var(--muted);
+    white-space:nowrap; cursor:pointer; border:1px solid var(--line); transition:all .1s;
+  }
+  .filter-chip.active{ background:var(--ink); color:var(--paper); border-color:transparent; font-weight:700; }
 </style>
 </head>
 <body>
@@ -48,6 +57,8 @@
         <i class="ti ti-search"></i>
         <input type="text" id="qInput" placeholder="Поиск по телефону или имени">
       </div>
+
+      <div class="filter-chips" id="segmentChips"></div>
 
       <div class="panel">
         <div id="clientsList"></div>
@@ -108,6 +119,83 @@ if (CW.requireAuth()) {
 
   document.getElementById("pageSub").textContent = CW.todayLabel();
 
+  // ── Сегменты (GAP-CRM1, этап 1 — сегментация без рассылок; каналы
+  // уведомлений клиенту не решены владельцем, см. GAP-NOTIFY1, поэтому
+  // рассылки сюда сознательно не входят). Все сегменты считаются на
+  // уже загруженных полях client_summary() (visit_count/total_spent/
+  // last_visit/discount_percent) — новых бэкенд-эндпоинтов не потребовалось.
+  const SEGMENTS = [
+    { id: "all",       label: "Все" },
+    { id: "inactive30", label: "Не были 30+ дней" },
+    { id: "new",       label: "Новые (1 визит)" },
+    { id: "no_visits", label: "Без визитов" },
+    { id: "discount",  label: "Постоянная скидка" },
+    { id: "top10",     label: "Топ-10 по чеку" },
+  ];
+  let activeSegment = "all";
+  let currentQuery = "";
+  const emptyDefaultText = document.getElementById("clientsEmpty").textContent;
+
+  function parseRuDate(s) {
+    // "ДД.ММ.ГГГГ" → Date | null — тот же формат, что везде в проекте
+    // хранит даты визитов (см. sessions.upsert_client_visit).
+    if (!s) return null;
+    const parts = s.split(".");
+    if (parts.length !== 3) return null;
+    const [d, m, y] = parts.map(Number);
+    if (!d || !m || !y) return null;
+    return new Date(y, m - 1, d);
+  }
+
+  function applySegment(clients, segment) {
+    switch (segment) {
+      case "inactive30": {
+        const now = new Date();
+        return clients.filter(c => {
+          const d = parseRuDate(c.last_visit);
+          return d && (now - d) / 86400000 >= 30;
+        });
+      }
+      case "new":
+        return clients.filter(c => c.visit_count === 1);
+      case "no_visits":
+        return clients.filter(c => c.visit_count === 0);
+      case "discount":
+        return clients.filter(c => c.discount_percent != null);
+      case "top10":
+        return clients.slice().sort((a, b) => (b.total_spent || 0) - (a.total_spent || 0)).slice(0, 10);
+      default:
+        return clients;
+    }
+  }
+
+  function renderSegmentChips() {
+    const el = document.getElementById("segmentChips");
+    el.innerHTML = SEGMENTS.map(s =>
+      `<div class="filter-chip${s.id === activeSegment ? " active" : ""}" data-seg="${s.id}">${s.label}</div>`
+    ).join("");
+    el.querySelectorAll(".filter-chip").forEach(chip => {
+      chip.addEventListener("click", () => {
+        activeSegment = chip.dataset.seg;
+        renderSegmentChips();
+        applyFilters();
+      });
+    });
+  }
+
+  function applyFilters() {
+    let list = applySegment(clientsCache, activeSegment);
+    if (currentQuery) {
+      const qDigits = currentQuery.replace(/\D/g, "");
+      list = list.filter(c =>
+        (qDigits && c.phone.includes(qDigits)) || (c.name || "").toLowerCase().includes(currentQuery)
+      );
+    }
+    renderList(list);
+  }
+
+  renderSegmentChips();
+
   let clientsCache = [];
 
   async function loadClients() {
@@ -115,7 +203,7 @@ if (CW.requireAuth()) {
     try {
       const data = await CW.authFetch("/api/clients");
       clientsCache = data.clients || [];
-      renderList(clientsCache);
+      applyFilters();
     } catch (e) { showErr(e.message); }
   }
 
@@ -139,7 +227,14 @@ if (CW.requireAuth()) {
   function renderList(clients) {
     const list = document.getElementById("clientsList");
     const empty = document.getElementById("clientsEmpty");
-    if (!clients.length) { list.innerHTML = ""; empty.style.display = "block"; return; }
+    if (!clients.length) {
+      list.innerHTML = "";
+      empty.textContent = (activeSegment === "all" && !currentQuery)
+        ? emptyDefaultText
+        : "Никого не найдено — попробуйте другой сегмент или запрос";
+      empty.style.display = "block";
+      return;
+    }
     empty.style.display = "none";
     list.innerHTML = clients.map(c => {
       const col = avatarColor(c.name || c.phone);
@@ -162,12 +257,8 @@ if (CW.requireAuth()) {
   }
 
   document.getElementById("qInput").addEventListener("input", (e) => {
-    const q = e.target.value.trim().toLowerCase();
-    if (!q) { renderList(clientsCache); return; }
-    const qDigits = q.replace(/\D/g, "");
-    renderList(clientsCache.filter(c =>
-      (qDigits && c.phone.includes(qDigits)) || (c.name || "").toLowerCase().includes(q)
-    ));
+    currentQuery = e.target.value.trim().toLowerCase();
+    applyFilters();
   });
 
   document.getElementById("refreshBtn").addEventListener("click", loadClients);

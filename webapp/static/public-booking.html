@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>CarWash Cloud — записаться онлайн</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="/static/css/theme-plata.css">
+<style>
+/* Публичная витрина (GAP-CLIENT-PORTAL, этап 1). Отдельная простая
+   мобильная вёрстка, без .shell/.rail — как site-login.html. Без
+   верификации номера телефона (решение владельца 11.08.2026): номер,
+   который ввёл клиент, используется как единственный ключ к его записям
+   ниже, в разделе «Моя запись». */
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:var(--font-body);background:var(--paper-2);color:var(--ink);
+  min-height:100vh;-webkit-font-smoothing:antialiased;
+}
+.top{
+  background:linear-gradient(165deg,#1A1A1A 0%,#0D0D0D 100%);color:#fff;
+  padding:22px 18px 26px;position:relative;overflow:hidden;
+}
+.top::after{content:"";position:absolute;width:220px;height:220px;border-radius:50%;
+  right:-70px;top:-90px;background:radial-gradient(circle,rgba(255,80,0,.35),transparent 65%)}
+.top .mark{width:38px;height:38px;border-radius:12px;background:var(--orange-grad);
+  display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:12px;position:relative;z-index:1}
+.top h1{font-family:var(--font-display);font-size:21px;font-weight:700;position:relative;z-index:1}
+.top p{font-size:12.5px;color:rgba(255,255,255,.72);margin-top:4px;position:relative;z-index:1}
+
+.tabs{display:flex;gap:6px;padding:14px 16px 0;max-width:520px;margin:0 auto}
+.tab{flex:1;text-align:center;padding:10px 8px;border-radius:100px;font-size:12.5px;font-weight:700;
+  background:var(--paper);border:1px solid var(--line);color:var(--muted);cursor:pointer}
+.tab.active{background:var(--orange-grad);color:#fff;border-color:transparent}
+
+.wrap{max-width:520px;margin:0 auto;padding:14px 16px 40px}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:var(--r-lg);padding:16px;margin-bottom:12px}
+.card h3{font-family:var(--font-display);font-size:14px;font-weight:600;margin-bottom:10px}
+label{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em;display:block;margin:12px 0 6px}
+label:first-child{margin-top:0}
+select,input,textarea{
+  width:100%;min-height:44px;border-radius:var(--r-sm);background:var(--paper-2);
+  border:1px solid var(--line-strong);color:var(--ink);font-size:14px;padding:0 12px;font-family:inherit;
+}
+textarea{padding:10px 12px;min-height:64px;resize:vertical}
+select:focus,input:focus,textarea:focus{outline:none;border-color:var(--orange);box-shadow:0 0 0 3px var(--orange-tint)}
+
+.svc-list{display:flex;flex-direction:column;gap:6px}
+.svc-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 10px;
+  border:1px solid var(--line);border-radius:12px;cursor:pointer;font-size:13px}
+.svc-row.on{border-color:var(--orange);background:var(--orange-tint)}
+.svc-row .price{color:var(--muted);font-variant-numeric:tabular-nums}
+
+.slots{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.slot{padding:9px 13px;border-radius:100px;border:1px solid var(--line-strong);font-size:13px;font-weight:600;cursor:pointer}
+.slot:hover{border-color:var(--orange)}
+.slot.picked{background:var(--orange-grad);color:#fff;border-color:transparent}
+.empty-note{font-size:12.5px;color:var(--muted);padding:6px 2px}
+
+.btn-main{
+  width:100%;height:46px;border-radius:100px;border:none;background:var(--orange-grad);color:#fff;
+  font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 10px 22px -8px rgba(255,80,0,.5);
+}
+.btn-main:disabled{opacity:.45;cursor:default;box-shadow:none}
+.btn-ghost{width:100%;height:40px;border-radius:100px;border:1px solid var(--line-strong);background:var(--paper);
+  color:var(--ink);font-size:13px;font-weight:700;cursor:pointer;margin-top:8px}
+.btn-danger{color:var(--red);border-color:var(--red-tint)}
+
+.msg{font-size:12.5px;font-weight:600;padding:10px 13px;border-radius:12px;margin-top:10px;display:none}
+.msg.err{background:var(--red-tint);color:var(--red);display:block}
+.msg.ok{background:var(--green-tint);color:var(--green);display:block}
+
+.booking-item{border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:10px}
+.booking-item .row1{display:flex;justify-content:space-between;align-items:baseline;font-weight:700;font-size:14px}
+.booking-item .row2{font-size:12.5px;color:var(--muted);margin-top:2px}
+.status-pill{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;
+  padding:3px 9px;border-radius:100px;background:var(--orange-tint);color:var(--orange-2)}
+.hidden{display:none}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="mark"><i class="ti ti-droplet"></i></div>
+  <h1>Запись онлайн</h1>
+  <p>Выберите время — без звонков и ожидания</p>
+</div>
+
+<div class="tabs">
+  <div class="tab active" id="tabNew">Новая запись</div>
+  <div class="tab" id="tabMine">Моя запись</div>
+</div>
+
+<div class="wrap">
+
+  <!-- ─── Новая запись ─────────────────────────────────────────── -->
+  <div id="viewNew">
+    <div class="card">
+      <h3>1. Филиал и дата</h3>
+      <label>Филиал</label>
+      <select id="fBranch"></select>
+      <label>Дата</label>
+      <input type="date" id="fDate">
+    </div>
+
+    <div class="card">
+      <h3>2. Услуги</h3>
+      <label>Тип кузова</label>
+      <select id="fBody"></select>
+      <div class="svc-list" id="svcList" style="margin-top:12px"></div>
+    </div>
+
+    <div class="card">
+      <h3>3. Свободное время</h3>
+      <div class="slots" id="slotsBox"><div class="empty-note">Выберите филиал и дату</div></div>
+    </div>
+
+    <div class="card" id="clientCard" style="display:none">
+      <h3>4. Ваши данные</h3>
+      <label>Имя</label>
+      <input type="text" id="fName" placeholder="Как к вам обращаться">
+      <label>Телефон</label>
+      <input type="tel" id="fPhone" placeholder="+7 999 000-00-00">
+      <label>Комментарий (необязательно)</label>
+      <textarea id="fComment" placeholder="Например: приеду на кроссовере, серый"></textarea>
+      <button class="btn-main" id="btnSubmit" style="margin-top:16px">Записаться</button>
+      <div class="msg" id="msgNew"></div>
+    </div>
+  </div>
+
+  <!-- ─── Моя запись ───────────────────────────────────────────── -->
+  <div id="viewMine" class="hidden">
+    <div class="card">
+      <h3>Найти свою запись</h3>
+      <label>Телефон, который вы указывали при записи</label>
+      <input type="tel" id="lookupPhone" placeholder="+7 999 000-00-00">
+      <button class="btn-main" id="btnLookup" style="margin-top:14px">Показать мои записи</button>
+      <div class="msg" id="msgLookup"></div>
+    </div>
+    <div id="mineList"></div>
+  </div>
+
+</div>
+
+<script>
+const API = "";
+let CONFIG = null;
+let selectedServices = new Set();
+let selectedSlot = null;
+
+function todayStr(){ const d=new Date(); return d.toISOString().slice(0,10); }
+function toRuDate(iso){ const [y,m,d]=iso.split("-"); return `${d}.${m}.${y}`; }
+function money(n){ return (n||0).toLocaleString("ru-RU") + " ₽"; }
+
+async function loadConfig(){
+  const r = await fetch("/api/config");
+  CONFIG = await r.json();
+  const bSel = document.getElementById("fBranch");
+  bSel.innerHTML = CONFIG.branches.map(b => `<option value="${b}">${b}</option>`).join("");
+  const bodySel = document.getElementById("fBody");
+  bodySel.innerHTML = CONFIG.body_types.map(bt => `<option value="${bt.key}">${bt.name}</option>`).join("");
+  renderServices();
+  document.getElementById("fDate").value = todayStr();
+  document.getElementById("fDate").min = todayStr();
+}
+
+function renderServices(){
+  const body = document.getElementById("fBody").value;
+  const box = document.getElementById("svcList");
+  box.innerHTML = CONFIG.services.map(s => {
+    const price = s.prices[body] ?? Object.values(s.prices)[0];
+    const on = selectedServices.has(s.key);
+    return `<div class="svc-row ${on ? "on":""}" data-key="${s.key}">
+      <span>${s.name}</span><span class="price">${money(price)}</span>
+    </div>`;
+  }).join("");
+  box.querySelectorAll(".svc-row").forEach(el => {
+    el.addEventListener("click", () => {
+      const k = el.dataset.key;
+      selectedServices.has(k) ? selectedServices.delete(k) : selectedServices.add(k);
+      renderServices();
+    });
+  });
+}
+
+async function loadSlots(){
+  const branch = document.getElementById("fBranch").value;
+  const date = toRuDate(document.getElementById("fDate").value);
+  const box = document.getElementById("slotsBox");
+  box.innerHTML = `<div class="empty-note">Загрузка...</div>`;
+  selectedSlot = null;
+  document.getElementById("clientCard").style.display = "none";
+  try{
+    const r = await fetch(`/api/public/slots?branch=${encodeURIComponent(branch)}&date=${encodeURIComponent(date)}`);
+    const data = await r.json();
+    if (!data.slots.length){
+      box.innerHTML = `<div class="empty-note">На эту дату свободных мест нет — попробуйте другой день</div>`;
+      return;
+    }
+    box.innerHTML = data.slots.map(s => `<div class="slot" data-t="${s}">${s}</div>`).join("");
+    box.querySelectorAll(".slot").forEach(el => {
+      el.addEventListener("click", () => {
+        box.querySelectorAll(".slot").forEach(x => x.classList.remove("picked"));
+        el.classList.add("picked");
+        selectedSlot = el.dataset.t;
+        document.getElementById("clientCard").style.display = "block";
+      });
+    });
+  }catch(e){
+    box.innerHTML = `<div class="empty-note">Не удалось загрузить время, попробуйте ещё раз</div>`;
+  }
+}
+
+function showMsg(id, text, ok){
+  const el = document.getElementById(id);
+  el.textContent = text;
+  el.className = "msg " + (ok ? "ok" : "err");
+}
+
+async function submitBooking(){
+  const msg = document.getElementById("msgNew");
+  msg.className = "msg";
+  if (!selectedSlot){ showMsg("msgNew", "Выберите время", false); return; }
+  const name = document.getElementById("fName").value.trim();
+  const phone = document.getElementById("fPhone").value.trim();
+  if (!name){ showMsg("msgNew", "Укажите имя", false); return; }
+  if (!phone){ showMsg("msgNew", "Укажите телефон", false); return; }
+  const btn = document.getElementById("btnSubmit");
+  btn.disabled = true;
+  try{
+    const payload = {
+      branch: document.getElementById("fBranch").value,
+      date: toRuDate(document.getElementById("fDate").value),
+      start_time: selectedSlot,
+      body_type: document.getElementById("fBody").value,
+      service_keys: Array.from(selectedServices),
+      phone, client_name: name,
+      comment: document.getElementById("fComment").value.trim(),
+    };
+    const r = await fetch("/api/public/booking", {
+      method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify(payload)
+    });
+    const data = await r.json();
+    if (!r.ok){ showMsg("msgNew", data.detail || "Не получилось записаться", false); btn.disabled = false; loadSlots(); return; }
+    showMsg("msgNew", `Готово! Ждём вас ${payload.date} в ${payload.start_time}. Запись можно посмотреть во вкладке «Моя запись».`, true);
+    selectedServices.clear();
+    document.getElementById("fName").value = "";
+    document.getElementById("fComment").value = "";
+  }catch(e){
+    showMsg("msgNew", "Ошибка сети, попробуйте ещё раз", false);
+  }
+  btn.disabled = false;
+}
+
+const STATUS_LABELS = {waiting:"Ожидание", confirmed:"Подтверждена", arrived:"Вы приехали",
+  in_progress:"В процессе", done:"Завершена", no_show:"Отменена"};
+
+async function lookupMine(){
+  const phone = document.getElementById("lookupPhone").value.trim();
+  const msg = document.getElementById("msgLookup");
+  msg.className = "msg";
+  const list = document.getElementById("mineList");
+  if (!phone){ showMsg("msgLookup", "Введите номер телефона", false); return; }
+  list.innerHTML = "";
+  const r = await fetch(`/api/public/bookings?phone=${encodeURIComponent(phone)}`);
+  const data = await r.json();
+  if (!data.bookings.length){
+    showMsg("msgLookup", "Активных записей на этот номер не найдено", false);
+    return;
+  }
+  msg.className = "msg";
+  list.innerHTML = data.bookings.map(b => `
+    <div class="booking-item" data-id="${b.id}">
+      <div class="row1"><span>${b.date} · ${b.start_time}</span><span class="status-pill">${STATUS_LABELS[b.status]||b.status}</span></div>
+      <div class="row2">${b.branch}</div>
+      ${["waiting","confirmed"].includes(b.status) ? `
+        <button class="btn-ghost" data-act="cancel" data-id="${b.id}">Отменить запись</button>
+      ` : ""}
+    </div>
+  `).join("");
+  list.querySelectorAll('[data-act="cancel"]').forEach(btn => {
+    btn.addEventListener("click", async () => {
+      if (!confirm("Отменить запись?")) return;
+      const r = await fetch(`/api/public/booking/${btn.dataset.id}?phone=${encodeURIComponent(phone)}`, {method:"DELETE"});
+      if (r.ok){ lookupMine(); } else { alert("Не удалось отменить запись"); }
+    });
+  });
+}
+
+document.getElementById("fBranch").addEventListener("change", loadSlots);
+document.getElementById("fDate").addEventListener("change", loadSlots);
+document.getElementById("fBody").addEventListener("change", renderServices);
+document.getElementById("btnSubmit").addEventListener("click", submitBooking);
+document.getElementById("btnLookup").addEventListener("click", lookupMine);
+
+document.getElementById("tabNew").addEventListener("click", () => {
+  document.getElementById("tabNew").classList.add("active");
+  document.getElementById("tabMine").classList.remove("active");
+  document.getElementById("viewNew").classList.remove("hidden");
+  document.getElementById("viewMine").classList.add("hidden");
+});
+document.getElementById("tabMine").addEventListener("click", () => {
+  document.getElementById("tabMine").classList.add("active");
+  document.getElementById("tabNew").classList.remove("active");
+  document.getElementById("viewMine").classList.remove("hidden");
+  document.getElementById("viewNew").classList.add("hidden");
+});
+
+loadConfig().then(loadSlots);
+</script>
+</body>
+</html>
