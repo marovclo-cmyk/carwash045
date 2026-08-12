@@ -245,7 +245,6 @@ table.data tr:hover td{background:var(--paper-2)}
 .add-row button{width:38px;border-radius:9px;border:none;background:var(--orange-grad);color:#fff;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center}
 
 .pay-tag.split{background:var(--purple-tint);color:var(--purple)}
-.pay-tag.online{background:rgba(21,101,192,0.12);color:#1565C0}
 .inline-split-row{display:none;gap:8px;padding:0 20px 14px}
 .inline-split-row.show{display:flex}
 .inline-split-row input{height:36px;border-radius:9px;background:var(--paper-2);border:1.5px solid var(--line-strong);color:var(--ink);font-size:12.5px;padding:0 9px;font-family:var(--font-body);width:100%}

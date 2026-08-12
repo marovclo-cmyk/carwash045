@@ -102,7 +102,7 @@ if (CW.requireAuth()) {
             <div class="list-car">№${l.car_num}</div>
             <div class="list-info">
               <div class="list-name">${carLabel(l.car_num)}</div>
-              <div class="list-meta">${l.auto ? `Постоянная скидка клиента ${l.percent}%` : `Машина №${l.car_num}`}</div>
+              <div class="list-meta">Машина №${l.car_num}</div>
             </div>
             <div class="list-amount purple">−${CW.money(l.discount)}</div>
             <div class="icon-btn danger" onclick="CW_delLoyalty(${i})"><i class="ti ti-trash"></i></div>

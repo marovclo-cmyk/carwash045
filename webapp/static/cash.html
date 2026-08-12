@@ -63,10 +63,7 @@
       <div class="panel">
         <div class="panel-head">
           <div class="panel-title">Товары</div>
-          <div style="display:flex;align-items:center;gap:10px">
-            <div style="font-size:13px;color:var(--green);font-weight:700" id="prodTotal">0 ₽</div>
-            <div class="icon-btn" id="stockBtn" title="Склад: остатки товаров" style="display:none"><i class="ti ti-package"></i></div>
-          </div>
+          <div style="font-size:13px;color:var(--green);font-weight:700" id="prodTotal">0 ₽</div>
         </div>
         <div id="prodList"></div>
         <div id="prodEmpty" class="empty-note" style="display:none">Товаров пока нет</div>
@@ -75,14 +72,6 @@
           <select class="f-pay" id="prodPay"></select>
           <button id="prodAddBtn"><i class="ti ti-plus"></i></button>
         </div>
-      </div>
-
-      <div class="panel" style="grid-column:1 / -1;display:none" id="stockPanel">
-        <div class="panel-head">
-          <div class="panel-title">Склад — остатки товаров</div>
-          <div class="empty-note" style="margin:0">Товар без заданного остатка продаётся без ограничений</div>
-        </div>
-        <div id="stockList"></div>
       </div>
 
       <div class="panel" style="grid-column:1 / -1">
@@ -162,100 +151,19 @@ if (CW.requireAuth()) {
     updateDayPanels();
 
     let cfg = null;
-    let stockData = [];   // GAP-P1: остатки товаров филиала, см. loadStock()
-
-    function renderProductSelect() {
-      const prodSel = document.getElementById("prodSelect");
-      if (!cfg || !cfg.products.length) {
-        prodSel.innerHTML = `<option value="">Каталог товаров пуст</option>`;
-        return;
-      }
-      prodSel.innerHTML = cfg.products.map(p => {
-        const st = stockData.find(s => s.key === p.key);
-        const tracked = st && st.tracked;
-        const out = tracked && st.qty <= 0;
-        const label = tracked ? `${p.name} — ${p.price}₽ (остаток: ${st.qty})` : `${p.name} — ${p.price}₽`;
-        return `<option value="${p.key}" ${out ? "disabled" : ""}>${out ? "❌ " : ""}${label}</option>`;
-      }).join("");
-    }
-
-    async function loadStock() {
-      // GAP-P1: остатки — по филиалу, эндпоинт отдельный от /api/config
-      // (тот статичен и не знает о филиале).
-      if (!branch) return;
-      try {
-        const r = await CW.authFetch(`/api/stock/${encodeURIComponent(branch)}`);
-        stockData = r.products || [];
-      } catch (e) {
-        stockData = [];
-      }
-      renderProductSelect();
-      if (isAdminRole) renderStockPanel();
-    }
-
     CW.authFetch("/api/config").then(c => {
       cfg = c;
       const sel = document.getElementById("incPay");
       sel.innerHTML = cfg.payment_types.map(p => `<option value="${p}">${p[0].toUpperCase() + p.slice(1)}</option>`).join("")
         + `<option value="раздельная">Раздельная</option>`;
 
-      renderProductSelect();
+      const prodSel = document.getElementById("prodSelect");
+      prodSel.innerHTML = cfg.products.length
+        ? cfg.products.map(p => `<option value="${p.key}">${p.name} — ${p.price}₽</option>`).join("")
+        : `<option value="">Каталог товаров пуст</option>`;
       const prodPay = document.getElementById("prodPay");
       prodPay.innerHTML = cfg.payment_types.map(p => `<option value="${p}">${p[0].toUpperCase() + p.slice(1)}</option>`).join("");
-
-      loadStock();
     }).catch(() => {});
-
-    // ── СКЛАД: панель управления остатками (GAP-P1, только админ/владелец) ──
-    if (isAdminRole) {
-      document.getElementById("stockBtn").style.display = "flex";
-      document.getElementById("stockBtn").addEventListener("click", () => {
-        const panel = document.getElementById("stockPanel");
-        panel.style.display = panel.style.display === "none" ? "block" : "none";
-      });
-    }
-
-    function renderStockPanel() {
-      if (!cfg) return;
-      const list = document.getElementById("stockList");
-      list.innerHTML = cfg.products.map(p => {
-        const st = stockData.find(s => s.key === p.key) || { tracked: false, qty: null, min_qty: 0 };
-        const statusText = st.tracked ? `остаток ${st.qty} · порог ${st.min_qty}` : "не отслеживается — без ограничений";
-        return `
-          <div class="list-row">
-            <div class="list-name">${p.name}</div>
-            <div class="list-pay">${statusText}</div>
-            <div class="icon-btn" onclick="CW_setStock('${p.key}', ${st.tracked ? st.qty : 0}, ${st.tracked ? st.min_qty : 0})" title="Задать остаток"><i class="ti ti-edit"></i></div>
-            ${st.tracked ? `<div class="icon-btn danger" onclick="CW_clearStock('${p.key}')" title="Снять с учёта"><i class="ti ti-x"></i></div>` : ""}
-          </div>
-        `;
-      }).join("");
-    }
-
-    window.CW_setStock = async (key, curQty, curMinQty) => {
-      const qtyStr = window.prompt("Текущий остаток (шт.):", String(curQty));
-      if (qtyStr === null) return;
-      const qty = parseInt(qtyStr, 10);
-      if (isNaN(qty) || qty < 0) { showErr("Остаток должен быть неотрицательным числом"); return; }
-      const minStr = window.prompt("Минимальный остаток для уведомления (шт.):", String(curMinQty));
-      if (minStr === null) return;
-      const minQty = parseInt(minStr, 10);
-      if (isNaN(minQty) || minQty < 0) { showErr("Порог должен быть неотрицательным числом"); return; }
-      try {
-        await CW.authFetch(`/api/stock/${encodeURIComponent(branch)}/${encodeURIComponent(key)}`, {
-          method: "PATCH", body: JSON.stringify({ qty, min_qty: minQty }),
-        });
-        await loadStock();
-      } catch (e) { showErr(e.message); }
-    };
-
-    window.CW_clearStock = async (key) => {
-      if (!window.confirm("Снять товар с учёта склада? Остаток снова станет неограниченным.")) return;
-      try {
-        await CW.authFetch(`/api/stock/${encodeURIComponent(branch)}/${encodeURIComponent(key)}`, { method: "DELETE" });
-        await loadStock();
-      } catch (e) { showErr(e.message); }
-    };
 
     const incSplitRow = document.getElementById("incSplitRow");
     const incSplitHint = document.getElementById("incSplitHint");
@@ -391,7 +299,6 @@ if (CW.requireAuth()) {
     try {
       await CW.authFetch("/api/product", { method: "POST", body: JSON.stringify({ branch, key, payment }) });
       await load();
-      await loadStock();
     } catch (e) { showErr(e.message); }
   });
 
@@ -436,7 +343,6 @@ if (CW.requireAuth()) {
     try {
       await CW.authFetch(`/api/product/${encodeURIComponent(branch)}/${num}`, { method: "DELETE" });
       await load();
-      await loadStock();
     } catch (e) { showErr(e.message); }
   };
   window.CW_delExpense = async (idx) => {

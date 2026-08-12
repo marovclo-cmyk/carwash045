@@ -663,7 +663,6 @@
       <div class="modal-err" id="modalErr"></div>
       <div class="modal-actions">
         <button class="btn danger" id="deleteBtn" style="display:none">Удалить</button>
-        <button class="btn secondary" id="payOnlineBtn" style="display:none"><i class="ti ti-credit-card"></i> Оплатить онлайн</button>
         <button class="btn secondary" id="cancelBtn">Отмена</button>
         <button class="btn accent" id="saveBtn">Сохранить</button>
       </div>
@@ -1552,7 +1551,6 @@ if (CW.requireAuth()) {
   let clientSearchTimer = null;
   let manualPriceEdited = false;
   let customServices = []; // [{name, price, percent}] — тот же формат, что в cars.html
-  let editingBookingSnapshot = null; // GAP-PAY1 (хвост): текущая запись при открытии на редактирование — источник phone/client_name/price/prepayment для payOnlineBtn
 
   function buildBoxSelect(selected) {
     const sel = document.getElementById("fBox");
@@ -1767,19 +1765,21 @@ if (CW.requireAuth()) {
     return out;
   }
 
-  // Постоянная скидка клиента (GAP-M12, единая модель скидок) — при выборе
-  // клиента из поиска только показываем подсказку, «Итого» не трогаем.
-  // Когда запись конвертируется в машину в кассе (см. _compose_and_add_car
-  // в webapp/server.py), скидка применится сама отдельной строкой
-  // «Лояльность» — цена машины останется полной, зарплата мойщика и база
-  // % администратора не уменьшатся, как и у разовой ручной скидки.
+  // Постоянная скидка клиента (этап 2, discount_percent) — при выборе
+  // клиента из поиска автоматически предлагаем скидку на текущий расчёт
+  // и переключаем поле «Итого» в ручной режим (как «Сбросить» в cars.html —
+  // администратор в любой момент может поправить сумму или вернуть расчётную).
   function applyClientDiscountSuggestion(client) {
     const hint = document.getElementById("discountHint");
     if (!client || !client.discount_percent) { hint.style.display = "none"; return; }
     const base = calcPrice();
-    const discountAmount = Math.round(base * client.discount_percent / 100);
-    hint.textContent = `Постоянная скидка клиента ${client.discount_percent}% (−${CW.money(discountAmount)}) применится автоматически отдельной строкой «Лояльность» после сохранения. Сумму менять не нужно.`;
+    const discounted = Math.max(0, Math.round(base * (1 - client.discount_percent / 100)));
+    fTotalInput.value = discounted;
+    manualPriceEdited = true;
+    document.getElementById("totalReset").classList.add("show");
+    hint.textContent = `Применена постоянная скидка клиента ${client.discount_percent}% (${CW.money(base)} → ${CW.money(discounted)}). Сумму можно поправить вручную, «Сбросить» вернёт расчётную цену.`;
     hint.style.display = "block";
+    updateSplitHint();
   }
 
   function resetModalPriceState() {
@@ -1803,12 +1803,10 @@ if (CW.requireAuth()) {
   function openCreateModal(box, startMinutes) {
     if (!boxes.length) { showErr("Сначала добавьте сотрудников на странице «Сотрудники» — иначе нет боксов."); return; }
     editingId = null;
-    editingBookingSnapshot = null;
     selectedClient = null;
     document.getElementById("bookingIdTag").style.display = "none";
     document.getElementById("modalTitle").textContent = "Новая запись";
     document.getElementById("deleteBtn").style.display = "none";
-    document.getElementById("payOnlineBtn").style.display = "none"; // предоплата доступна только у уже созданной записи
     document.getElementById("modalErr").style.display = "none";
     fPhoneInput.value = "";
     document.getElementById("fClientName").value = "";
@@ -1850,16 +1848,9 @@ if (CW.requireAuth()) {
 
   function openEditModal(bk) {
     editingId = bk.id;
-    editingBookingSnapshot = bk;
     selectedClient = null;
     document.getElementById("bookingIdTag").style.display = "block";
-    const prepaidNote = bk.prepayment?.status === "paid" ? ` · Предоплата ${bk.prepayment.amount}₽ ✅` : "";
-    document.getElementById("bookingIdTag").textContent = `Запись №${bk.id}${prepaidNote}`;
-    // GAP-PAY1 (хвост): та же граница доступности, что и в Mini App
-    // (bkOpenSheet, index.html) — не предлагаем предоплату для уже
-    // закрытых записей и для уже оплаченных.
-    const payEligible = !["done", "no_show"].includes(bk.status) && bk.prepayment?.status !== "paid";
-    document.getElementById("payOnlineBtn").style.display = payEligible ? "inline-flex" : "none";
+    document.getElementById("bookingIdTag").textContent = `Запись №${bk.id}`;
     document.getElementById("modalTitle").textContent = "Запись";
     document.getElementById("deleteBtn").style.display = "inline-flex";
     document.getElementById("modalErr").style.display = "none";
@@ -2276,58 +2267,6 @@ if (CW.requireAuth()) {
       const modalErr = document.getElementById("modalErr");
       modalErr.textContent = e.message;
       modalErr.style.display = "block";
-    }
-  });
-
-  // GAP-PAY1 (хвост, сайт booking.html) — предоплата записи онлайн.
-  // Тот же паттерн, что уже работает в кассе (CW_payOnline, cars.html):
-  // сумма через prompt, ссылка открывается в новой вкладке, в мок-режиме
-  // (cfg.payment_mock) дополнительно предлагается тестовое подтверждение.
-  document.getElementById("payOnlineBtn").addEventListener("click", async () => {
-    if (!editingId || !editingBookingSnapshot) return;
-    const bk = editingBookingSnapshot;
-    const amountStr = prompt("Сумма предоплаты (₽):", String(bk.price || ""));
-    if (amountStr === null) return;
-    const amount = parseInt(amountStr, 10);
-    const modalErr = document.getElementById("modalErr");
-    if (!amount || amount <= 0) {
-      modalErr.textContent = "Некорректная сумма";
-      modalErr.style.display = "block";
-      return;
-    }
-    let payment, mock;
-    try {
-      mock = cfg.payment_mock;
-      const r = await CW.authFetch("/api/payments", {
-        method: "POST",
-        body: JSON.stringify({
-          branch, purpose: "advance", amount, booking_id: editingId,
-          phone: bk.phone || "", client_name: bk.client_name || bk.car || "",
-          description: `Предоплата записи ${bk.client_name || bk.car || ""}`.trim(),
-        }),
-      });
-      payment = r.payment;
-    } catch (e) {
-      modalErr.textContent = e.message;
-      modalErr.style.display = "block";
-      return;
-    }
-    window.open(payment.confirmation_url, "_blank");
-    const msg = mock
-      ? "Ссылка на оплату открыта в новой вкладке.\nOK — тестовое подтверждение оплаты (мок-режим).\nОтмена — просто закрыть."
-      : "Ссылка на оплату открыта в новой вкладке. Отправьте её клиенту — статус обновится автоматически после оплаты.";
-    if (mock && confirm(msg)) {
-      try {
-        await CW.authFetch(`/api/payments/${payment.id}/mock-confirm`, { method: "POST" });
-        bkToast("Предоплата подтверждена (тест)");
-        closeModal();
-        await loadBookings();
-      } catch (e) {
-        modalErr.textContent = e.message;
-        modalErr.style.display = "block";
-      }
-    } else if (!mock) {
-      alert(msg);
     }
   });
 
