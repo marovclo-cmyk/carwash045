@@ -10,16 +10,16 @@ Backend Mini App для CarWash-бота.
 Для Telegram Mini App нужен публичный HTTPS-адрес (ngrok / Render / Railway),
 см. README в этой папке.
 """
-import sys, os, hashlib, hmac, json, tempfile, asyncio
+import sys, os, hashlib, hmac, json, tempfile, asyncio, ipaddress, logging
 from datetime import datetime, timedelta
 from typing import Optional, Dict, List
 from urllib.parse import parse_qsl
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from fastapi import FastAPI, HTTPException, Header
+from fastapi import FastAPI, HTTPException, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -37,9 +37,16 @@ from sessions import (
     set_worker_schedule, clear_worker_schedule, get_worker_schedule,
     get_schedule_status, is_working_on,
     normalize_phone, find_client, search_clients, upsert_client_visit, load_clients, client_summary, update_client,
-    set_client_discount, clear_client_discount,
-    get_branch_boxes, get_bookings, get_booking, create_booking, update_booking,
+    set_client_discount, clear_client_discount, apply_client_loyalty_discount,
+    get_branch_boxes, get_bookings, load_bookings, get_booking, create_booking, update_booking,
     set_booking_status, delete_booking, find_conflicting_booking,
+    get_public_available_slots, _pick_free_box_for_slot, find_bookings_by_phone,
+    PUBLIC_DEFAULT_DURATION_MIN, _time_to_minutes,
+    add_advance, delete_advance,
+    add_branch_box, rename_branch_box, remove_branch_box,
+    get_branch_stock, set_branch_stock, clear_branch_stock,
+    try_decrement_branch_stock, increment_branch_stock,
+    create_payment, get_payment, apply_payment_success, mark_payment_canceled,
 )
 from calculator import calculate_summary
 from pdf_generator import generate_pdf
@@ -47,6 +54,7 @@ from xlsx_generator import generate_xlsx
 from history_log import log_action, get_history
 from presets import list_presets, add_preset, delete_preset
 from notify import notify_user
+from payment_provider import is_mock_active, get_provider, PaymentProviderError
 from webapp.auth_web import (
     LoginIn, login as site_login, logout as site_logout, get_session as get_site_session,
 )
@@ -110,7 +118,7 @@ def find_user_id_by_name(name: str) -> int:
 
 
 def is_whitelisted(uid: int) -> bool:
-    """Владелец или пользователь из белого списка (carwash_users.json).
+    """Владелец или пользователь из белого списка (таблица users в БД, см. GAP-DB1).
     Как только владелец удаляет человека из белого списка (/removeuser или
     Mini App → Пользователи), эта функция сразу перестаёт его пускать —
     доступ к Mini App отзывается немедленно, а не только к чат-боту."""
@@ -162,7 +170,7 @@ def require_owner(x_init_data: str = Header(default=""), x_site_token: str = Hea
     return uid
 
 
-# ── Веб-вход по общему паролю (имя + должность) ─────────────────────────────
+# ── Веб-вход по общему паролю (имя, роль определяется системой — GAP-S1) ───
 @app.post("/api/site/login")
 def api_site_login(body: LoginIn):
     return site_login(body)
@@ -218,6 +226,12 @@ class IncomeIn(BaseModel):
     payment_split: Optional[Dict[str, int]] = None
 
 
+class AdvanceIn(BaseModel):
+    branch: str
+    name: str
+    amount: int
+
+
 class ProductIn(BaseModel):
     branch: str
     key: str
@@ -228,6 +242,20 @@ class WorkerIn(BaseModel):
     branch: str
     name: str
     x_init_data: str = ""
+
+
+class BoxIn(BaseModel):
+    branch: str
+    name: str = ""
+
+
+class BoxRenameIn(BaseModel):
+    name: str
+
+
+class StockSetIn(BaseModel):
+    qty: Optional[int] = None
+    min_qty: Optional[int] = None
 
 
 class ScheduleIn(BaseModel):
@@ -353,6 +381,109 @@ class BookingStatusIn(BaseModel):
     status: str
 
 
+# ── Онлайн-оплата (GAP-PAY1) ────────────────────────────────────────────────
+class PaymentCreateIn(BaseModel):
+    branch: str
+    purpose: str              # "advance" (предоплата записи) | "car" (доплата по машине в кассе)
+    amount: int
+    description: str = ""
+    booking_id: Optional[int] = None
+    car_num: Optional[int] = None
+    phone: str = ""
+    client_name: str = ""
+
+
+# ── Публичная витрина записи (GAP-CLIENT-PORTAL, этап 1) ────────────────────
+# Без авторизации (require_access/require_branch_admin здесь НЕ вызываются)
+# и БЕЗ верификации номера телефона — решение владельца 11.08.2026. Телефон,
+# введённый клиентом, принимается как есть и служит единственным ключом
+# доступа к его записи (используется вместо пароля в GET/PATCH/DELETE ниже).
+# Показывает упрощённую витрину — список свободных времён, а не сетку боксов
+# персонала (см. get_public_available_slots в sessions.py).
+class PublicBookingCreateIn(BaseModel):
+    branch: str
+    date: str          # ДД.ММ.ГГГГ
+    start_time: str    # ЧЧ:ММ, должен быть одним из /api/public/slots
+    body_type: str = "sedan"
+    service_keys: list[str] = []
+    phone: str
+    client_name: str = ""
+    comment: str = ""
+
+
+class PublicBookingRescheduleIn(BaseModel):
+    phone: str
+    date: str
+    start_time: str
+
+
+@app.get("/api/public/slots")
+def api_public_slots(branch: str, date: str):
+    if branch not in BRANCHES:
+        raise HTTPException(404, "Филиал не найден")
+    return {"slots": get_public_available_slots(branch, date), "duration_min": PUBLIC_DEFAULT_DURATION_MIN}
+
+
+@app.post("/api/public/booking")
+def api_public_create_booking(body: PublicBookingCreateIn):
+    if body.branch not in BRANCHES:
+        raise HTTPException(404, "Филиал не найден")
+    phone = normalize_phone(body.phone)
+    if len(phone) != 11:
+        raise HTTPException(400, "Некорректный номер телефона")
+    if not body.client_name.strip():
+        raise HTTPException(400, "Укажите имя")
+    end_min = _time_to_minutes(body.start_time) + PUBLIC_DEFAULT_DURATION_MIN
+    end_time = f"{end_min // 60:02d}:{end_min % 60:02d}"
+    box = _pick_free_box_for_slot(body.branch, body.date, body.start_time, end_time)
+    if box is None:
+        raise HTTPException(409, "Это время уже заняли, выберите другое")
+    price = sum(get_service_price(k, body.body_type) for k in body.service_keys if k in SERVICES)
+    booking = create_booking(
+        branch=body.branch, date=body.date, box=box,
+        start_time=body.start_time, end_time=end_time,
+        body_type=body.body_type, service_keys=body.service_keys,
+        price=price, price_calc=price, phone=phone, client_name=body.client_name.strip(),
+        comment=body.comment, status="waiting",
+    )
+    return {"ok": True, "booking": booking}
+
+
+@app.get("/api/public/bookings")
+def api_public_list_bookings(phone: str):
+    return {"bookings": find_bookings_by_phone(phone)}
+
+
+@app.patch("/api/public/booking/{booking_id}")
+def api_public_reschedule_booking(booking_id: int, body: PublicBookingRescheduleIn):
+    existing = get_booking(booking_id)
+    if not existing or existing.get("phone") != normalize_phone(body.phone):
+        raise HTTPException(404, "Запись не найдена")
+    if existing.get("status") not in ("waiting", "confirmed"):
+        raise HTTPException(409, "Эту запись уже нельзя перенести")
+    duration = _time_to_minutes(existing.get("end_time", "")) - _time_to_minutes(existing.get("start_time", ""))
+    if duration <= 0:
+        duration = PUBLIC_DEFAULT_DURATION_MIN
+    end_min = _time_to_minutes(body.start_time) + duration
+    end_time = f"{end_min // 60:02d}:{end_min % 60:02d}"
+    box = _pick_free_box_for_slot(existing["branch"], body.date, body.start_time, end_time)
+    if box is None:
+        raise HTTPException(409, "Это время уже заняли, выберите другое")
+    booking = update_booking(booking_id, date=body.date, box=box, start_time=body.start_time, end_time=end_time)
+    return {"ok": True, "booking": booking}
+
+
+@app.delete("/api/public/booking/{booking_id}")
+def api_public_cancel_booking(booking_id: int, phone: str):
+    existing = get_booking(booking_id)
+    if not existing or existing.get("phone") != normalize_phone(phone):
+        raise HTTPException(404, "Запись не найдена")
+    if existing.get("status") not in ("waiting", "confirmed"):
+        raise HTTPException(409, "Эту запись уже нельзя отменить")
+    set_booking_status(booking_id, "no_show")
+    return {"ok": True}
+
+
 # ── Справочники (без авторизации — статичные данные) ───────────────────────
 @app.get("/api/config")
 def api_config():
@@ -367,6 +498,7 @@ def api_config():
         ],
         "products": [{"key": k, "name": v["name"], "price": v["price"]} for k, v in PRODUCTS.items()],
         "payment_types": PAYMENT_TYPES,
+        "payment_mock": is_mock_active(),  # GAP-PAY1: боевых ключей ЮKassa ещё нет — фронтенд показывает тестовую кнопку подтверждения
     }
 
 
@@ -663,6 +795,11 @@ def _compose_and_add_car(session: dict, branch: str, employee: str, body_type: s
         "client_name": client_name,
     }
     session["cars"].append(car)
+    if phone:
+        # GAP-M12: единая модель скидок — постоянная скидка клиента (%)
+        # теперь применяется автоматически той же строкой «Лояльность»,
+        # что и разовая ручная скидка, вместо молчаливого урезания total_price.
+        apply_client_loyalty_discount(session, phone, num, total_price)
     save_sessions()
     client = None
     if phone:
@@ -701,16 +838,47 @@ def _maybe_convert_booking_to_car(booking: dict, x_init_data: str, x_site_token:
                     booking.get("price_override"), booking.get("payment") or "нал", booking.get("payment_split"),
                     booking.get("comment", ""), booking.get("phone", ""), booking.get("client_name", ""),
                     booking.get("car", ""))
+                # GAP-PAY1: если по записи была подтверждена онлайн-предоплата
+                # (booking["prepayment"]["status"] == "paid") и явную раздельную
+                # оплату администратор не задавал — предоплаченная часть уходит
+                # в payment_split методом "онлайн", остаток — обычным способом
+                # оплаты записи (или "нал" по умолчанию).
+                prepay = booking.get("prepayment")
+                if prepay and prepay.get("status") == "paid" and not car.get("payment_split"):
+                    prepaid = min(int(prepay.get("amount", 0)), car["price"])
+                    if prepaid > 0:
+                        remainder = car["price"] - prepaid
+                        split = {"онлайн": prepaid}
+                        if remainder > 0:
+                            split[car.get("payment") or "нал"] = remainder
+                        car["payment_split"] = split
+                        save_sessions()
+                skipped_products = []
                 for k in booking.get("product_keys", []):
                     product = PRODUCTS.get(k)
                     if not product:
+                        continue
+                    # GAP-P1: авто-конвертация записи в машину не должна
+                    # срываться из-за нехватки товара на складе — в этом
+                    # сценарии недостающий товар просто не добавляется в
+                    # кассу (и не списывается со склада), запись/машина
+                    # создаются как обычно, а отсутствие товара отмечается
+                    # в car_note для персонала.
+                    ok, new_qty, crossed = try_decrement_branch_stock(booking["branch"], k)
+                    if not ok:
+                        skipped_products.append(product["name"])
                         continue
                     session.setdefault("products", []).append({
                         "key": k, "name": product["name"], "price": product["price"],
                         "payment": booking.get("payment") or "нал", "num": len(session["products"]) + 1,
                     })
+                    if crossed:
+                        stock = get_branch_stock(booking["branch"]).get(k, {})
+                        _notify_low_stock(booking["branch"], product["name"], new_qty, int(stock.get("min_qty", 0)))
                 save_sessions()
                 car_created = car["num"]
+                if skipped_products:
+                    car_note = "Нет в наличии, не списано: " + ", ".join(skipped_products)
                 log_action(booking["branch"], "add", current_user_id(x_init_data), current_user_name(x_init_data),
                            f"{car['car'] or 'машина'} · {car['service']} · {car['price']}₽ · из записи №{booking['id']}")
             except HTTPException as e:
@@ -1019,16 +1187,45 @@ def _booking_breakdown(body_type: str, service_keys: list, custom_services: list
 
 @app.get("/api/bookings")
 def api_list_bookings(branch: str, date: str, x_init_data: str = Header(default=""), x_site_token: str = Header(default="")):
-    """Записи филиала на дату (ДД.ММ.ГГГГ) + список боксов (= сотрудники
-    филиала по порядку, см. get_branch_boxes). У каждого бокса отдаётся
-    on_duty — работает ли сотрудник именно в эту дату по графику, чтобы
-    страница могла по умолчанию показывать только тех, кто на смене."""
+    """Записи филиала на дату (ДД.ММ.ГГГГ) + список боксов филиала
+    (независимая сущность, GAP-BOX1 — см. get_branch_boxes). Сотрудник на
+    запись назначается отдельным полем (employee), не выводится из бокса."""
     require_access(x_init_data, x_site_token)
-    try:
-        on_date = datetime.strptime(date, "%d.%m.%Y").date()
-    except ValueError:
-        on_date = None
-    return {"bookings": get_bookings(branch, date), "boxes": get_branch_boxes(branch, on_date)}
+    return {"bookings": get_bookings(branch, date), "boxes": get_branch_boxes(branch)}
+
+
+@app.get("/api/boxes")
+def api_list_boxes(branch: str, x_init_data: str = Header(default=""), x_site_token: str = Header(default="")):
+    require_access(x_init_data, x_site_token)
+    return {"boxes": get_branch_boxes(branch)}
+
+
+@app.post("/api/boxes")
+def api_add_box(body: BoxIn, x_init_data: str = Header(default=""), x_site_token: str = Header(default="")):
+    require_branch_admin(body.branch, x_init_data, x_site_token)
+    box = add_branch_box(body.branch, body.name)
+    return {"ok": True, "box": box, "boxes": get_branch_boxes(body.branch)}
+
+
+@app.patch("/api/boxes/{branch}/{box_id}")
+def api_rename_box(branch: str, box_id: int, body: BoxRenameIn,
+                    x_init_data: str = Header(default=""), x_site_token: str = Header(default="")):
+    require_branch_admin(branch, x_init_data, x_site_token)
+    if not rename_branch_box(branch, box_id, body.name):
+        raise HTTPException(404, "Бокс не найден")
+    return {"ok": True, "boxes": get_branch_boxes(branch)}
+
+
+@app.delete("/api/boxes/{branch}/{box_id}")
+def api_remove_box(branch: str, box_id: int, x_init_data: str = Header(default=""), x_site_token: str = Header(default="")):
+    require_branch_admin(branch, x_init_data, x_site_token)
+    for date, items in load_bookings().get(branch, {}).items():
+        for b in items:
+            if b.get("box") == box_id and b.get("status") not in ("done", "no_show"):
+                raise HTTPException(400, "В этом боксе есть активные записи — сначала перенесите или отмените их")
+    if not remove_branch_box(branch, box_id):
+        raise HTTPException(404, "Бокс не найден")
+    return {"ok": True, "boxes": get_branch_boxes(branch)}
 
 
 @app.post("/api/bookings")
@@ -1188,6 +1385,215 @@ def api_delete_booking(booking_id: int, x_init_data: str = Header(default=""), x
     return {"ok": True}
 
 
+# ── Онлайн-оплата (GAP-PAY1) ────────────────────────────────────────────────
+# Провайдер выбирается автоматически (см. payment_provider.py) — мок, пока
+# владелец не выдал боевые ключи ЮKassa, дальше без изменений в этих
+# эндпоинтах. Два назначения: "advance" (предоплата по записи, см.
+# sessions.apply_payment_success/_maybe_convert_booking_to_car) и "car"
+# (доплата по уже существующей машине в кассе текущей смены).
+
+@app.post("/api/payments")
+def api_create_payment(body: PaymentCreateIn, x_init_data: str = Header(default=""), x_site_token: str = Header(default="")):
+    require_access(x_init_data, x_site_token)
+    if body.purpose not in ("advance", "car"):
+        raise HTTPException(400, "Недопустимое назначение платежа. Разрешены: advance, car")
+    if body.amount <= 0:
+        raise HTTPException(400, "Сумма должна быть больше нуля")
+    if body.purpose == "advance":
+        if not body.booking_id:
+            raise HTTPException(400, "Для предоплаты нужен booking_id")
+        booking = get_booking(body.booking_id)
+        if not booking:
+            raise HTTPException(404, "Запись не найдена")
+    else:
+        if not body.car_num:
+            raise HTTPException(400, "Для доплаты по машине нужен car_num")
+        session = get_session(body.branch)
+        if not any(c["num"] == body.car_num for c in session.get("cars", [])):
+            raise HTTPException(404, "Машина не найдена в кассе этого филиала")
+    try:
+        record = create_payment(
+            branch=body.branch, purpose=body.purpose, amount=body.amount,
+            description=body.description, booking_id=body.booking_id, car_num=body.car_num,
+            phone=body.phone, client_name=body.client_name,
+        )
+    except PaymentProviderError as e:
+        raise HTTPException(502, str(e))
+    log_action(body.branch, "payment_create", current_user_id(x_init_data), current_user_name(x_init_data),
+               f"{body.purpose} · {body.amount}₽ · {record['id']}")
+    return {"ok": True, "payment": record}
+
+
+@app.get("/api/payments/{payment_id}")
+def api_get_payment(payment_id: str, x_init_data: str = Header(default=""), x_site_token: str = Header(default="")):
+    require_access(x_init_data, x_site_token)
+    record = get_payment(payment_id)
+    if not record:
+        raise HTTPException(404, "Платёж не найден")
+    return record
+
+
+@app.post("/api/payments/{payment_id}/mock-confirm")
+def api_mock_confirm_payment(payment_id: str):
+    """Имитация подтверждения оплаты клиентом — работает ТОЛЬКО пока активен
+    мок-провайдер (нет боевых ключей ЮKassa). Специально БЕЗ require_access:
+    в реальной интеграции этот шаг делает сам клиент на странице ЮKassa, не
+    сотрудник, поэтому здесь он тоже должен быть доступен без авторизации
+    персонала — безопасность обеспечивается тем, что эндпоинт существует
+    только в mock-режиме (is_mock_active())."""
+    if not is_mock_active():
+        raise HTTPException(403, "Мок-подтверждение недоступно — подключён боевой провайдер оплаты")
+    record = get_payment(payment_id)
+    if not record:
+        raise HTTPException(404, "Платёж не найден")
+    if record["status"] == "canceled":
+        raise HTTPException(409, "Платёж отменён")
+    updated = apply_payment_success(payment_id)
+    return {"ok": True, "payment": updated}
+
+
+# Официальный список IP ЮKassa для входящих вебхуков (проверено 11.08.2026,
+# https://yookassa.ru/developers/using-api/webhooks#notifications-authenticity-verify
+# → «Проверка IP-адреса»). Может устареть — если ЮKassa расширит список,
+# владелец задаёт актуальный через YOOKASSA_WEBHOOK_IPS (через запятую,
+# CIDR или одиночные адреса), это ПОЛНОСТЬЮ заменяет значение по умолчанию.
+_YOOKASSA_WEBHOOK_CIDRS_DEFAULT = [
+    "185.71.76.0/27", "185.71.77.0/27", "77.75.153.0/25",
+    "77.75.156.11/32", "77.75.156.35/32", "77.75.154.128/25",
+    "2a02:5180::/32",
+]
+_webhook_ip_env = os.getenv("YOOKASSA_WEBHOOK_IPS", "").strip()
+YOOKASSA_WEBHOOK_NETWORKS = [
+    ipaddress.ip_network(c.strip(), strict=False)
+    for c in (_webhook_ip_env.split(",") if _webhook_ip_env else _YOOKASSA_WEBHOOK_CIDRS_DEFAULT)
+    if c.strip()
+]
+
+payments_log = logging.getLogger("carwash.payments_webhook")
+
+
+def _webhook_client_ip(request: Request) -> str:
+    """IP отправителя вебхука. За обратным прокси (Railway и т.п.) реальный
+    IP приходит в X-Forwarded-For — берём первый (ближайший к клиенту)."""
+    xff = request.headers.get("x-forwarded-for", "")
+    if xff:
+        return xff.split(",")[0].strip()
+    return request.client.host if request.client else ""
+
+
+def _webhook_ip_allowed(ip: str) -> bool:
+    try:
+        addr = ipaddress.ip_address(ip)
+    except ValueError:
+        return False
+    return any(addr in net for net in YOOKASSA_WEBHOOK_NETWORKS)
+
+
+@app.post("/api/payments/webhook/yookassa")
+async def api_yookassa_webhook(request: Request):
+    """Приёмник вебхука ЮKassa (payment.succeeded/payment.canceled) для
+    боевого режима. Пока владелец не подключил боевые ключи, этот эндпоинт
+    не используется (ЮKassa настраивается только после выдачи ключей), но
+    реализован заранее по документированному формату уведомлений ЮKassa,
+    чтобы включение не потребовало отдельного этапа.
+
+    Проверка подлинности — двумя способами одновременно, как рекомендует
+    официальная документация ЮKassa (там же указано, что вебхуки НЕ
+    подписываются HMAC — доступны только IP-проверка и проверка статуса):
+    1) IP отправителя должен входить в официальный список ЮKassa
+       (YOOKASSA_WEBHOOK_NETWORKS) — иначе 403, тело вебхука не обрабатывается;
+    2) даже с верным IP тело вебхука НЕ считается источником истины — статус
+       платежа переспрашивается напрямую у ЮKassa через
+       payment_provider.get_provider().get_payment(payment_id) (тот же
+       вызов, что использует боевой YooKassaProvider для сверки), и именно
+       этот ответ решает, применять ли payment.succeeded/canceled. Так
+       подделать уведомление нельзя, даже если бы удалось подменить IP —
+       нужен ещё и валидный ответ от самой ЮKassa на GET-запрос с секретным
+       ключом магазина.
+    В мок-режиме (нет боевых ключей) обе проверки не имеют смысла — сам
+    вебхук в проде не используется, тестовый цикл идёт через
+    /api/payments/{id}/mock-confirm; статус в этом случае берётся из тела
+    запроса, чтобы не потребовалось отдельного мок-эндпоинта."""
+    if not is_mock_active():
+        client_ip = _webhook_client_ip(request)
+        if not _webhook_ip_allowed(client_ip):
+            payments_log.warning("Webhook ЮKassa отклонён — IP не из официального списка: %s", client_ip)
+            raise HTTPException(403, "IP отправителя не входит в список ЮKassa")
+
+    try:
+        payload = await request.json()
+    except Exception:
+        raise HTTPException(400, "Некорректное тело вебхука")
+    event = payload.get("event")
+    obj = payload.get("object") or {}
+    payment_id = obj.get("id")
+    if not payment_id:
+        raise HTTPException(400, "Нет id платежа в вебхуке")
+
+    if is_mock_active():
+        real_status = obj.get("status")
+    else:
+        try:
+            authoritative = get_provider().get_payment(payment_id)
+        except PaymentProviderError as e:
+            payments_log.error("Webhook ЮKassa: не удалось сверить статус %s: %s", payment_id, e)
+            raise HTTPException(502, "Не удалось сверить статус платежа с ЮKassa")
+        real_status = authoritative.get("status")
+
+    if event == "payment.succeeded" and real_status == "succeeded":
+        apply_payment_success(payment_id)
+    elif event == "payment.canceled" or real_status == "canceled":
+        mark_payment_canceled(payment_id)
+    return {"ok": True}
+
+
+@app.get("/pay/{payment_id}")
+def api_mock_pay_page(payment_id: str):
+    """Мок-страница оплаты — назначение confirmation_url в mock-режиме (см.
+    payment_provider.MockYooKassaProvider). В боевом режиме этот маршрут не
+    используется — confirmation_url ведёт на домен ЮKassa напрямую."""
+    record = get_payment(payment_id)
+    if not record:
+        raise HTTPException(404, "Платёж не найден")
+    status = record["status"]
+    paid = status == "succeeded"
+    return HTMLResponse(f"""<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Оплата CarWash (тест)</title>
+<style>
+body{{font-family:-apple-system,Segoe UI,Roboto,sans-serif;background:#F5F5F3;margin:0;padding:24px;
+     display:flex;align-items:center;justify-content:center;min-height:100vh}}
+.card{{background:#fff;border-radius:16px;padding:28px;max-width:360px;width:100%;box-shadow:0 2px 12px rgba(0,0,0,.06)}}
+.badge{{display:inline-block;font-size:12px;font-weight:600;color:#B25E00;background:#FFF1DE;
+       border-radius:6px;padding:4px 8px;margin-bottom:12px}}
+h1{{font-size:20px;margin:0 0 4px}}
+.amount{{font-size:32px;font-weight:700;color:#FF5000;margin:16px 0}}
+button{{width:100%;padding:14px;border:none;border-radius:10px;background:#FF5000;color:#fff;
+       font-size:16px;font-weight:600;cursor:pointer}}
+button:disabled{{background:#ccc}}
+.ok{{color:#1B8A57;font-weight:600;margin-top:16px}}
+</style></head><body>
+<div class="card">
+  <div class="badge">ТЕСТОВЫЙ РЕЖИМ — не настоящий платёж</div>
+  <h1>Оплата CarWash</h1>
+  <div class="amount">{record['amount']}₽</div>
+  <div id="state">
+    {'<div class="ok">✅ Оплата подтверждена</div>' if paid else
+     '<button id="btn" onclick="pay()">Оплатить (тест)</button>'}
+  </div>
+</div>
+<script>
+async function pay(){{
+  const btn=document.getElementById("btn"); if(btn) btn.disabled=true;
+  try{{
+    await fetch("/api/payments/{payment_id}/mock-confirm",{{method:"POST"}});
+    document.getElementById("state").innerHTML='<div class="ok">✅ Оплата подтверждена</div>';
+  }}catch(e){{ if(btn) btn.disabled=false; }}
+}}
+</script>
+</body></html>""")
+
+
 @app.post("/api/loyalty")
 def api_add_loyalty(body: LoyaltyIn, x_init_data: str = Header(default=""), x_site_token: str = Header(default="")):
     require_access(x_init_data, x_site_token)
@@ -1266,6 +1672,34 @@ def api_delete_income(branch: str, idx: int, x_init_data: str = Header(default="
     return {"ok": True, "summary": calculate_summary(session)}
 
 
+@app.post("/api/advance")
+def api_add_advance(body: AdvanceIn, x_init_data: str = Header(default=""), x_site_token: str = Header(default="")):
+    """Выдача аванса сотруднику. Та же логика, что у бот-команды /avans:
+    аванс не трогает кассу дня, копится отдельно и вычитается из
+    недельного/месячного заработка сотрудника (см. employee_stats.py).
+    Доступ — только админ/владелец филиала (как в боте)."""
+    require_branch_admin(body.branch, x_init_data, x_site_token)
+    if body.amount <= 0:
+        raise HTTPException(400, "Сумма аванса должна быть больше нуля")
+    if not body.name.strip():
+        raise HTTPException(400, "Не указано имя сотрудника")
+    entry = add_advance(body.branch, body.name, body.amount)
+    log_action(body.branch, "advance_add", current_user_id(x_init_data), current_user_name(x_init_data),
+               f"{body.name} · -{body.amount}₽")
+    return {"ok": True, "entry": entry}
+
+
+@app.delete("/api/advance/{branch}/{name}/{idx}")
+def api_delete_advance(branch: str, name: str, idx: int, x_init_data: str = Header(default=""), x_site_token: str = Header(default="")):
+    require_branch_admin(branch, x_init_data, x_site_token)
+    removed = delete_advance(branch, name, idx)
+    if not removed:
+        raise HTTPException(404, "Запись об авансе не найдена")
+    log_action(branch, "advance_delete", current_user_id(x_init_data), current_user_name(x_init_data),
+               f"{name} · запись аванса #{idx} удалена")
+    return {"ok": True}
+
+
 class FixedRateIn(BaseModel):
     branch: str
     worker: str
@@ -1340,15 +1774,32 @@ def api_clear_admin_fixed_rate(branch: str, x_init_data: str = Header(default=""
     return {"ok": True, "summary": calculate_summary(session)}
 
 
+def _notify_low_stock(branch: str, name: str, qty: int, min_qty: int) -> None:
+    """GAP-P1: однократное уведомление (в момент пересечения порога) админу
+    филиала и владельцу — fire-and-forget, как остальные notify_user() в
+    проекте (GAP-A1/GAP-BOX1 назначение прав и т.п.)."""
+    text = f"📦 Мало товара на складе «{branch}»: {name} — остаток {qty} (порог {min_qty})"
+    admin_id = get_branch_admin(branch)
+    if admin_id:
+        notify_user(admin_id, text)
+    if OWNER_ID and OWNER_ID != admin_id:
+        notify_user(OWNER_ID, text)
+
+
 @app.post("/api/product")
 def api_add_product(body: ProductIn, x_init_data: str = Header(default=""), x_site_token: str = Header(default="")):
     """Товар из каталога (см. config.PRODUCTS) — в отличие от 'Доходов', сумма
     товаров учитывается в базе для расчёта зарплаты администратора
-    (мойка + товары), см. calculator.py."""
+    (мойка + товары), см. calculator.py.
+    GAP-P1: если товар отслеживается на складе филиала и остатка не хватает —
+    продажа блокируется (см. решение по GAP-P1 в PROJECT_BRAIN)."""
     require_access(x_init_data, x_site_token)
     product = PRODUCTS.get(body.key)
     if not product:
         raise HTTPException(404, "Товар не найден в каталоге")
+    ok, new_qty, crossed = try_decrement_branch_stock(body.branch, body.key)
+    if not ok:
+        raise HTTPException(400, f"Нет в наличии: «{product['name']}» — остаток 0")
     session = get_session(body.branch)
     entry = {
         "key": body.key, "name": product["name"], "price": product["price"],
@@ -1357,7 +1808,10 @@ def api_add_product(body: ProductIn, x_init_data: str = Header(default=""), x_si
     session.setdefault("products", []).append(entry)
     save_sessions()
     log_action(body.branch, "product_add", current_user_id(x_init_data), current_user_name(x_init_data),
-               f"{entry['name']} · {entry['price']}₽")
+               f"{entry['name']} · {entry['price']}₽" + (f" · остаток {new_qty}" if new_qty is not None else ""))
+    if crossed:
+        stock = get_branch_stock(body.branch).get(body.key, {})
+        _notify_low_stock(body.branch, product["name"], new_qty, int(stock.get("min_qty", 0)))
     return {"ok": True, "summary": calculate_summary(session)}
 
 
@@ -1371,9 +1825,60 @@ def api_delete_product(branch: str, num: int, x_init_data: str = Header(default=
         raise HTTPException(404, "Товар не найден")
     products.remove(product)
     save_sessions()
+    if product.get("key"):
+        increment_branch_stock(branch, product["key"])  # GAP-P1: отмена продажи — остаток возвращается
     log_action(branch, "product_delete", current_user_id(x_init_data), current_user_name(x_init_data),
                f"{product['name']} · {product['price']}₽")
     return {"ok": True, "summary": calculate_summary(session)}
+
+
+# ── СКЛАД: ОСТАТКИ ТОВАРОВ (GAP-P1) ─────────────────────────────────────────
+@app.get("/api/stock/{branch}")
+def api_get_stock(branch: str, x_init_data: str = Header(default=""), x_site_token: str = Header(default="")):
+    """Полный каталог товаров филиала с остатком (qty=null — не отслеживается,
+    продажа без ограничений) и порогом уведомления."""
+    require_access(x_init_data, x_site_token)
+    stock = get_branch_stock(branch)
+    return {
+        "products": [
+            {
+                "key": key, "name": p["name"], "price": p["price"],
+                "tracked": key in stock,
+                "qty": stock.get(key, {}).get("qty"),
+                "min_qty": stock.get(key, {}).get("min_qty", 0),
+            }
+            for key, p in PRODUCTS.items()
+        ]
+    }
+
+
+@app.patch("/api/stock/{branch}/{key}")
+def api_set_stock(branch: str, key: str, body: StockSetIn,
+                   x_init_data: str = Header(default=""), x_site_token: str = Header(default="")):
+    """Калибровка/пополнение остатка и/или порога уведомления. Первый вызов
+    для товара включает отслеживание (см. set_branch_stock)."""
+    require_branch_admin(branch, x_init_data, x_site_token)
+    if key not in PRODUCTS:
+        raise HTTPException(404, "Товар не найден в каталоге")
+    if body.qty is None and body.min_qty is None:
+        raise HTTPException(400, "Укажите qty и/или min_qty")
+    entry = set_branch_stock(branch, key, qty=body.qty, min_qty=body.min_qty)
+    log_action(branch, "stock_set", current_user_id(x_init_data), current_user_name(x_init_data),
+               f"{PRODUCTS[key]['name']} · остаток {entry['qty']} · порог {entry['min_qty']}")
+    return {"ok": True, "key": key, **entry}
+
+
+@app.delete("/api/stock/{branch}/{key}")
+def api_clear_stock(branch: str, key: str,
+                     x_init_data: str = Header(default=""), x_site_token: str = Header(default="")):
+    """Убирает товар из отслеживания склада — остаток снова не ограничен."""
+    require_branch_admin(branch, x_init_data, x_site_token)
+    cleared = clear_branch_stock(branch, key)
+    if not cleared:
+        raise HTTPException(404, "Товар не отслеживается на складе")
+    log_action(branch, "stock_clear", current_user_id(x_init_data), current_user_name(x_init_data),
+               PRODUCTS.get(key, {}).get("name", key))
+    return {"ok": True}
 
 
 # ── Отчёты ───────────────────────────────────────────────────────────────
@@ -2074,5 +2579,16 @@ def index():
 def site_entry():
     return FileResponse(
         os.path.join(STATIC_DIR, "site-login.html"),
+        headers=NO_CACHE_HEADERS,
+    )
+
+
+# ── Публичная витрина записи (GAP-CLIENT-PORTAL, этап 1) ───────────────────
+# Отдельный публичный URL для рассылки клиентам (в описании компании, в
+# рассылках и т.п.) — не требует входа, использует только /api/public/*.
+@app.get("/zapis")
+def public_booking_entry():
+    return FileResponse(
+        os.path.join(STATIC_DIR, "public-booking.html"),
         headers=NO_CACHE_HEADERS,
     )
